@@ -52,7 +52,7 @@ const SignInPage: React.FC = () => {
     <section className="bg-primary min-h-screen flex items-center justify-center ">
       <Card className="w-full h-full max-w-md shadow-xl border-none py-8 gap-0">
         <CardHeader className="p-0 gap-0">
-          <Image src={logo} alt='/' width={600} height={600} className='w-30 m-auto' />
+          <Image src={logo} alt='/' width={600} height={600} className='w-40 m-auto' />
         </CardHeader>
         <CardContent className='px-12 py-8'>
           <form onSubmit={handleLogin} className="space-y-8">
