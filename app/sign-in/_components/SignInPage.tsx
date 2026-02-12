@@ -9,6 +9,7 @@ import Image from 'next/image';
 import app from '@/app.json'
 import { useRouter } from 'next/navigation';
 import logo from "@/public/logo.png"
+import { apiService } from '@/app/_utils/apiService';
 
 const SignInPage: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -19,28 +20,26 @@ const SignInPage: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Brutal Logic: Don't even try if the fields are empty
+    if (!username || !password) {
+      alert("Username and Password are required.");
+      return;
+    }
+
     try {
-      const response = await fetch('/api/sign-in', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
+      // Logic: Use the apiService we just built. 
+      // This hits Render, gets the JWT, and saves it to localStorage automatically.
+      const data = await apiService.login({ username, password });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // Login successful!
-        // The HttpOnly cookie is set automatically by the browser
-        router.push('/dashboard/appointments');
-      } else {
-        // Login failed (e.g., 401 Unauthorized)
-        alert(data.error || 'Login failed. Please check your credentials.');
+      if (data.success) {
+        // Logic: Now that the token is in localStorage, 
+        // all future calls to demographics/vitals will work.
+        router.push('/dashboard/demographic');
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Logic: apiService.handleResponse throws the actual error message from Express
       console.error('Login error:', error);
-      alert('An error occurred during sign in. Please try again.');
+      alert(error.message || 'Login failed. Please check your credentials.');
     }
   };
 

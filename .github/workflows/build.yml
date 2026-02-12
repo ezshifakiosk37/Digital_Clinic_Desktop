@@ -1,0 +1,42 @@
+name: Build Desktop Apps
+on:
+  push:
+    branches: [ main ] # Logic: Only build when you push to the main branch
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # Logic: Run 3 separate virtual machines (Linux, Mac, Windows)
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Next.js Build
+        run: npm run build # Logic: Generates the 'out' folder first
+
+      - name: Electron Forge Make
+        run: npx electron-forge make
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.os }}
+          path: |
+            out/make/**/*.deb
+            out/make/**/*.rpm
+            out/make/**/*.exe
+            out/make/**/*.dmg
+            out/make/**/*.zip

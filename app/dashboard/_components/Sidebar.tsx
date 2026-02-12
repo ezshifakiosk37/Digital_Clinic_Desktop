@@ -12,6 +12,7 @@ import { MenuItem } from '@/app/_utils/types';
 import Image from 'next/image';
 import logo from "@/public/logo2.png"
 import { usePathname, useRouter } from 'next/navigation';
+import { apiService } from '@/app/_utils/apiService';
 
 export default function Sidebar() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -19,27 +20,17 @@ export default function Sidebar() {
   const pathname = usePathname()
 
   const menuItems: MenuItem[] = [
-    { name: "Appointments", path: "/dashboard/appointments", icon: <LayoutDashboard size={20} /> },
     { name: "Demographic", path: "/dashboard/demographic", icon: <User size={20} /> },
     { name: "Vitals", path: "/dashboard/vitals", icon: <Activity size={20} /> },
+    { name: "Appointments", path: "/dashboard/appointments", icon: <LayoutDashboard size={20} /> },
   ];
 
-  const handleSignOut = async () => {
-    try {
-      const response = await fetch("/api/sign-out", {
-        method: "POST", // This MUST match the API export name
-      });
+  const handleSignOut = () => {
 
-      if (response.ok) {
-        // 1. Move the user to the sign-in page
-        router.push("/sign-in");
+    apiService.logout();
+    localStorage.removeItem('localClinic_entryId');
+    router.push("/sign-in");
 
-        // 2. Refresh the router to clear current session state from middleware
-        router.refresh();
-      }
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
   };
 
   const handleRouteChange = (path: string) => {
@@ -49,10 +40,10 @@ export default function Sidebar() {
 
   useEffect(() => {
     setActiveTab(pathname)
-  },[])
+  }, [])
 
   return (
-    <aside className="w-full px-8 bg-white border-r border-slate-200 h-screen flex flex-col sticky top-0 shrink-0">
+    <aside className="w-full px-8 shadow-xl rounded-tr-2xl shadow-black/15 bg-white border-r border-slate-200 h-screen flex flex-col sticky top-0 shrink-0">
       {/* Brand Header */}
       <div className="py-12 mb-2">
         <div className="flex items-center gap-3 px-2">
@@ -69,13 +60,13 @@ export default function Sidebar() {
             <button
               key={item.path}
               onClick={() => handleRouteChange(item.path)}
-              className={`w-full group flex cursor-pointer items-center justify-between gap-3 p-4 rounded-2xl font-semibold transition-all duration-200 relative ${isActive
-                  ? "bg-primary text-white shadow-xl shadow-blue-100 scale-[1.02]"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+              className={`w-full group flex cursor-pointer items-center justify-between gap-3 p-4 rounded-xl font-semibold transition-all duration-200 relative ${isActive
+                ? "bg-primary text-white scale-[1.02]"
+                : "text-slate-500 bg-slate-100 hover:text-slate-900"
                 }`}
             >
               <div className="flex items-center gap-3">
-                <span className={`transition-transform duration-200 ${isActive ? "scale-110" : "group-hover:scale-110"}`}>
+                <span className={`transition-transform duration-200 ${isActive ? "scale-110" : "group-hover:scale-110 group-hover:text-pirmary"}`}>
                   {item.icon}
                 </span>
                 <span className="text-sm">{item.name}</span>
@@ -91,7 +82,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-    
+
       {/* Sign Out Action */}
       <div className="p-4 border-t border-slate-400 bg-white">
         <button
