@@ -93,4 +93,16 @@ export const apiService = {
         });
         return handleResponse(response);
     },
+
+    getVitals: async (patientId: string) => {
+        // Logic: Use the dynamic ID in the URL path
+        const url = `${API_BASE_URL}/api/patients/history/${patientId}`;
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: getHeaders(), // Automatically includes your Auth token
+        });
+
+        return handleResponse(response);
+    },
 };

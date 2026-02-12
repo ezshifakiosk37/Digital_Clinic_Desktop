@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import VitalCard from './_components/VitalCard'
 import { VitalType } from '@/app/_utils/types'
 import { Button } from '@/components/ui/button'
@@ -18,6 +18,31 @@ const page = () => {
     Weight: "65"
   });
   const [loading, setLoading] = useState(false)
+  const [history, setHistory] = useState([]);
+  const [fetching, setFetching] = useState(true);
+
+  const fetchHistory = useCallback(async () => {
+    const patientId = localStorage.getItem("localClinic_entryId");
+    if (!patientId) {
+      setFetching(false);
+      return;
+    }
+
+    try {
+      const data = await apiService.getVitals(patientId);
+      setHistory(data.success ? data.vitals : []);
+    } catch (error) {
+      console.error("Fetch History Error:", error);
+    } finally {
+      setFetching(false);
+    }
+  }, []);
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  console.log(history)
+
   // Generic updater for single values
   const handleUpdate = (type: keyof typeof vitals, val: string) => {
     setVitals(prev => ({ ...prev, [type]: val }));
@@ -152,6 +177,55 @@ const page = () => {
             onChange={(val) => handleUpdate('Height', val)}
             value={vitals.Height}
           />
+        </div>
+      </section>
+
+      <section className="mt-12">
+        <h2 className="text-3xl font-extrabold text-slate-900 mb-6">History</h2>
+
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Date & Time</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Blood Pressure</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Pulse</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-700">SpO2</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Temp</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Weight/Height</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {fetching ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-slate-500">Loading history...</td>
+                </tr>
+              ) : history.length > 0 ? (
+                history.map((record: any) => (
+                  <tr key={record.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4 text-sm text-slate-600">
+                      {new Date(record.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                    </td>
+                    <td className="px-6 py-4 text-sm font-bold text-blue-600">
+                      {record.BP?.value1}/{record.BP?.value2} <span className="text-[10px] text-slate-400 font-normal">mmHg</span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-700">{record.PulseRate} <span className="text-xs text-slate-400">bpm</span></td>
+                    <td className="px-6 py-4 text-sm text-slate-700">{record.Spo2}%</td>
+                    <td className="px-6 py-4 text-sm text-slate-700">{record.Temperature}°C</td>
+                    <td className="px-6 py-4 text-sm text-slate-600">
+                      {record.Weight}kg / {record.Height}ft
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                    No history found for this patient session.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </section>
     </div>
