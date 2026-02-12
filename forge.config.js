@@ -7,7 +7,7 @@ module.exports = {
     // Logic: This is the name of the .exe or binary file
     executableName: "digital-clinic", 
     // Logic: Path to your icon (no extension needed here, Forge picks the right one)
-    icon: './public/icon' 
+    // icon: './public/icon' 
   },
   rebuildConfig: {},
   makers: [
@@ -28,7 +28,7 @@ module.exports = {
           maintainer: 'Clinic Admin',
           homepage: 'https://your-clinic-url.com',
           // Logic: Specific icon for the Linux installer
-          icon: './public/icon.png', 
+          // icon: './public/icon.png', 
           categories: ['Utility', 'Office']
         }
       },
