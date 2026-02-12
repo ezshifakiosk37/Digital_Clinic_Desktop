@@ -28,7 +28,9 @@ jobs:
         run: npm run build # Logic: Generates the 'out' folder first
 
       - name: Electron Forge Make
-        run: npx electron-forge make
+        run: |
+          npx electron-forge make --arch x64
+          npx electron-forge make --arch arm64
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
