@@ -37,11 +37,7 @@ const page = () => {
       setFetching(false);
     }
   }, []);
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
 
-  console.log(history)
 
   // Generic updater for single values
   const handleUpdate = (type: keyof typeof vitals, val: string) => {
@@ -132,6 +128,9 @@ const page = () => {
     }
   };
 
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory, handleAddVitals]);
 
 
   return (
