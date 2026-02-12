@@ -2,7 +2,7 @@
   "name": "digital-clinic",
   "version": "1.0.0",
   "description": "A comprehensive digital management system for local clinics.",
-  "author": "Your Name or Clinic Name",
+  "author": "Muhammad Ashar",
   "private": true,
   "main": "main.js",
   "scripts": {
