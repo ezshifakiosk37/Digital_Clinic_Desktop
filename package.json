@@ -1,6 +1,8 @@
 {
-  "name": "digital-clinic-desktop",
-  "version": "0.1.0",
+  "name": "digital-clinic",
+  "version": "1.0.0",
+  "description": "A comprehensive digital management system for local clinics.",
+  "author": "Your Name or Clinic Name",
   "private": true,
   "main": "main.js",
   "scripts": {
