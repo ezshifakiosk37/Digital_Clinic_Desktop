@@ -1,6 +1,6 @@
 "use client"
 import React, { useState } from 'react';
-import { LogIn, User, Lock, EyeOff, Eye } from 'lucide-react';
+import { LogIn, User, Lock, EyeOff, Eye, Loader } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -14,11 +14,13 @@ import { apiService } from '@/app/_utils/apiService';
 const SignInPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const router = useRouter()
+  const [loading, setLoading] = useState<boolean>(false)
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true)
 
     // Brutal Logic: Don't even try if the fields are empty
     if (!username || !password) {
@@ -32,6 +34,7 @@ const SignInPage: React.FC = () => {
       const data = await apiService.login({ username, password });
 
       if (data.success) {
+        setLoading(false)
         // Logic: Now that the token is in localStorage, 
         // all future calls to demographics/vitals will work.
         router.push('/dashboard/demographic');
@@ -103,6 +106,7 @@ const SignInPage: React.FC = () => {
             </div>
             <Button type="submit" className="w-full text-md py-6 mt-3 cursor-pointer">
               Sign In
+              {loading && <Loader className='animate-spin'/>}
             </Button>
           </form>
         </CardContent>

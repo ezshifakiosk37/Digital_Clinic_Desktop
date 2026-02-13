@@ -1,39 +1,53 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, protocol } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
-function createWindow() {
+// 1. Register 'app' as a standard protocol so Next.js routing works
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } }
+]);
+
+async function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
-      nodeIntegration: false, // Security best practice
+      nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'), // If you need to talk to the OS
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
-  // Logic: In development, you might load localhost. 
-  // In production (static export), we load the 'out/index.html' file.
-  const isDev = !app.isPackaged;
+  // 2. The Logic: This handles the mapping of "/sign-in" to "sign-in/index.html"
+  protocol.handle('app', async (request) => {
+    const url = new URL(request.url);
+    let relativePath = url.pathname; // This will be "/" or "/sign-in"
 
-  if (isDev) {
-    win.loadURL('http://localhost:3000');
-  } else {
-    // Logic: Use path.join to ensure cross-platform compatibility
-    win.loadFile(path.join(__dirname, 'out/index.html'));
-  }
+    // If it's the root, load index.html
+    if (relativePath === '/' || relativePath === '') {
+      relativePath = 'index.html';
+    } 
+    // If it's a route without an extension (like /sign-in), map to /sign-in/index.html
+    else if (!path.extname(relativePath)) {
+      relativePath = path.join(relativePath, 'index.html');
+    }
 
-  // Optional: Open DevTools automatically in dev mode
-  if (isDev) win.webContents.openDevTools();
+    // Strip leading slash for path.join
+    const finalPath = path.join(__dirname, 'out', relativePath.startsWith('/') ? relativePath.substring(1) : relativePath);
+
+    try {
+      return new Response(fs.readFileSync(finalPath));
+    } catch (e) {
+      console.error("Protocol Error: Could not find file at", finalPath);
+      return new Response("Not Found", { status: 404 });
+    }
+  });
+
+  // 3. Load using the custom protocol
+  win.loadURL('app://-/');
 }
 
-app.whenReady().then(() => {
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
+app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

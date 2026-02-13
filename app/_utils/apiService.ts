@@ -47,7 +47,7 @@ export const apiService = {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('localClinic_entryId');
-        window.location.href = '/login';
+        window.location.href = '/sign-in';
     },
     // GET: Find by phone (mapped to router.get('/'))
     findPatientByPhone: async (phone: string) => {

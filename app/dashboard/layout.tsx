@@ -19,7 +19,7 @@ export default function DashboardLayout({
         if (!token) {
             // Logic: Redirect to sign-in if no token is found
             console.warn("No token found, redirecting to sign-in.");
-            router.push("/sign-in"); // Double check if your path is /sign-in or /login
+            router.push("/sign-in");
         } else {
             setIsAuthorized(true);
         }
