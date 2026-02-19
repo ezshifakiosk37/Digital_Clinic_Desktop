@@ -1,15 +1,15 @@
 name: Build Desktop Apps
 on:
   push:
-    branches: [ main ] # Logic: Only build when you push to the main branch
+    branches: [ main ] 
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # Logic: Run 3 separate virtual machines (Linux, Mac, Windows)
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # Removed macos-latest to save time and storage
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - name: Checkout Code
@@ -25,20 +25,23 @@ jobs:
         run: npm install
 
       - name: Run Next.js Build
-        run: npm run build # Logic: Generates the 'out' folder first
+        run: npm run build
 
       - name: Electron Forge Make
-        run: |
-          npx electron-forge make --arch x64
-          npx electron-forge make --arch arm64
+        # Note: Building both x64 and arm64 doubles your storage usage.
+        # If your clinic kiosks are standard PCs, you only need x64.
+        run: npx electron-forge make --arch x64
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: installers-${{ matrix.os }}
+          # Logic: Only upload relevant files for the current OS
           path: |
             out/make/**/*.deb
             out/make/**/*.rpm
             out/make/**/*.exe
-            out/make/**/*.dmg
-            out/make/**/*.zip
+          # CRITICAL: This fixes your "Storage Quota Hit" error.
+          # It deletes the file from GitHub after 1 day.
+          retention-days: 1
+          if-no-files-found: error
