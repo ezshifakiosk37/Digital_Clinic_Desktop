@@ -4,37 +4,43 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 module.exports = {
   packagerConfig: {
     asar: true,
-    // Logic: This is the name of the .exe or binary file
     executableName: "digital-clinic", 
-    // Logic: Path to your icon (no extension needed here, Forge picks the right one)
-    // icon: './public/icon' 
   },
   rebuildConfig: {},
   makers: [
     {
-      name: '@electron-forge/maker-squirrel', // Windows
+      name: '@electron-forge/maker-squirrel',
       config: {
         name: "digital_clinic"
       },
     },
     {
-      name: '@electron-forge/maker-zip', // macOS
+      name: '@electron-forge/maker-zip',
       platforms: ['darwin'],
     },
     {
-      name: '@electron-forge/maker-deb', // Linux (Ubuntu/Debian)
+      name: '@electron-forge/maker-deb',
       config: {
         options: {
-          maintainer: 'Clinic Admin',
+          maintainer: 'Muhammad Ashar',
           homepage: 'https://your-clinic-url.com',
-          // Logic: Specific icon for the Linux installer
-          // icon: './public/icon.png', 
-          categories: ['Utility', 'Office']
+          categories: ['Utility', 'Office'],
+          // CRITICAL: These are the libraries Electron needs to actually boot.
+          // Without these, the GUI installer might fail or the app won't open.
+          depends: [
+            'libnss3',
+            'libatk1.0-0',
+            'libatk-bridge2.0-0',
+            'libcups2',
+            'libgtk-3-0',
+            'libgbm1',
+            'libasound2'
+          ],
         }
       },
     },
     {
-      name: '@electron-forge/maker-rpm', // Linux (Fedora/RedHat)
+      name: '@electron-forge/maker-rpm',
       config: {},
     },
   ],

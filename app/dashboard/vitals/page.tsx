@@ -55,39 +55,6 @@ const page = () => {
     }));
   };
 
-  // const handleAddVitals = async () => {
-  //   const patientId = localStorage.getItem("localClinic_entryId");
-
-  //   if (!patientId) {
-  //     alert("No patient found. Please select a patient first.");
-  //     return;
-  //   }
-
-  //   setLoading(true);
-  //   try {
-  //     const response = await fetch('/api/save-vitals', {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({
-  //         patientId,
-  //         vitals // This matches the body structure your API expects
-  //       }),
-  //     });
-
-  //     const result = await response.json();
-
-  //     if (!response.ok) throw new Error(result.error || "Failed to save");
-
-  //     alert("Vitals added successfully!");
-  //     // Optional: Reset form or redirect
-  //   } catch (error: any) {
-  //     console.error("Save Error:", error);
-  //     alert(error.message || "Something went wrong");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const handleAddVitals = async () => {
     // Logic: Identify who these vitals belong to.
     const patientId = localStorage.getItem("localClinic_entryId");

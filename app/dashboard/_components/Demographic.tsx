@@ -58,8 +58,6 @@ const App: React.FC = () => {
         // 3. Track the ID for the 'Update' logic later
         setEntryId(data.entryId);
         localStorage.setItem("localClinic_entryId", data.entryId);
-
-        alert("Existing record found and loaded.");
       } else {
         // Logic: No data means the phone doesn't exist yet
         setEntryId(null);
@@ -149,7 +147,7 @@ const App: React.FC = () => {
                     variant="secondary"
                     onClick={handleFindUser}
                     disabled={isFinding || !form.phoneNumber}
-                    className='py-6 '
+                    className='py-6 cursor-pointer'
                   >
                     {isFinding ? <Loader2 color='white' className="w-5 h-5 animate-spin" /> : <Search color='white' className="w-5 h-5" />}
                     <span className="hidden sm:inline text-white">Find</span>
