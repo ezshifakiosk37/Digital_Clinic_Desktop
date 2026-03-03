@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://api-for-digital-clinic-desktop.onrender.com"; // Adjust based on your Render URL
+const API_BASE_URL = "https://bifurcation-clinic-api.vercel.app"; // Adjust based on your Render URL
 
 /**
  * Logic: Centralized Error Handler
