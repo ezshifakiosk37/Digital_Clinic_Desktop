@@ -4,6 +4,10 @@ import VitalCard from './_components/VitalCard'
 import { VitalType } from '@/app/_utils/types'
 import { Button } from '@/components/ui/button'
 import { apiService } from '@/app/_utils/apiService'
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable"; ;
 import {
   Dialog,
   DialogContent,
@@ -28,6 +32,7 @@ const page = () => {
   const [tokenNumber, setTokenNumber] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [openTokenDialog, setOpenTokenDialog] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
 
   const fetchHistory = useCallback(async () => {
     const patientId = localStorage.getItem("localClinic_entryId");
@@ -78,6 +83,46 @@ const page = () => {
   useEffect(() => {
     fetchHistory();
   }, [fetchHistory]);
+  const exportToExcel = () => {
+  if (!history.length) return;
+
+  const data = history.map((rec: any) => ({
+    "Date & Time": new Date(rec.createdAt).toLocaleString(),
+    "Blood Pressure": `${rec.BP?.value1}/${rec.BP?.value2} mmHg`,
+    Pulse: `${rec.PulseRate} bpm`,
+    SpO2: `${rec.Spo2}%`,
+    Temperature: `${rec.Temperature}°C`,
+    "Weight/Height": `${rec.Weight}kg / ${rec.Height}ft`
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "VitalsHistory");
+  const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  saveAs(new Blob([buf]), "Patient_History.xlsx");
+};
+
+const exportToPDF = () => {
+  if (!history.length) return;
+
+  const doc = new jsPDF();
+  const tableData = history.map((rec: any) => [
+    new Date(rec.createdAt).toLocaleString(),
+    `${rec.BP?.value1}/${rec.BP?.value2} mmHg`,
+    `${rec.PulseRate} bpm`,
+    `${rec.Spo2}%`,
+    `${rec.Temperature}°C`,
+    `${rec.Weight}kg / ${rec.Height}ft`
+  ]);
+
+  autoTable(doc, {
+    head: [["Date & Time", "Blood Pressure", "Pulse", "SpO2", "Temp", "Weight/Height"]],
+    body: tableData,
+    startY: 10
+  });
+
+  doc.save("Patient_History.pdf");
+};
 
   return (
     <div className="pr-6 py-12 relative">
@@ -156,45 +201,71 @@ const page = () => {
       </section>
 
       {/* History */}
-      <section className="mt-12">
-        <h2 className="text-3xl font-extrabold text-slate-900 mb-6">History</h2>
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Date & Time</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Blood Pressure</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Pulse</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-700">SpO2</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Temp</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Weight/Height</th>
+      {/* History Toggle */}
+<div className="mt-12">
+  <Button 
+    onClick={() => setShowHistory(prev => !prev)}
+    className="mb-4"
+  >
+    {showHistory ? "Hide History" : "Show History"}
+  </Button>
+
+  {showHistory && (
+    <>
+    <div className="flex gap-4 mb-4">
+      <Button onClick={exportToExcel}>Download Excel</Button>
+      <Button onClick={exportToPDF}>Download PDF</Button>
+    </div>
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="bg-slate-50 border-b border-slate-200">
+            <th className="px-6 py-4 text-sm font-semibold text-slate-700">Date & Time</th>
+            <th className="px-6 py-4 text-sm font-semibold text-slate-700">Blood Pressure</th>
+            <th className="px-6 py-4 text-sm font-semibold text-slate-700">Pulse</th>
+            <th className="px-6 py-4 text-sm font-semibold text-slate-700">SpO2</th>
+            <th className="px-6 py-4 text-sm font-semibold text-slate-700">Temp</th>
+            <th className="px-6 py-4 text-sm font-semibold text-slate-700">Weight/Height</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {fetching ? (
+            <tr>
+              <td colSpan={6} className="px-6 py-10 text-center text-slate-500">
+                Loading history...
+              </td>
+            </tr>
+          ) : history.length > 0 ? (
+            history.map((record: any) => (
+              <tr key={record.id} className="hover:bg-slate-50/50 transition-colors">
+                <td className="px-6 py-4 text-sm text-slate-600">
+                  {new Date(record.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                </td>
+                <td className="px-6 py-4 text-sm font-bold text-blue-600">
+                  {record.BP?.value1}/{record.BP?.value2} 
+                  <span className="text-[10px] text-slate-400 font-normal">mmHg</span>
+                </td>
+                <td className="px-6 py-4 text-sm text-slate-700">
+                  {record.PulseRate} <span className="text-xs text-slate-400">bpm</span>
+                </td>
+                <td className="px-6 py-4 text-sm text-slate-700">{record.Spo2}%</td>
+                <td className="px-6 py-4 text-sm text-slate-700">{record.Temperature}°C</td>
+                <td className="px-6 py-4 text-sm text-slate-600">{record.Weight}kg / {record.Height}ft</td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {fetching ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-slate-500">Loading history...</td>
-                </tr>
-              ) : history.length > 0 ? (
-                history.map((record: any) => (
-                  <tr key={record.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4 text-sm text-slate-600">{new Date(record.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</td>
-                    <td className="px-6 py-4 text-sm font-bold text-blue-600">{record.BP?.value1}/{record.BP?.value2} <span className="text-[10px] text-slate-400 font-normal">mmHg</span></td>
-                    <td className="px-6 py-4 text-sm text-slate-700">{record.PulseRate} <span className="text-xs text-slate-400">bpm</span></td>
-                    <td className="px-6 py-4 text-sm text-slate-700">{record.Spo2}%</td>
-                    <td className="px-6 py-4 text-sm text-slate-700">{record.Temperature}°C</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{record.Weight}kg / {record.Height}ft</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">No history found for this patient session.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                No history found for this patient session.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+    </>
+  )}
+</div>
     </div>
   )
 }
