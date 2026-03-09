@@ -86,7 +86,7 @@ const page = () => {
         {/* Dark overlay but still see page */}
         <DialogOverlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" />
         
-        {/* Centered dialog */}
+        {/* dialog */}
         <DialogContent
           onInteractOutside={(e) => e.preventDefault()}
           className="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2"
