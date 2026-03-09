@@ -38,9 +38,9 @@ export default function DashboardLayout({
 
     return (
         <div className="flex gap-6 min-h-screen bg-[#0296d610]">
-            <aside className="w-120">
+            {/* <aside className="w-120">
                 <Sidebar />
-            </aside>
+            </aside> */}
 
             <main className="w-full min-h-screen">
                 {children}
