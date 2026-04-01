@@ -1,13 +1,8 @@
-const API_BASE_URL = "https://bifurcation-clinic-api.vercel.app"; // Adjust based on your Render URL
+const API_BASE_URL = "https://bifurcation-clinic-api.vercel.app";
 
-/**
- * Logic: Centralized Error Handler
- * This avoids repeating try/catch blocks for every single fetch call.
- */
 const handleResponse = async (response: Response) => {
     const data = await response.json();
     if (!response.ok) {
-        // If unauthorized, you might want to redirect to login
         if (response.status === 401) {
             console.warn("Unauthorized: Clearing token and redirecting.");
             localStorage.removeItem('token');
@@ -27,14 +22,13 @@ export const apiService = {
     login: async (credentials: Record<string, any>) => {
         const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }, // No Auth header needed
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(credentials),
         });
 
         const data = await handleResponse(response);
 
         if (data.token) {
-            // Logic: Store the token so getHeaders() can use it for subsequent calls
             localStorage.setItem('token', data.token);
             if (data.user) {
                 localStorage.setItem('user', JSON.stringify(data.user));
@@ -49,26 +43,21 @@ export const apiService = {
         localStorage.removeItem('localClinic_entryId');
         window.location.href = '/sign-in';
     },
-    // GET: Find by phone (mapped to router.get('/'))
+
     findPatientByPhone: async (phone: string) => {
         const response = await fetch(`${API_BASE_URL}/api/patients/?phone=${phone}`, {
             method: 'GET',
             headers: getHeaders(),
         });
-        // Special case: 404 isn't necessarily an "error" for a search, just "not found"
         if (response.status === 404) return null;
         return handleResponse(response);
     },
 
     saveOrUpdatePatient: async (patientData: Record<string, any>, id?: string | null) => {
-        // Logic: Create a clean payload. 
-        // We strip out the 'id' from patientData and explicitly set it 
-        // to ensure the backend receives a clean 'id' key for its conditional logic.
         const { id: _, ...fields } = patientData;
-
         const payload = {
             ...fields,
-            id: id || undefined, // If null or empty, send undefined so the backend ignores it
+            id: (id && id !== "null") ? id : undefined,
         };
 
         const response = await fetch(`${API_BASE_URL}/api/patients/save`, {
@@ -80,29 +69,45 @@ export const apiService = {
         return handleResponse(response);
     },
 
+    // --- NEW: VERIFY TOKEN METHOD ---
+    verifyToken: async (token: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/patients/verify-token/${token}`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+        return handleResponse(response);
+    },
+
     saveVitals: async (patientId: string, vitalsData: any) => {
         const url = `${API_BASE_URL}/api/patients/save-vitals`;
-
         const response = await fetch(url, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify({
-                patientId, // The ID at the top level
-                vitals: vitalsData // The WHOLE object (PulseRate, BP, etc.) at the 'vitals' key
+                patientId,
+                vitals: vitalsData
             }),
         });
         return handleResponse(response);
     },
 
     getVitals: async (patientId: string) => {
-        // Logic: Use the dynamic ID in the URL path
         const url = `${API_BASE_URL}/api/patients/history/${patientId}`;
-
         const response = await fetch(url, {
             method: 'GET',
-            headers: getHeaders(), // Automatically includes your Auth token
+            headers: getHeaders(),
         });
+        return handleResponse(response);
+    },
 
+    getVitalsByPhone: async (phone: string) => {
+        // Changed process.env to API_BASE_URL and added /api prefix
+        // Added handleResponse to properly manage non-JSON responses
+        const response = await fetch(`${API_BASE_URL}/api/vitals/history-by-phone/${phone}`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+        
         return handleResponse(response);
     },
 };

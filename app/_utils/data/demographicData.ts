@@ -1,95 +1,115 @@
 export type DemographicField = {
   key: string;
   question: string;
-  type: "text" | "radio" | "select";
+  type: "text" | "radio" | "select"| "date";
   placeHolder?: string;
   options?: string[];
   inputType?: string;
 };
 
 export const demographic: DemographicField[] = [
-  {
-    key: "phoneNumber",
+  { key: "phoneNumber",
     question: "Phone Number",
     type: "text",
-    placeHolder: "03XXXXXXXXX",
-    inputType: "tel",
+    placeHolder: "3331111111",
+    inputType: "tel" 
   },
+
+  { key: "firstName",
+    question: "First Name",
+    type: "text", 
+    placeHolder: "Enter first name" 
+  },
+
+  { key: "lastName", 
+    question: "Last Name", 
+    type: "text", 
+    placeHolder: "Enter last name" 
+  },
+
+  { key: "father_husband", 
+    question: "Father/Husband Name", 
+    type: "text", 
+    placeHolder: "Enter father/husband name" 
+  },
+  
+  { key: "email", 
+    question: "Email", 
+    type: "text", 
+    placeHolder: "email@example.com" 
+  },
+
+  { key: "cnic", 
+    question: "CNIC", 
+    type: "text", 
+    placeHolder: 
+    "6110111111111" 
+  },
+
+  { key: "dob", 
+    question: "Date of Birth", 
+    type: "date" 
+  },
+
+  { key: "age", 
+    question: "Age", 
+    type: "text", 
+    placeHolder: "0" 
+  },
+
+  { 
+    key: "languages", 
+    question: "Languages", 
+    type: "select",
+  },
+
+  { key: "medicalHistory", 
+    question: "Medical History", 
+    type: "select", 
+    options: ["Diabetes", "Hypertension", "Asthma", "Other"] 
+  },
+
+  { key: "medicineHistory", 
+    question: "Medicine History", 
+    type: "select", 
+    options: ["Insulin", "Metformin", "Aspirin", "Other"] 
+  },
+
+  { 
+    key: "allergies", 
+    question: "Allergies", 
+    type: "select", 
+    options: ["Peanuts", "Dust", "Penicillin", "None", "Other"] 
+  },
+
   {
-    key: "firstName",
-    question: "first Name",
-    type: "text",
-    placeHolder: "Enter your first name",
-    inputType: "text",
+    key:"surgicalHistory",
+    question:"Surgical History",
+    type: "radio", 
+    options: ["Yes", "No"]
   },
-  {
-    key: "lastName",
-    question: "Last Name",
-    type: "text",
-    placeHolder: "Enter your last name",
-    inputType: "text",
-  },
-  {
-    key: "father_husband",
-    question: "Father / Husband Name",
-    type: "text",
-    placeHolder: "Enter name",
-    inputType: "text",
-  },
-  {
-    key: "age",
-    question: "Age",
-    type: "text",
-    placeHolder: "Enter age",
-    inputType: "number",
-  },
-  {
-    key: "gender",
-    question: "Gender",
-    type: "radio",
-    options: ["Male", "Female", "Other"],
-    inputType: "text", // optional for radios
-  },
-  // {
-  //   key: "qualification",
-  //   question: "Qualification (Select One)",
-  //   type: "select",
-  //   options: [
-  //     "Primary",
-  //     "Middle",
-  //     "Matric (10th)",
-  //     "Intermediate / FA / FSC (12th)",
-  //     "Diploma / DAE",
-  //     "Bachelor’s Degree",
-  //     "Master’s Degree",
-  //     "MPhil",
-  //     "PhD",
-  //     "Professional Certification",
-  //     "No Formal Education",
-  //   ],
-  //   inputType: "text",
-  // },
-  // {
-  //   key: "profession",
-  //   question: "Occupation (Select One):",
-  //   type: "select",
-  //   options: [
-  //     "Student",
-  //     "Self-Employed",
-  //     "Business Owner",
-  //     "Job Holder / Employee",
-  //     "Freelancer",
-  //     "Housewife / Homemaker",
-  //     "Unemployed",
-  //     "Retired",
-  //     "Government Employee",
-  //     "Private Sector Employee",
-  //     "Daily Wage Worker",
-  //     "Teacher / Education Sector",
-  //     "Healthcare Professional",
-  //     "Driver / Rider",
-  //     "Shopkeeper",
-  //   ],
-  //   inputType: "text",
-  // },
+
+{ 
+  key: "stAddress", 
+  question: "Street Address", 
+  type: "text", 
+  placeHolder: "House #, Street..." 
+},
+{ 
+  key: "country", 
+  question: "Country", 
+  type: "select" 
+},
+{ 
+  key: "province", 
+  question: "Province", 
+  type: "select" 
+},
+{ 
+  key: "city", 
+  question: "City", 
+  type: "select" 
+},
+
 ];
+

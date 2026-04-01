@@ -82,5 +82,11 @@ body{
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
 }
-
-
+@layer base {
+  /* This targets inputs and selects without causing Tailwind errors */
+  input:not([type="button"]):not([type="submit"]), 
+  select {
+    background-color: rgba(248, 250, 252, 0.5) !important; /* slate-50/50 */
+    border-color: rgba(241, 245, 249, 0.8) !important;    /* slate-100/80 */
+  }
+}

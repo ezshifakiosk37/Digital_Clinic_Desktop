@@ -31,7 +31,7 @@ export const VITAL_CONFIGS = {
     ),
   },
   [VitalType.TEMPERATURE]: {
-    unit: '°F',
+    unit: '°C',
     placeholder: '98.6',
     icon: (className: string) => (
       <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">

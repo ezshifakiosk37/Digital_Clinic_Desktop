@@ -39,8 +39,6 @@ const VitalCard: React.FC<VitalCardProps> = ({
         </div>
       </div>
 
-
-
       <div className="flex items-baseline justify-between w-full">
         {isEditable ? (
           isDualValue ? (

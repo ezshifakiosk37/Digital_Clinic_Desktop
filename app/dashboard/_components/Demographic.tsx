@@ -1,263 +1,510 @@
 'use client'
-import React, { useState } from 'react';
-import {
-  User,
-  Search,
-  Loader2,
-  ChevronRight,
-  Info,
-  Mail,
-  Globe,
-  PhoneCall,
-  ShieldCheck,
-  ChevronDown,
-  Check
-} from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Check, ChevronsUpDown, Loader2, ChevronRight, RotateCcw, User, MapPin, Activity } from 'lucide-react';
+import { Country, State, City } from 'country-state-city';
 import { demographic } from '../../_utils/data/demographicData';
-import { FormData, DemographicField } from '../../_utils/types';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/customselect';
+import { cn } from "@/lib/utils"
 import { apiService } from '@/app/_utils/apiService';
+import ISO6391 from 'iso-639-1';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogOverlay
+} from "@/components/ui/dialog";
 
-const App: React.FC = () => {
-  const [form, setForm] = useState<FormData>({});
-  // This state tracks if we are editing an existing record
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+
+const DemographicPage: React.FC = () => {
+  const [form, setForm] = useState<any>({
+    country: '',
+    province: '',
+    city: '',
+    phoneNumber: '',
+    gender: '',
+    countryCode: '+92'
+  });
+
   const [entryId, setEntryId] = useState<string | null>(null);
-  const [isFinding, setIsFinding] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isFinding, setIsFinding] = useState<{ [key: string]: boolean }>({ phone: false, cnic: false });
+  const [isSaving, setIsSaving] = useState(false); // New Loading State
+  const [showOther, setShowOther] = useState<{ [key: string]: boolean }>({});
+  const [openCode, setOpenCode] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [showTokenDialog, setShowTokenDialog] = useState(false);
 
-  const updateForm = (key: string, value: string) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const countries = useMemo(() => Country.getAllCountries(), []);
+  const states = useMemo(() => form.country ? State.getStatesOfCountry(form.country) : [], [form.country]);
+  const cities = useMemo(() => (form.country && form.province) ? City.getCitiesOfState(form.country, form.province) : [], [form.country, form.province]);
+
+  const toggleSelection = (key: string, value: string) => {
+    const currentValues = Array.isArray(form[key]) ? form[key] : [];
+    const newValues = currentValues.includes(value)
+      ? currentValues.filter((v: string) => v !== value)
+      : [...currentValues, value];
+    updateForm(key, newValues);
+  };
+
+  const updateForm = (key: string, value: any) => {
+    setForm((prev: any) => {
+      const updated = { ...prev, [key]: value };
+      if (key === 'country') { updated.province = ''; updated.city = ''; }
+      if (key === 'province') { updated.city = ''; }
+      if (key === 'dob') {
+        const birthDate = new Date(value);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+        updated.age = age.toString();
+      }
+      else if (key === 'age') {
+        const ageNum = parseInt(value);
+        if (!isNaN(ageNum)) {
+          const today = new Date();
+          const birthYear = today.getFullYear() - ageNum;
+          updated.dob = `${birthYear}-01-01`;
+        }
+      }
+      return updated;
+    });
+
+    if (["medicalHistory", "medicineHistory", "allergies"].includes(key)) {
+      setShowOther(prev => ({ ...prev, [key]: value === "Other" }));
+    }
+  };
+
+  const handleSearch = async (searchType: 'phone' | 'cnic') => {
+    const value = searchType === 'phone' ? form.phoneNumber : form.cnic;
+    if (!value) return alert(`Please enter ${searchType} to search.`);
+
+    setIsFinding(prev => ({ ...prev, [searchType]: true }));
+    try {
+      const data = await apiService.findPatientByPhone(value);
+      if (data && data.fields) {
+        // Logic: Ensure backend fields map correctly to form keys
+        // If backend returns 'stAddress', the input with value={form.stAddress} will now work
+        setForm({
+          ...data.fields,
+          // Provide defaults for UI components that might break on null
+          phoneNumber: data.fields.phoneNumber || form.phoneNumber,
+          countryCode: data.fields.countryCode || form.countryCode,
+          country: data.fields.country || '',
+          province: data.fields.province || '',
+          city: data.fields.city || '',
+          medicalHistory: Array.isArray(data.fields.medicalHistory) ? data.fields.medicalHistory : [],
+          medicineHistory: Array.isArray(data.fields.medicineHistory) ? data.fields.medicineHistory : [],
+          allergies: Array.isArray(data.fields.allergies) ? data.fields.allergies : [],
+        });
+        setEntryId(data.entryId);
+      } else {
+        alert("No record found. Please fill in the details.");
+      }
+    } catch (error: any) {
+      alert(error.message || "Search failed.");
+    } finally {
+      setIsFinding(prev => ({ ...prev, [searchType]: false }));
+    }
+  };
+
+  // handleNextStep with this:
+  const handleNextStep = async () => {
+    const required = ['phoneNumber', 'firstName', 'gender', 'dob', 'languages'];
+    const missing = required.filter(field => !form[field]);
+
+    if (missing.length > 0) return alert(`Required: ${missing.join(', ')}`);
+
+    setIsSaving(true);
+    try {
+      const finalData = { ...form };
+      ['medicalHistory', 'medicineHistory', 'allergies'].forEach(key => {
+        if (Array.isArray(finalData[key]) && finalData[key].includes("Other")) {
+          const customValue = finalData[`${key}Custom`];
+          if (customValue) {
+            finalData[key] = finalData[key].map((v: string) => v === "Other" ? customValue : v);
+          }
+        }
+      });
+
+      const response = await apiService.saveOrUpdatePatient(finalData, entryId);
+
+      if (response.success) {
+        setEntryId(response.entryId);
+        // --- NEW LOGIC HERE ---
+        setToken(response.token); // Store the token (e.g., "0001")
+        setShowTokenDialog(true); // Show the success popup
+      }
+    } catch (error: any) {
+      alert(error.message || "Failed to save details.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const resetForm = () => {
+    setForm({ country: '', province: '', city: '', countryCode: '+92' });
+    setEntryId(null);
+    setShowOther({});
   };
 
   const getField = (key: string) => demographic.find(f => f.key === key);
 
-  const handleFindUser = async () => {
-    const phoneNumber = form["phoneNumber"];
-
-    // Logic Check: Don't waste a network request on invalid data
-    if (!phoneNumber || phoneNumber.length < 5) {
-      alert("Please enter a valid phone number first.");
-      return;
-    }
-
-    setIsFinding(true);
-
-    try {
-      // 1. Call the centralized service instead of raw fetch
-      const data = await apiService.findPatientByPhone(phoneNumber);
-
-      if (data) {
-        // 2. Fill the form with the returned data
-        // Note: Backend returns { entryId, fields: { ... } }
-        setForm(data.fields);
-
-        // 3. Track the ID for the 'Update' logic later
-        setEntryId(data.entryId);
-        localStorage.setItem("localClinic_entryId", data.entryId);
-      } else {
-        // Logic: No data means the phone doesn't exist yet
-        setEntryId(null);
-        alert("No existing record found. You can create a new one.");
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const inputs = Array.from(document.querySelectorAll('input, select'));
+      const index = inputs.indexOf(e.target as any);
+      if (index > -1 && inputs[index + 1]) {
+        (inputs[index + 1] as HTMLElement).focus();
       }
-    } catch (error: any) {
-      // Logic: Catch real errors (401 Unauthorized, 500 Server Error)
-      console.error("Search Error:", error);
-      setEntryId(null);
-      alert(error.message || "An error occurred while searching.");
-    } finally {
-      setIsFinding(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitted(true);
-
-    try {
-      // Logic: Use the service instead of manual fetch.
-      // We pass the form data and the current entryId (which is null for new patients).
-      const data = await apiService.saveOrUpdatePatient(form, entryId);
-
-      // Logic: apiService already throws an error if !response.ok, 
-      // so if we are here, data.success is guaranteed.
-      localStorage.setItem("localClinic_entryId", data.entryId);
-
-      alert(entryId
-        ? 'Patient record updated successfully!'
-        : 'New patient profile created successfully!'
-      );
-
-      // Reset state to prepare for the next patient/entry
-      setForm({});
-      setEntryId(null);
-
-    } catch (error: any) {
-      // Brutal Truth: Generic "Failed to save" alerts are useless for debugging.
-      // We display the actual error message returned from your Render API.
-      console.error("Submission Error:", error);
-      alert(`Submission Failed: ${error.message || "Unknown Error"}`);
-    } finally {
-      setIsSubmitted(false);
-    }
-  };
+  const languageList = useMemo(() => {
+    return ISO6391.getAllCodes().map(code => ({
+      code,
+      name: ISO6391.getName(code),
+      nativeName: ISO6391.getNativeName(code)
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, []);
 
   return (
-    <div className="min-h-screen text-slate-900 py-12 pr-6 flex flex-col items-center ">
-
-      <div className="w-full max-w-4xl relative z-10">
-        {/* Page Header */}
-        <header className="text-center mb-10">
-          <div className="inline-flex p-3 rounded-2xl bg-white shadow-xl shadow-blue-500/10 border border-slate-100 mb-6">
-            <User className="w-10 h-10 text-[#0297d6]" strokeWidth={2.5} />
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center">
+      <div className="w-full bg-[#0297d6] pt-6 pb-12 px-6 text-white text-center">
+        <div className="max-w-4xl gap-4 mx-auto flex flex-col md:flex-row items-center justify-center">
+          <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm shrink-0">
+            <Activity className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-4xl mb-4">
-            Demographic Information
-          </h1>
-          <p className="text-slate-500 mx-auto font-medium">
-            Please provide your details below to finalize your registration profile.
-          </p>
-        </header>
+          <div className="flex flex-col md:flex-row md:items-baseline md:gap-3 items-center text-center md:text-left">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Jubilee Life Insurance</h1>
+            <span className="hidden md:inline opacity-60 text-xl">|</span>
+            <p className="opacity-90 text-xs md:text-sm whitespace-nowrap">Site: Gulistan-e-Jauhar, Block 12 • Digital Health Portal</p>
+          </div>
+        </div>
+      </div>
 
-        <Card className='shadow-xl shadow-black/15 border-none'>
-          <div className="p-8 sm:p-14">
-            <form onSubmit={handleSubmit} className="space-y-10">
+      <Card className="w-full py-2 max-w-3xl -mt-10 shadow-2xl border-none rounded-t-[2.5rem] bg-white overflow-hidden mb-12">
+        <div className="px-8 pt-2 flex items-center gap-3">
+          <div className="p-2 bg-blue-50 rounded-full">
+            <User className="w-6 h-6 text-[#0297d6]" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-800">Patient Details</h2>
+        </div>
 
-              {/* Phone Number with Find Action */}
-              <div className="space-y-3">
-                <Label required className='text-sm font-semibold text-primary tracking-wider'>{getField('phoneNumber')?.question.toUpperCase()}</Label>
-                <div className="flex gap-3">
-                  <div className="relative flex-1">
-                    <Input
-                      required
-                      type="tel"
-                      placeholder={getField('phoneNumber')?.placeHolder}
-                      value={form.phoneNumber || ""}
-                      maxLength={11}
-                      onChange={(e) => updateForm('phoneNumber', e.target.value)}
-                      className="pl-12 py-6"
-                    />
-                    <PhoneCall className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleFindUser}
-                    disabled={isFinding || !form.phoneNumber}
-                    className='py-6 cursor-pointer'
-                  >
-                    {isFinding ? <Loader2 color='white' className="w-5 h-5 animate-spin" /> : <Search color='white' className="w-5 h-5" />}
-                    <span className="hidden sm:inline text-white">Find</span>
-                  </Button>
-                </div>
-              </div>
+        <form className="md:py-4 px-8 space-y-6 bg-white" onSubmit={(e) => e.preventDefault()}>
+          {/* Phone Search */}
+          <div className="grid grid-cols-1 gap-2">
+            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Phone Number *</Label>
+            <div className="flex gap-3 h-11">
+              <div className="flex flex-1 overflow-hidden rounded-md border border-slate-100 focus-within:ring-1 focus-within:ring-[#0297d6]">
+                <Popover open={openCode} onOpenChange={setOpenCode}>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" className="w-25 h-full rounded-none bg-slate-100 border-r px-3 text-xs font-bold">
+                      {form.countryCode || "+92"}
+                      <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-50 p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search code..." className="h-9" />
+                      <CommandList>
+                        <CommandEmpty>No code found.</CommandEmpty>
+                        <CommandGroup className="max-h-60 overflow-y-auto">
+                          {countries.map((c) => (
+                            <CommandItem
+                              key={c.isoCode}
+                              onSelect={() => {
+                                updateForm('countryCode', `+${c.phonecode.replace('+', '')}`)
+                                setOpenCode(false)
+                              }}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", form.countryCode === `+${c.phonecode.replace('+', '')}` ? "opacity-100" : "opacity-0")} />
+                              <span className="flex-1">{c.name}</span>
+                              <span className="text-slate-400">+{c.phonecode.replace('+', '')}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
 
-              {/* Name and Age - Side by Side */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                <div className="md:col-span-4 space-y-3">
-                  <Label required className='text-sm font-semibold text-primary tracking-wider'>{getField('firstName')?.question.toUpperCase()}</Label>
-                  <Input
-                    required
-                    placeholder={getField('firstName')?.placeHolder}
-                    value={form.firstName || ""}
-                    type='text'
-                    onChange={(e) => updateForm('firstName', e.target.value)}
-                  />
-                </div>
-                <div className="md:col-span-4 space-y-3">
-                  <Label required className='text-sm font-semibold text-primary tracking-wider'>{getField('lastName')?.question.toUpperCase()}</Label>
-                  <Input
-                    required
-                    placeholder={getField('lastName')?.placeHolder}
-                    value={form.lastName || ""}
-                    type='text'
-                    onChange={(e) => updateForm('lastName', e.target.value)}
-                  />
-                </div>
-                <div className="md:col-span-4 space-y-3">
-                  <Label required className='text-sm font-semibold text-primary tracking-wider'>{getField('age')?.question.toUpperCase()}</Label>
-                  <Input
-                    required
-                    type="number"
-                    placeholder={getField('age')?.placeHolder}
-                    value={form.age || ""}
-                    onChange={(e) => updateForm('age', e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Father / Husband Name */}
-              <div className="space-y-3">
-                <Label required className='text-sm font-semibold text-primary tracking-wider'>{getField('father_husband')?.question.toUpperCase()}</Label>
                 <Input
-                  required
-                  placeholder={getField('father_husband')?.placeHolder}
-                  value={form.father_husband || ""}
-                  onChange={(e) => updateForm('father_husband', e.target.value)}
+                  className="border-none focus-visible:ring-0 h-full flex-1 rounded-none"
+                  placeholder="3331111111"
+                  value={form.phoneNumber || ""}
+                  onChange={(e) => updateForm('phoneNumber', e.target.value)}
                 />
               </div>
 
-              {/* Gender - Radio Buttons */}
-              <div className="space-y-3">
-                <Label required className='text-sm font-semibold text-primary tracking-wider'>{getField('gender')?.question.toUpperCase()}</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {getField('gender')?.options?.map(opt => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => updateForm('gender', opt)}
-                      className={`
-                        flex items-center justify-between px-5 py-4 rounded-xl border-2 text-left transition-all duration-300
-                        ${form.gender === opt
-                          ? 'border-[#0297d6] bg-blue-50/50 ring-2 ring-[#0297d6]/10 shadow-sm'
-                          : 'bg-white border border-black/20'}
-                      `}
-                    >
-                      <span className={`font-semibold text-sm ${form.gender === opt ? 'text-[#0297d6]' : 'text-slate-600'}`}>
-                        {opt}
-                      </span>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${form.gender === opt ? 'border-[#0297d6] bg-[#0297d6]' : 'border-slate-200'}`}>
-                        {form.gender === opt && <div className="w-2 h-2 rounded-full bg-white" />}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Qualification and Profession - Side by Side Dropdowns */}
-
-              {/* Submit Button */}
-              <div className="pt-6 border-t border-slate-50">
-                <Button
-                  type="submit"
-                  disabled={isSubmitted}
-                  className="w-full h-16 text-lg"
-                >
-                  {isSubmitted ? (
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  ) : (
-                    <>
-                      Save and Continue
-                      <ChevronRight className="w-6 h-6" />
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
+              <Button
+                type="button"
+                disabled={isFinding.phone}
+                onClick={() => handleSearch('phone')}
+                className="rounded-md bg-[#0297d6] hover:bg-[#0286c2] h-full px-8 font-bold"
+              >
+                {isFinding.phone ? <Loader2 className="animate-spin w-4 h-4" /> : "Find"}
+              </Button>
+            </div>
           </div>
 
-          {/* Card Meta Footer */}
+          {/* Names Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-xs font-bold text-slate-500 uppercase">First Name *</Label>
+              <Input className="h-11" value={form.firstName || ""} onChange={(e) => updateForm('firstName', e.target.value)} onKeyDown={handleKeyDown} />
+            </div>
+            <div>
+              <Label className="text-xs font-bold text-slate-500 uppercase">Last Name</Label>
+              <Input className="h-11" value={form.lastName || ""} onChange={(e) => updateForm('lastName', e.target.value)} onKeyDown={handleKeyDown} />
+            </div>
+            <div>
+              <Label className="text-xs font-bold text-slate-500 uppercase">Father/Husband Name</Label>
+              <Input className="h-11" value={form.father_husband || ""} onChange={(e) => updateForm('father_husband', e.target.value)} onKeyDown={handleKeyDown} />
+            </div>
+          </div>
 
-        </Card>
+          {/* Email & Gender */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs font-bold text-slate-500 uppercase">Email Address</Label>
+              <Input className="h-11" type="email" value={form.email || ""} onChange={(e) => updateForm('email', e.target.value)} onKeyDown={handleKeyDown} />
+            </div>
+            <div className="space-y-3">
+              <Label className="text-xs font-bold text-slate-500 uppercase">Gender *</Label>
+              <div className="flex gap-6 mt-2">
+                {['Male', 'Female', 'Other'].map((g) => (
+                  <label key={g} className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 font-medium">
+                    <input
+                      type="radio"
+                      name="gender"
+                      checked={form.gender === g}
+                      onChange={() => updateForm('gender', g)}
+                      className="accent-[#0297d6] h-4 w-4"
+                    /> {g}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
 
-        {/* Global Footer */}
+          {/* CNIC & DOB */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            <div className="md:col-span-6">
+              <Label className="text-xs font-bold text-slate-500 uppercase">CNIC</Label>
+              <Input className="h-11" placeholder="42201XXXXXXXX" value={form.cnic || ""} onChange={(e) => updateForm('cnic', e.target.value)} onKeyDown={handleKeyDown} />
+            </div>
+            <div className="md:col-span-3">
+              <Label className="text-xs font-bold text-slate-500 uppercase">DOB *</Label>
+              <Input className="h-11" type="date" value={form.dob || ""} onChange={(e) => updateForm('dob', e.target.value)} onKeyDown={handleKeyDown} />
+            </div>
+            <div className="md:col-span-3">
+              <Label className="text-xs font-bold text-slate-500 uppercase block text-center">Age</Label>
+              <Input
+                type="number"
+                value={form.age || ""}
+                onChange={(e) => updateForm('age', e.target.value)}
+                className="h-11 bg-slate-50 border-dashed text-center font-bold text-[#0297d6]"
+              />
+            </div>
+          </div>
 
-      </div>
+          {/* Languages */}
+          <div className="grid grid-cols-1 gap-4 mt-4">
+            <Label className="text-xs font-bold text-slate-500 uppercase">Primary Language *</Label>
+            <select
+              className="h-11 w-full border border-slate-200 rounded-md p-2 text-sm bg-white"
+              value={form.languages || ""}
+              onChange={(e) => updateForm('languages', e.target.value)}
+            >
+              <option value="">Select Language</option>
+              {languageList.map((lang) => (
+                <option key={lang.code} value={lang.name}>
+                  {lang.name} {lang.nativeName !== lang.name ? `(${lang.nativeName})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Location Section */}
+          <div className="border-t border-slate-100 space-y-4 pt-6">
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="w-4 h-4 text-slate-400" />
+              <h3 className="text-sm font-bold text-slate-700 uppercase">Address & Location</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <Label className="text-[10px] font-bold text-slate-400 uppercase">Street Address</Label>
+                <Input className="h-11" placeholder="House #, Street..." value={form.stAddress || ""} onChange={(e) => updateForm('stAddress', e.target.value)} onKeyDown={handleKeyDown} />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label className="text-[10px] font-bold text-slate-400 uppercase">Country</Label>
+                <select className="h-11 w-full border rounded-md p-2 text-sm bg-white" value={form.country} onChange={(e) => updateForm('country', e.target.value)}>
+                  <option value="">Select Country</option>
+                  {countries.map(c => <option key={c.isoCode} value={c.isoCode}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-[10px] font-bold text-slate-400 uppercase">Province</Label>
+                <select className="h-11 w-full border rounded-md p-2 text-sm bg-white" value={form.province} onChange={(e) => updateForm('province', e.target.value)} disabled={!states.length}>
+                  <option value="">Select Province</option>
+                  {states.map(s => <option key={s.isoCode} value={s.isoCode}>{s.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-[10px] font-bold text-slate-400 uppercase">City</Label>
+                <select className="h-11 w-full border rounded-md p-2 text-sm bg-white" value={form.city} onChange={(e) => updateForm('city', e.target.value)} disabled={!cities.length}>
+                  <option value="">Select City</option>
+                  {cities.map(city => <option key={city.name} value={city.name}>{city.name}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Medical History Section */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-t border-slate-100 pt-6">
+            {['medicalHistory', 'medicineHistory', 'allergies'].map((key) => (
+              <div key={key} className="space-y-2">
+                <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">{getField(key)?.question}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between h-auto min-h-11 text-left bg-slate-50/50">
+                      <div className="flex flex-wrap gap-1 py-1">
+                        {form[key]?.length > 0 ? (
+                          form[key].map((val: string) => (
+                            <span key={val} className="bg-[#0297d6]/10 text-[#0297d6] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20">{val}</span>
+                          ))
+                        ) : (
+                          <span className="text-slate-400 text-sm">Select multiple...</span>
+                        )}
+                      </div>
+                      <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-62.5 p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search..." />
+                      <CommandList>
+                        <CommandGroup className="max-h-60 overflow-y-auto">
+                          {getField(key)?.options?.map((option) => (
+                            <CommandItem key={option} onSelect={() => toggleSelection(key, option)} className="flex items-center gap-2">
+                              <div className={cn("flex h-4 w-4 items-center justify-center rounded border border-primary", form[key]?.includes(option) ? "bg-primary text-primary-foreground" : "opacity-50")}>
+                                {form[key]?.includes(option) && <Check className="h-3 w-3" />}
+                              </div>
+                              <span>{option}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {form[key]?.includes("Other") && (
+                  <Input
+                    placeholder="Please specify..."
+                    className="mt-2 h-9 text-xs border-blue-100 bg-blue-50/30"
+                    onChange={(e) => updateForm(`${key}Custom`, e.target.value)}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Surgical History */}
+          <div className="md:col-span-3 border-t border-slate-100 pt-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 border border-slate-100 rounded-lg px-4 h-14">
+              <span className="text-sm font-semibold text-slate-600">Any surgical History in the past?</span>
+              <div className="flex gap-6">
+                {['Yes', 'No'].map((option) => (
+                  <label key={option} className="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700">
+                    <input
+                      type="radio"
+                      name="surgicalHistoryToggle"
+                      checked={form.surgicalHistory === option}
+                      onChange={() => updateForm('surgicalHistory', option)}
+                      className="accent-[#0297d6] h-4 w-4"
+                    /> {option}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-between items-center">
+            <Button variant="ghost" onClick={resetForm} className="rounded-full w-12 h-12 p-0 hover:bg-red-50 hover:text-red-500">
+              <RotateCcw className="w-6 h-6" />
+            </Button>
+
+            <Button
+              disabled={isSaving}
+              onClick={handleNextStep}
+              className="bg-[#0297d6] hover:bg-[#0286c2] rounded-xl px-14 py-7 text-lg font-bold shadow-lg shadow-blue-100 flex items-center gap-3 transition-transform active:scale-95 disabled:opacity-70"
+            >
+              {isSaving ? (
+                <>Saving... <Loader2 className="animate-spin w-5 h-5" /></>
+              ) : (
+                <>Next Step <ChevronRight className="w-6 h-6" /></>
+              )}
+            </Button>
+          </div>
+        </form>
+      </Card>
+      {/* Success Token Dialog */}
+      <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
+        <DialogContent className="sm:max-w-md text-center py-10">
+          <DialogHeader>
+            <div className="mx-auto bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+              <Check className="w-10 h-10 text-green-600" />
+            </div>
+            <DialogTitle className="text-2xl text-center">Registration Successful</DialogTitle>
+            <DialogDescription className="text-center text-lg">
+              Patient has been checked in.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-6">
+            <p className="text-sm text-slate-500 uppercase font-bold tracking-widest mb-2">Patient Token</p>
+            <div className="text-6xl font-black text-[#0297d6] bg-slate-50 py-4 rounded-2xl border-2 border-dashed border-slate-200">
+              {token || "----"}
+            </div>
+          </div>
+
+          <Button
+            onClick={() => {
+              setShowTokenDialog(false);
+              resetForm(); // Clear the form for the next patient
+            }}
+            className="w-full bg-[#0297d6] h-12 text-lg font-bold"
+          >
+            Done & New Patient
+          </Button>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };
 
-export default App;
+export default DemographicPage;
