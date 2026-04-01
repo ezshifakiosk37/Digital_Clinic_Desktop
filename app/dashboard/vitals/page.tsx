@@ -192,7 +192,7 @@ const VitalsPage = () => {
   };
 
   return (
-    <div className="pr-6 py-12 relative">
+    <div className="pl-20 pr-4 sm:pr-6 py-6 md:py-10 relative">
       <Dialog open={openTokenDialog} modal={false}>
         <DialogOverlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" />
         <DialogContent onInteractOutside={(e) => e.preventDefault()} className="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2">
@@ -239,17 +239,17 @@ const VitalsPage = () => {
       </Dialog>
 
       <section className={openTokenDialog ? "blur-sm" : ""}>
-        <div className='flex justify-between items-center mb-8'>
+        <div className='flex flex-wrap justify-between items-center gap-3 mb-6'>
           <div>
-            <h2 className="text-3xl font-extrabold text-slate-900">Patient Vitals</h2>
-            {sessionPhone && <p className="text-blue-600 font-medium">Active Session: {sessionPhone}</p>}
+            <h2 className="text-xl md:text-3xl font-extrabold text-slate-900">Patient Vitals</h2>
+            {sessionPhone && <p className="text-blue-600 text-sm font-medium">Active Session: {sessionPhone}</p>}
           </div>
           <Button onClick={handleAddVitals} disabled={loading}>
             {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : "Add Vitals"}
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
           <VitalCard type={VitalType.PULSE_RATE} onChange={(val) => handleUpdate('PulseRate', val)} value={vitals.PulseRate} />
           <VitalCard type={VitalType.BLOOD_PRESSURE} onChange1={(val) => handleBPUpdate('value1', val)} onChange2={(val) => handleBPUpdate('value2', val)} isDualValue value1={vitals.BP.value1} value2={vitals.BP.value2} />
           <VitalCard type={VitalType.TEMPERATURE} onChange={(val) => handleUpdate('Temperature', val)} value={vitals.Temperature} />
@@ -259,14 +259,14 @@ const VitalsPage = () => {
         </div>
       </section>
 
-      <div className="mt-12">
+      <div className="mt-8 md:mt-12">
         <Button onClick={() => setShowHistory(p => !p)} variant="outline">
           {showHistory ? "Hide History" : "Search Patient History"}
         </Button>
 
         {showHistory && (
           <div className="mt-6 space-y-4">
-            <div className="flex flex-wrap gap-4 items-end bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-end bg-slate-50 p-3 md:p-4 rounded-lg border border-slate-200">
               <div className="flex-1 min-w-50">
                 <label className="text-xs font-bold text-slate-500 mb-1 block uppercase">Patient Phone Number</label>
                 <div className="flex gap-2">
@@ -287,8 +287,8 @@ const VitalsPage = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <table className="w-full text-left border-collapse">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+              <table className="w-full min-w-150 text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Token</th>

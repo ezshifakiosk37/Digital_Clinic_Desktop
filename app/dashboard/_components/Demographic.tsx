@@ -188,34 +188,33 @@ const DemographicPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center">
-      <div className="w-full bg-[#0297d6] pt-6 pb-12 px-6 text-white text-center">
-        <div className="max-w-4xl gap-4 mx-auto flex flex-col md:flex-row items-center justify-center">
-          <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm shrink-0">
-            <Activity className="w-8 h-8 text-white" />
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center w-full">
+      <div className="w-full bg-[#0297d6] pt-4 pb-12 px-4 text-white">
+        <div className="max-w-3xl mx-auto flex items-center gap-3 min-w-0">
+          <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm shrink-0">
+            <Activity className="w-5 h-5 text-white" />
           </div>
-          <div className="flex flex-col md:flex-row md:items-baseline md:gap-3 items-center text-center md:text-left">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Jubilee Life Insurance</h1>
-            <span className="hidden md:inline opacity-60 text-xl">|</span>
-            <p className="opacity-90 text-xs md:text-sm whitespace-nowrap">Site: Gulistan-e-Jauhar, Block 12 • Digital Health Portal</p>
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <h1 className="text-lg font-bold tracking-tight whitespace-nowrap">EZShifa</h1>
+            <span className="opacity-50 text-sm shrink-0">|</span>
+            <p className="opacity-80 text-md truncate">Site: EZShifa • Digital Health Clinic</p>
           </div>
         </div>
       </div>
-
-      <Card className="w-full py-2 max-w-3xl -mt-10 shadow-2xl border-none rounded-t-[2.5rem] bg-white overflow-hidden mb-12">
-        <div className="px-8 pt-2 flex items-center gap-3">
-          <div className="p-2 bg-blue-50 rounded-full">
-            <User className="w-6 h-6 text-[#0297d6]" />
+      {/* cards */}
+      <Card className="w-full py-2 max-w-3xl -mt-10 shadow-2xl border-none rounded-t-[2.5rem] bg-white overflow-hidden mb-12 mx-2">
+        <div className="px-4 sm:px-6 md:px-8 pt-3 pb-1 flex items-center gap-3">
+          <div className="p-1.5 bg-blue-50 rounded-full">
+            <User className="w-5 h-5 text-[#0297d6]" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-800">Patient Details</h2>
+          <h2 className="text-lg md:text-xl font-bold text-slate-800">Patient Details</h2>
         </div>
 
-        <form className="md:py-4 px-8 space-y-6 bg-white" onSubmit={(e) => e.preventDefault()}>
-          {/* Phone Search */}
+        <form className="py-3 px-4 sm:px-6 md:px-8 space-y-3 bg-white" onSubmit={(e) => e.preventDefault()}>
           <div className="grid grid-cols-1 gap-2">
             <Label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Phone Number *</Label>
-            <div className="flex gap-3 h-11">
-              <div className="flex flex-1 overflow-hidden rounded-md border border-slate-100 focus-within:ring-1 focus-within:ring-[#0297d6]">
+            <div className="flex gap-3 h-9">
+              <div className="flex flex-1 overflow-hidden rounded-md border border-slate-100 focus-within:ring-1 focus-within:ring-[#0297d6] items-center">
                 <Popover open={openCode} onOpenChange={setOpenCode}>
                   <PopoverTrigger asChild>
                     <Button variant="ghost" className="w-25 h-full rounded-none bg-slate-100 border-r px-3 text-xs font-bold">
@@ -225,7 +224,7 @@ const DemographicPage: React.FC = () => {
                   </PopoverTrigger>
                   <PopoverContent className="w-50 p-0" align="start">
                     <Command>
-                      <CommandInput placeholder="Search code..." className="h-9" />
+                      <CommandInput placeholder="Search code..." className="h-9 py-0" />
                       <CommandList>
                         <CommandEmpty>No code found.</CommandEmpty>
                         <CommandGroup className="max-h-60 overflow-y-auto">
@@ -249,7 +248,7 @@ const DemographicPage: React.FC = () => {
                 </Popover>
 
                 <Input
-                  className="border-none focus-visible:ring-0 h-full flex-1 rounded-none"
+                  className="border-none focus-visible:ring-0 h-9 flex-1 rounded-none py-0"
                   placeholder="3331111111"
                   value={form.phoneNumber || ""}
                   onChange={(e) => updateForm('phoneNumber', e.target.value)}
@@ -268,30 +267,30 @@ const DemographicPage: React.FC = () => {
           </div>
 
           {/* Names Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
-              <Label className="text-xs font-bold text-slate-500 uppercase">First Name *</Label>
-              <Input className="h-11" value={form.firstName || ""} onChange={(e) => updateForm('firstName', e.target.value)} onKeyDown={handleKeyDown} />
+              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">First Name *</Label>
+              <Input className="h-9 py-0" value={form.firstName || ""} onChange={(e) => updateForm('firstName', e.target.value)} onKeyDown={handleKeyDown} />
             </div>
             <div>
-              <Label className="text-xs font-bold text-slate-500 uppercase">Last Name</Label>
-              <Input className="h-11" value={form.lastName || ""} onChange={(e) => updateForm('lastName', e.target.value)} onKeyDown={handleKeyDown} />
+              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Last Name</Label>
+              <Input className="h-9 py-0" value={form.lastName || ""} onChange={(e) => updateForm('lastName', e.target.value)} onKeyDown={handleKeyDown} />
             </div>
             <div>
-              <Label className="text-xs font-bold text-slate-500 uppercase">Father/Husband Name</Label>
-              <Input className="h-11" value={form.father_husband || ""} onChange={(e) => updateForm('father_husband', e.target.value)} onKeyDown={handleKeyDown} />
+              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Father/Husband Name</Label>
+              <Input className="h-9 py-0" value={form.father_husband || ""} onChange={(e) => updateForm('father_husband', e.target.value)} onKeyDown={handleKeyDown} />
             </div>
           </div>
 
           {/* Email & Gender */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs font-bold text-slate-500 uppercase">Email Address</Label>
-              <Input className="h-11" type="email" value={form.email || ""} onChange={(e) => updateForm('email', e.target.value)} onKeyDown={handleKeyDown} />
+              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Email Address</Label>
+              <Input className="h-9 py-0" type="email" value={form.email || ""} onChange={(e) => updateForm('email', e.target.value)} onKeyDown={handleKeyDown} />
             </div>
-            <div className="space-y-3">
-              <Label className="text-xs font-bold text-slate-500 uppercase">Gender *</Label>
-              <div className="flex gap-6 mt-2">
+            <div className="space-y-1">
+              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Gender *</Label>
+              <div className="flex gap-4 mt-1">
                 {['Male', 'Female', 'Other'].map((g) => (
                   <label key={g} className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 font-medium">
                     <input
@@ -307,32 +306,34 @@ const DemographicPage: React.FC = () => {
             </div>
           </div>
 
-          {/* CNIC & DOB */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-            <div className="md:col-span-6">
-              <Label className="text-xs font-bold text-slate-500 uppercase">CNIC</Label>
-              <Input className="h-11" placeholder="42201XXXXXXXX" value={form.cnic || ""} onChange={(e) => updateForm('cnic', e.target.value)} onKeyDown={handleKeyDown} />
+          {/* CNIC */}
+          <div>
+            <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">CNIC</Label>
+            <Input className="h-9 py-0" placeholder="42201XXXXXXXX" value={form.cnic || ""} onChange={(e) => updateForm('cnic', e.target.value)} onKeyDown={handleKeyDown} />
+          </div>
+
+          {/* DOB + Age */}
+          <div className="grid grid-cols-2 gap-4 items-end">
+            <div>
+              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">DOB *</Label>
+              <Input className="h-9 py-0" type="date" value={form.dob || ""} onChange={(e) => updateForm('dob', e.target.value)} onKeyDown={handleKeyDown} />
             </div>
-            <div className="md:col-span-3">
-              <Label className="text-xs font-bold text-slate-500 uppercase">DOB *</Label>
-              <Input className="h-11" type="date" value={form.dob || ""} onChange={(e) => updateForm('dob', e.target.value)} onKeyDown={handleKeyDown} />
-            </div>
-            <div className="md:col-span-3">
-              <Label className="text-xs font-bold text-slate-500 uppercase block text-center">Age</Label>
+            <div>
+              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase block">Age</Label>
               <Input
                 type="number"
                 value={form.age || ""}
                 onChange={(e) => updateForm('age', e.target.value)}
-                className="h-11 bg-slate-50 border-dashed text-center font-bold text-[#0297d6]"
+                className="h-9 py-0 bg-slate-50 border-dashed text-center font-bold text-[#0297d6]"
               />
             </div>
           </div>
 
           {/* Languages */}
           <div className="grid grid-cols-1 gap-4 mt-4">
-            <Label className="text-xs font-bold text-slate-500 uppercase">Primary Language *</Label>
+            <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Primary Language *</Label>
             <select
-              className="h-11 w-full border border-slate-200 rounded-md p-2 text-sm bg-white"
+              className="h-9 w-full border border-slate-200 rounded-md p-2 text-sm bg-white"
               value={form.languages || ""}
               onChange={(e) => updateForm('languages', e.target.value)}
             >
@@ -346,35 +347,35 @@ const DemographicPage: React.FC = () => {
           </div>
 
           {/* Location Section */}
-          <div className="border-t border-slate-100 space-y-4 pt-6">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="border-t border-slate-100 space-y-3 pt-3">
+            <div className="flex items-center gap-2 mb-1">
               <MapPin className="w-4 h-4 text-slate-400" />
               <h3 className="text-sm font-bold text-slate-700 uppercase">Address & Location</h3>
             </div>
             <div className="grid grid-cols-1 gap-4">
               <div>
                 <Label className="text-[10px] font-bold text-slate-400 uppercase">Street Address</Label>
-                <Input className="h-11" placeholder="House #, Street..." value={form.stAddress || ""} onChange={(e) => updateForm('stAddress', e.target.value)} onKeyDown={handleKeyDown} />
+                <Input className="h-9 py-0" placeholder="House #, Street..." value={form.stAddress || ""} onChange={(e) => updateForm('stAddress', e.target.value)} onKeyDown={handleKeyDown} />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <Label className="text-[10px] font-bold text-slate-400 uppercase">Country</Label>
-                <select className="h-11 w-full border rounded-md p-2 text-sm bg-white" value={form.country} onChange={(e) => updateForm('country', e.target.value)}>
+                <select className="h-9 w-full border rounded-md p-2 text-sm bg-white" value={form.country} onChange={(e) => updateForm('country', e.target.value)}>
                   <option value="">Select Country</option>
                   {countries.map(c => <option key={c.isoCode} value={c.isoCode}>{c.name}</option>)}
                 </select>
               </div>
               <div>
                 <Label className="text-[10px] font-bold text-slate-400 uppercase">Province</Label>
-                <select className="h-11 w-full border rounded-md p-2 text-sm bg-white" value={form.province} onChange={(e) => updateForm('province', e.target.value)} disabled={!states.length}>
+                <select className="h-9 w-full border rounded-md p-2 text-sm bg-white" value={form.province} onChange={(e) => updateForm('province', e.target.value)} disabled={!states.length}>
                   <option value="">Select Province</option>
                   {states.map(s => <option key={s.isoCode} value={s.isoCode}>{s.name}</option>)}
                 </select>
               </div>
               <div>
                 <Label className="text-[10px] font-bold text-slate-400 uppercase">City</Label>
-                <select className="h-11 w-full border rounded-md p-2 text-sm bg-white" value={form.city} onChange={(e) => updateForm('city', e.target.value)} disabled={!cities.length}>
+                <select className="h-9 w-full border rounded-md p-2 text-sm bg-white" value={form.city} onChange={(e) => updateForm('city', e.target.value)} disabled={!cities.length}>
                   <option value="">Select City</option>
                   {cities.map(city => <option key={city.name} value={city.name}>{city.name}</option>)}
                 </select>
@@ -383,13 +384,13 @@ const DemographicPage: React.FC = () => {
           </div>
 
           {/* Medical History Section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-t border-slate-100 pt-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 border-t border-slate-100 pt-3">
             {['medicalHistory', 'medicineHistory', 'allergies'].map((key) => (
               <div key={key} className="space-y-2">
                 <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">{getField(key)?.question}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between h-auto min-h-11 text-left bg-slate-50/50">
+                    <Button variant="outline" className="w-full justify-between h-auto min-h-9 py-0 text-left bg-slate-50/50">
                       <div className="flex flex-wrap gap-1 py-1">
                         {form[key]?.length > 0 ? (
                           form[key].map((val: string) => (
@@ -432,8 +433,8 @@ const DemographicPage: React.FC = () => {
           </div>
 
           {/* Surgical History */}
-          <div className="md:col-span-3 border-t border-slate-100 pt-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 border border-slate-100 rounded-lg px-4 h-14">
+          <div className="md:col-span-3 border-t border-slate-100 pt-3">
+            <div className="flex flex-row items-center justify-between gap-4 bg-slate-50/50 border border-slate-100 rounded-lg px-4 py-2">
               <span className="text-sm font-semibold text-slate-600">Any surgical History in the past?</span>
               <div className="flex gap-6">
                 {['Yes', 'No'].map((option) => (
@@ -460,7 +461,7 @@ const DemographicPage: React.FC = () => {
             <Button
               disabled={isSaving}
               onClick={handleNextStep}
-              className="bg-[#0297d6] hover:bg-[#0286c2] rounded-xl px-14 py-7 text-lg font-bold shadow-lg shadow-blue-100 flex items-center gap-3 transition-transform active:scale-95 disabled:opacity-70"
+              className="bg-[#0297d6] hover:bg-[#0286c2] rounded-xl px-10 py-4 text-base md:text-lg font-bold shadow-lg shadow-blue-100 flex items-center gap-3 transition-transform active:scale-95 disabled:opacity-70"
             >
               {isSaving ? (
                 <>Saving... <Loader2 className="animate-spin w-5 h-5" /></>

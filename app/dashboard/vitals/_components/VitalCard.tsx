@@ -31,8 +31,8 @@ const VitalCard: React.FC<VitalCardProps> = ({
   console.log(value2?.toString().length)
 
   return (
-    <div className="bg-white p-5 rounded-2xl shadow-lg shadow-black/10 border border-slate-100 flex flex-col items-start hover:border-primary/20 transition-all group w-full">
-      <div className="flex justify-between items-center w-full mb-2">
+    <div className="bg-white p-3 md:p-5 rounded-2xl shadow-lg shadow-black/10 border border-slate-100 flex flex-col items-start hover:border-primary/20 transition-all group w-full">
+    <div className="flex justify-between items-center w-full mb-2">
         <h3 className="text-primary tracking-wider text-sm font-semibold mb-1 uppercase">{type}</h3>
         <div className="p-3 rounded-xl bg-slate-100 group-hover:bg-primary/10 transition-colors">
           {config.icon("w-6 h-6 text-primary")}
@@ -48,7 +48,7 @@ const VitalCard: React.FC<VitalCardProps> = ({
                 value={isDualValue && value1}
                 placeholder="--"
                 onChange={(e) => onChange1?.(e.target.value)}
-                className={`text-4xl font-bold text-secondary  border-b-2 border-transparent focus:border-primary focus:outline-none rounded px-1 ${value1 && value1?.toString().length > 2 ? "w-18" : "w-14"} transition-all`}
+                className={`text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none rounded px-1 ${value1 && value1?.toString().length > 2 ? "w-16 md:w-18" : "w-12 md:w-14"} transition-all`}
               />
               <h2 className='text-4xl'>/</h2>
               <input
@@ -56,7 +56,7 @@ const VitalCard: React.FC<VitalCardProps> = ({
                 value={isDualValue && value2}
                 placeholder="--"
                 onChange={(e) => onChange2?.(e.target.value)}
-                className={`text-4xl text-end font-bold text-secondary  border-b-2 border-transparent focus:border-primary focus:outline-none rounded px-1 ${value2 && value2?.toString().length > 2 ? "w-18" : "w-14"} transition-all`}
+                className={`text-2xl md:text-4xl text-end font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none rounded px-1 ${value2 && value2?.toString().length > 2 ? "w-16 md:w-18" : "w-12 md:w-14"} transition-all`}
               />
             </div>
           ) : (
@@ -65,7 +65,7 @@ const VitalCard: React.FC<VitalCardProps> = ({
               value={value}
               placeholder="--"
               onChange={(e) => onChange?.(e.target.value)}
-              className="text-4xl font-bold text-secondary  border-b-2 border-transparent focus:border-primary focus:outline-none w-[50%] rounded px-1 transition-all"
+              className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-[50%] rounded px-1 transition-all"
             />
           )
         ) : (
