@@ -39,6 +39,7 @@ const VitalsPage = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [sessionName, setSessionName] = useState("");
   const [showExpiredDialog, setShowExpiredDialog] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   // Verify token and start a session
   const handleVerifyToken = async () => {
@@ -54,20 +55,21 @@ const VitalsPage = () => {
         setHistorySearchPhone("");
         // Reset all vitals to 0 on new patient session
         setVitals({
-          BP: { value1: '0', value2: '0' },
-          PulseRate: "0",
-          Temperature: '0',
-          Spo2: '0',
-          Height: "0",
-          Weight: "0"
+          BP: { value1: '', value2: '' },
+          PulseRate: "",
+          Temperature: '',
+          Spo2: '',
+          Height: "",
+          Weight: ""
         });
       }
     }
     catch (error: any) {
-      if (error.message === "Token already used today") {
+      const msg = error.message || "";
+      if (msg.toLowerCase().includes("already used")) {
         setShowExpiredDialog(true);
       } else {
-        alert(error.message || "Invalid token number");
+        alert(msg || "Invalid token number");
       }
     }
   };
@@ -114,7 +116,8 @@ const VitalsPage = () => {
     try {
       const result = await apiService.saveVitals(patientId, vitals);
       if (result.success) {
-        alert("Vitals recorded successfully!");
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000);
         // Reset and go back to token dialog for next patient
         setVitals({ BP: { value1: '120', value2: '80' }, PulseRate: "90", Temperature: '37', Spo2: '93', Height: "5.6", Weight: "65" });
         setTokenNumber("");
@@ -193,28 +196,18 @@ const VitalsPage = () => {
 
   return (
     <div className="pl-20 pr-4 sm:pr-6 py-6 md:py-10 relative">
-      <Dialog open={openTokenDialog} modal={false}>
-        <DialogOverlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" />
-        <DialogContent onInteractOutside={(e) => e.preventDefault()} className="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2">
-          <DialogHeader>
-            <DialogTitle>Enter Token Number</DialogTitle>
-            <DialogDescription>Verify the patient token from the reception.</DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-4 mt-2">
-            <input
-              type="text"
-              placeholder="Enter Token"
-              value={tokenNumber}
-              onChange={(e) => setTokenNumber(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 text-center text-xl font-semibold focus:ring-2 focus:ring-primary outline-none"
-            />
-            <button onClick={handleVerifyToken} className="bg-primary text-white px-4 py-2 rounded-lg font-semibold hover:bg-primary/90">
-              Verify Token
-            </button>
+      {/* Success Toast */}
+      <div className={`fixed top-6 right-6 z-100 transition-all duration-500 ${showSuccessToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+        <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+          <div className="bg-white/20 rounded-full p-1">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
           </div>
-        </DialogContent>
-      </Dialog>
-
+          Vitals recorded successfully!
+        </div>
+      </div>
+      {/* Token expire dialog box */}
       <Dialog open={showExpiredDialog} onOpenChange={setShowExpiredDialog}>
         <DialogContent className="sm:max-w-md text-center py-10">
           <DialogHeader>
@@ -238,27 +231,59 @@ const VitalsPage = () => {
         </DialogContent>
       </Dialog>
 
-      <section className={openTokenDialog ? "blur-sm" : ""}>
-        <div className='flex flex-wrap justify-between items-center gap-3 mb-6'>
-          <div>
-            <h2 className="text-xl md:text-3xl font-extrabold text-slate-900">Patient Vitals</h2>
-            {sessionPhone && <p className="text-blue-600 text-sm font-medium">Active Session: {sessionPhone}</p>}
+      <div className="relative">
+        {openTokenDialog && (
+          <>
+            {/* Overlay — only covers vitals section */}
+            <div className="absolute inset-0 bg-black/05 backdrop-blur-sm z-10 rounded-xl" />
+
+            {/* Token card — centered over vitals */}
+            <div className="absolute inset-0 z-50 flex items-center justify-center px-4">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">Enter Token Number</h2>
+                  <p className="text-sm text-slate-500 mt-1">Verify the patient token from the reception.</p>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Enter Token"
+                  value={tokenNumber}
+                  onChange={(e) => setTokenNumber(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleVerifyToken()}
+                  className="w-full border border-slate-300 rounded-lg px-4 py-2 text-center text-xl font-semibold focus:ring-2 focus:ring-primary outline-none"
+                />
+                <button
+                  onClick={handleVerifyToken}
+                  className="bg-primary text-white px-4 py-2 rounded-lg font-semibold hover:bg-primary/90"
+                >
+                  Verify Token
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        <section className={openTokenDialog ? "blur-sm pointer-events-none" : ""}>
+          <div className='flex flex-wrap justify-between items-center gap-3 mb-6'>
+            <div>
+              <h2 className="text-xl md:text-3xl font-extrabold text-slate-900">Patient Vitals</h2>
+              {sessionPhone && <p className="text-blue-600 text-sm font-medium">Active Session: {sessionPhone}</p>}
+            </div>
+            <Button onClick={handleAddVitals} disabled={loading}>
+              {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : "Add Vitals"}
+            </Button>
           </div>
-          <Button onClick={handleAddVitals} disabled={loading}>
-            {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : "Add Vitals"}
-          </Button>
-        </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
-          <VitalCard type={VitalType.PULSE_RATE} onChange={(val) => handleUpdate('PulseRate', val)} value={vitals.PulseRate} />
-          <VitalCard type={VitalType.BLOOD_PRESSURE} onChange1={(val) => handleBPUpdate('value1', val)} onChange2={(val) => handleBPUpdate('value2', val)} isDualValue value1={vitals.BP.value1} value2={vitals.BP.value2} />
-          <VitalCard type={VitalType.TEMPERATURE} onChange={(val) => handleUpdate('Temperature', val)} value={vitals.Temperature} />
-          <VitalCard type={VitalType.BLOOD_OXYGEN} onChange={(val) => handleUpdate('Spo2', val)} value={vitals.Spo2} />
-          <VitalCard type={VitalType.WEIGHT} onChange={(val) => handleUpdate('Weight', val)} value={vitals.Weight} />
-          <VitalCard type={VitalType.HEIGHT} onChange={(val) => handleUpdate('Height', val)} value={vitals.Height} />
-        </div>
-      </section>
-
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+            <VitalCard type={VitalType.PULSE_RATE} onChange={(val) => handleUpdate('PulseRate', val)} value={vitals.PulseRate} />
+            <VitalCard type={VitalType.BLOOD_PRESSURE} onChange1={(val) => handleBPUpdate('value1', val)} onChange2={(val) => handleBPUpdate('value2', val)} isDualValue value1={vitals.BP.value1} value2={vitals.BP.value2} />
+            <VitalCard type={VitalType.TEMPERATURE} onChange={(val) => handleUpdate('Temperature', val)} value={vitals.Temperature} />
+            <VitalCard type={VitalType.BLOOD_OXYGEN} onChange={(val) => handleUpdate('Spo2', val)} value={vitals.Spo2} />
+            <VitalCard type={VitalType.WEIGHT} onChange={(val) => handleUpdate('Weight', val)} value={vitals.Weight} />
+            <VitalCard type={VitalType.HEIGHT} onChange={(val) => handleUpdate('Height', val)} value={vitals.Height} />
+          </div>
+        </section>
+      </div>
       <div className="mt-8 md:mt-12">
         <Button onClick={() => setShowHistory(p => !p)} variant="outline">
           {showHistory ? "Hide History" : "Search Patient History"}

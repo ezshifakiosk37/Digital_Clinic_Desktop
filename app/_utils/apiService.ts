@@ -53,6 +53,15 @@ export const apiService = {
         return handleResponse(response);
     },
 
+        findPatientByCnic: async (cnic: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/patients/?cnic=${cnic}`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+        if (response.status === 404) return null;
+        return handleResponse(response);
+    },
+
     saveOrUpdatePatient: async (patientData: Record<string, any>, id?: string | null) => {
         const { id: _, ...fields } = patientData;
         const payload = {

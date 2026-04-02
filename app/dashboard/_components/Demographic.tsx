@@ -93,13 +93,15 @@ const DemographicPage: React.FC = () => {
     }
   };
 
-  const handleSearch = async (searchType: 'phone' | 'cnic') => {
+ const handleSearch = async (searchType: 'phone' | 'cnic') => {
     const value = searchType === 'phone' ? form.phoneNumber : form.cnic;
     if (!value) return alert(`Please enter ${searchType} to search.`);
 
     setIsFinding(prev => ({ ...prev, [searchType]: true }));
     try {
-      const data = await apiService.findPatientByPhone(value);
+      const data = searchType === 'cnic'
+        ? await apiService.findPatientByCnic(value)
+        : await apiService.findPatientByPhone(value);
       if (data && data.fields) {
         // Logic: Ensure backend fields map correctly to form keys
         // If backend returns 'stAddress', the input with value={form.stAddress} will now work
@@ -309,7 +311,23 @@ const DemographicPage: React.FC = () => {
           {/* CNIC */}
           <div>
             <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">CNIC</Label>
-            <Input className="h-9 py-0" placeholder="42201XXXXXXXX" value={form.cnic || ""} onChange={(e) => updateForm('cnic', e.target.value)} onKeyDown={handleKeyDown} />
+            <div className="flex gap-3 h-9">
+              <Input
+                className="h-9 py-0 flex-1"
+                placeholder="42201XXXXXXXX"
+                value={form.cnic || ""}
+                onChange={(e) => updateForm('cnic', e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+              <Button
+                type="button"
+                disabled={isFinding.cnic}
+                onClick={() => handleSearch('cnic')}
+                className="rounded-md bg-[#0297d6] hover:bg-[#0286c2] h-full px-8 font-bold"
+              >
+                {isFinding.cnic ? <Loader2 className="animate-spin w-4 h-4" /> : "Find"}
+              </Button>
+            </div>
           </div>
 
           {/* DOB + Age */}
