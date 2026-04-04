@@ -19,7 +19,7 @@ export default function Sidebar() {
   const menuItems: MenuItem[] = [
     { name: "Demographic", path: "/dashboard/demographic", icon: <User size={20} /> },
     { name: "Vitals", path: "/dashboard/vitals", icon: <Activity size={20} /> },
-    { name: "Appointments", path: "/dashboard/appointments", icon: <LayoutDashboard size={20} /> },
+    { name: "Consultation", path: "/dashboard/consultation", icon: <LayoutDashboard size={20} /> },
   ];
 
   const handleSignOut = () => {
