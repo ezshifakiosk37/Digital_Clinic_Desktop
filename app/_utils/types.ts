@@ -1,3 +1,4 @@
+//app/_utils/types.ts
 import { demographic } from "./data/demographicData";
 
 export type DemographicField = {
