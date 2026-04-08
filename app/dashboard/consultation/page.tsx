@@ -121,7 +121,7 @@ const EZShifaPortal = () => {
           </div>
 
           {/* RIGHT PANEL */}
-          <div className="flex-1 px-8 py-8 overflow-y-auto max-h-[90vh]">
+          <div className="flex-1 px-8 py-4 overflow-y-auto max-h-[90vh]">
             {activePage === 'login' ? (
               <>
                 <h1 className="text-4xl font-black p-0 text-slate-800">Welcome Back</h1>
@@ -135,8 +135,8 @@ const EZShifaPortal = () => {
               </>
             ) : (
               <>
-                <h1 className="text-xl font-black text-slate-800">Doctor Registration</h1>
-                <p className="text-slate-400 font-semibold text-xs mt-0.5 mb-3">Create your professional profile</p>
+                <h1 className="text-2xl font-black text-slate-800">Doctor Registration</h1>
+                <p className="text-slate-400 font-semibold text-sm mt-0.5 mb-3">Create your professional profile</p>
                 <form className="space-y-2.5" onSubmit={(e) => { e.preventDefault(); setIsLoggedIn(true); setActivePage('dashboard'); }}>
 
                   {/* Profile Picture */}
@@ -149,8 +149,8 @@ const EZShifaPortal = () => {
                     </div>
                     <div>
                       <label className="cursor-pointer">
-                        <span className="text-xs font-black text-[#0297d6] uppercase tracking-widest">Upload Photo</span>
-                        <span className="text-[10px] text-slate-400 font-medium ml-2">(Optional)</span>
+                        <span className="text-sm lg:text-xs font-black text-[#0297d6] uppercase tracking-widest">Upload Photo</span>
+                        <span className="text-[12px] lg:text-[10px] text-slate-400 font-medium ml-2">(Optional)</span>
                         <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) setProfilePreview(URL.createObjectURL(file));
@@ -165,7 +165,7 @@ const EZShifaPortal = () => {
                     <div className="flex gap-2">
                       <select
                         defaultValue=""
-                        className="w-24 px-2 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-600"
+                        className="w-24 px-2 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-600"
                       >
                         <option value="" disabled>Title</option>
                         <option>Dr.</option>
@@ -179,7 +179,7 @@ const EZShifaPortal = () => {
                       <input
                         type="text"
                         placeholder="First Name"
-                        className="flex-1 px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none"
+                        className="flex-1 px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none"
                         required
                       />
                     </div>
@@ -187,21 +187,21 @@ const EZShifaPortal = () => {
                     <input
                       type="text"
                       placeholder="Last Name"
-                      className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none"
+                      className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none"
                       required
                     />
                   </div>
 
                   {/* Email & Password */}
                   <div className="grid grid-cols-2 gap-2">
-                    <input type="email" placeholder="Email Address" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" required />
-                    <input type="password" placeholder="Password" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" required />
+                    <input type="email" placeholder="Email Address" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" required />
+                    <input type="password" placeholder="Password" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" required />
                   </div>
 
                   {/* Phone & Gender */}
                   <div className="grid grid-cols-2 gap-2">
-                    <input type="tel" placeholder="Phone Number" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
-                    <select defaultValue="" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-500">
+                    <input type="tel" placeholder="Phone Number" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
+                    <select defaultValue="" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-500">
                       <option value="" disabled>Gender</option>
                       <option>Male</option>
                       <option>Female</option>
@@ -210,73 +210,83 @@ const EZShifaPortal = () => {
                   </div>
 
                   {/* Professional Info */}
-                  <p className="text-[9px] font-black text-[#0297d6] uppercase tracking-widest pt-1">Professional Info</p>
+                  <p className="text-[12px] font-black text-[#0297d6] uppercase tracking-widest pt-1">Professional Info</p>
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-2">
-                    {/* Specialization - multi checkbox dropdown */}
+
+                    {/* Specialization */}
                     <div className="relative">
                       <button type="button" onClick={() => setSpecDropOpen(v => !v)}
-                        className="w-full px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-left text-slate-500 flex justify-between items-center">
-                        <span>{selectedSpecs.length ? selectedSpecs.join(', ') : 'Specialization'}</span>
-                        <span className="text-slate-400 text-xs">▾</span>
+                        className="w-full min-h-10.5 px-3 py-1.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-left text-slate-500 flex flex-wrap items-center gap-1 pr-7">
+                        {selectedSpecs.length > 0 ? (
+                          selectedSpecs.map(s => (
+                            <span key={s} className="bg-[#0297d6]/10 text-[#0297d6] text-[11px] lg:text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20 whitespace-nowrap">
+                              {s}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-slate-400 text-lg lg:text-sm">Specialization</span>
+                        )}
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">▾</span>
                       </button>
                       {specDropOpen && (
                         <div className="absolute z-50 mt-1 w-full bg-white rounded-2xl shadow-xl border border-slate-100 p-3 max-h-44 overflow-y-auto">
-                          {['General Physician', 'Cardiologist', 'Dermatologist', 'ENT', 'Gynecologist', 'Neurologist', 'Orthopedic', 'Pediatrician', 'Psychiatrist', 'Urologist'].map(s => (
+                          {['General Physician', 'Cardiologist', 'Dermatologist', 'ENT', 'Gynecologist', 'Neurologist', 'Orthopedic', 'Pediatrician', 'Psychiatrist', 'Urologist', 'Other'].map(s => (
                             <label key={s} className="flex items-center gap-2 py-1 cursor-pointer hover:text-[#0297d6] text-sm font-medium text-slate-600">
                               <input type="checkbox" checked={selectedSpecs.includes(s)} onChange={() => setSelectedSpecs(p => p.includes(s) ? p.filter(x => x !== s) : [...p, s])} className="accent-[#0297d6]" />
                               {s}
                             </label>
                           ))}
-                          <label className="flex items-center gap-2 py-1 cursor-pointer hover:text-[#0297d6] text-sm font-medium text-slate-600">
-                            <input type="checkbox" checked={selectedSpecs.includes('Other')} onChange={() => setSelectedSpecs(p => p.includes('Other') ? p.filter(x => x !== 'Other') : [...p, 'Other'])} className="accent-[#0297d6]" />
-                            Other
-                          </label>
                           {selectedSpecs.includes('Other') && (
-                            <input type="text" placeholder="Enter specialization..." className="mt-1 w-full px-3 py-2 bg-slate-50 rounded-xl text-sm border border-slate-200 outline-none focus:border-[#0297d6]" />
+                            <input type="text" placeholder="Enter specialization..." className="mt-1 w-full px-3 py-2 bg-slate-50 rounded-xl text-md lg:text-sm border border-slate-200 outline-none focus:border-[#0297d6]" />
                           )}
                         </div>
                       )}
                     </div>
 
-                    {/* Qualification - multi checkbox dropdown */}
+                    {/* Qualification */}
                     <div className="relative">
                       <button type="button" onClick={() => setQualDropOpen(v => !v)}
-                        className="w-full px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-left text-slate-500 flex justify-between items-center">
-                        <span>{selectedQuals.length ? selectedQuals.join(', ') : 'Qualification'}</span>
-                        <span className="text-slate-400 text-xs">▾</span>
+                        className="w-full min-h-10.5 px-3 py-1.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-left text-slate-500 flex flex-wrap items-center gap-1 pr-7">
+                        {selectedQuals.length > 0 ? (
+                          selectedQuals.map(q => (
+                            <span key={q} className="bg-[#0297d6]/10 text-[#0297d6] text-[11px] lg:text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20 whitespace-nowrap">
+                              {q}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-slate-400 text-md lg:text-sm">Qualification</span>
+                        )}
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">▾</span>
                       </button>
                       {qualDropOpen && (
                         <div className="absolute z-50 mt-1 w-full bg-white rounded-2xl shadow-xl border border-slate-100 p-3 max-h-44 overflow-y-auto">
-                          {['MBBS', 'BDS', 'MD', 'MS', 'FCPS', 'MRCP', 'MRCS', 'PhD', 'DPT', 'Pharm-D'].map(q => (
-                            <label key={q} className="flex items-center gap-2 py-1 cursor-pointer hover:text-[#0297d6] text-sm font-medium text-slate-600">
+                          {['MBBS', 'BDS', 'MD', 'MS', 'FCPS', 'MRCP', 'MRCS', 'PhD', 'DPT', 'Pharm-D', 'Other'].map(q => (
+                            <label key={q} className="flex items-center gap-2 py-1 cursor-pointer hover:text-[#0297d6] text-md lg:text-sm font-medium text-slate-600">
                               <input type="checkbox" checked={selectedQuals.includes(q)} onChange={() => setSelectedQuals(p => p.includes(q) ? p.filter(x => x !== q) : [...p, q])} className="accent-[#0297d6]" />
                               {q}
                             </label>
                           ))}
-                          <label className="flex items-center gap-2 py-1 cursor-pointer hover:text-[#0297d6] text-sm font-medium text-slate-600">
-                            <input type="checkbox" checked={selectedQuals.includes('Other')} onChange={() => setSelectedQuals(p => p.includes('Other') ? p.filter(x => x !== 'Other') : [...p, 'Other'])} className="accent-[#0297d6]" />
-                            Other
-                          </label>
                           {selectedQuals.includes('Other') && (
-                            <input type="text" placeholder="Enter qualification..." className="mt-1 w-full px-3 py-2 bg-slate-50 rounded-xl text-sm border border-slate-200 outline-none focus:border-[#0297d6]" />
+                            <input type="text" placeholder="Enter qualification..." className="mt-1 w-full px-3 py-2 bg-slate-50 rounded-xl text-md lg:text-sm border border-slate-200 outline-none focus:border-[#0297d6]" />
                           )}
                         </div>
                       )}
                     </div>
 
-                    {/* Experience & City */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <input type="number" placeholder="Experience (Years)" min="0" max="60"
-                        className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
-                      <select defaultValue="" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-500">
-                        <option value="" disabled>City</option>
-                        {['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Multan', 'Peshawar', 'Quetta', 'Hyderabad', 'Sialkot', 'Gujranwala', 'Bahawalpur', 'Sargodha', 'Sukkur', 'Larkana', 'Abbottabad', 'Mardan', 'Mingora', 'Rahim Yar Khan', 'Sahiwal'].map(c => (
-                          <option key={c}>{c}</option>
-                        ))}
-                      </select>
-                    </div>
+                    {/* Experience */}
+                    <input type="number" placeholder="Experience (Years)" min="0" max="60"
+                      className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
+
+                    {/* City */}
+                    <select defaultValue="" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-500">
+                      <option value="" disabled>City</option>
+                      {['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Multan', 'Peshawar', 'Quetta', 'Hyderabad', 'Sialkot', 'Gujranwala', 'Bahawalpur', 'Sargodha', 'Sukkur', 'Larkana', 'Abbottabad', 'Mardan', 'Mingora', 'Rahim Yar Khan', 'Sahiwal'].map(c => (
+                        <option key={c}>{c}</option>
+                      ))}
+                    </select>
+
                   </div>
-                  <button className="w-full bg-[#0297d6] text-white py-3 rounded-2xl font-black uppercase tracking-widest text-xs shadow-md">Register Now</button>
+                  <button className="w-full bg-[#0297d6] text-white py-3 rounded-2xl font-black uppercase tracking-widest text-md lg:text-xs shadow-md">Register Now</button>
                 </form>
                 <button onClick={() => setActivePage('login')} className="w-full mt-2 mb-1 text-[10px] font-black text-slate-400 hover:text-[#0297d6] uppercase tracking-widest">← Back to Login</button>
               </>
