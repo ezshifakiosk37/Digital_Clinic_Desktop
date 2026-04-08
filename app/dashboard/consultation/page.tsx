@@ -1,99 +1,191 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-  Stethoscope, LogOut, Trash2, Printer, Download,
-  Search, User, CheckCircle, Clock, Pill,
-  GraduationCap, Briefcase, MapPin,
-  Phone, Mail, Lock, Activity, Settings, Edit2, X
+  LogOut, Trash2, Printer, Search,
+  User, CheckCircle, Clock, Pill, X, Edit2
 } from 'lucide-react';
 
-// --- Interfaces ---
-interface Vitals {
-  temp: string;
-  bp: string;
-  pulse: string;
-  weight: string;
-}
+// ─── Config (inline version of doctor_registration.ts) ───────────────────────
 
+const TITLE_OPTIONS = ['Dr.', 'Mr.', 'Ms.', 'Mrs.', 'Prof.', 'Assoc. Prof.'];
+const GENDER_OPTIONS = ['Male', 'Female', 'Other'];
+const SPECIALIZATION_OPTIONS = [
+  'General Physician','Cardiologist','Dermatologist','ENT',
+  'Gynecologist','Neurologist','Orthopedic','Pediatrician',
+  'Psychiatrist','Urologist','Other',
+];
+const QUALIFICATION_OPTIONS = [
+  'MBBS','BDS','MD','MS','FCPS','MRCP','MRCS','PhD','DPT','Pharm-D','Other',
+];
+const CITY_OPTIONS = [
+  'Karachi','Lahore','Islamabad','Rawalpindi','Faisalabad',
+  'Multan','Peshawar','Quetta','Hyderabad','Sialkot',
+  'Gujranwala','Bahawalpur','Sargodha','Sukkur','Larkana',
+  'Abbottabad','Mardan','Mingora','Rahim Yar Khan','Sahiwal',
+];
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface Vitals { temp: string; bp: string; pulse: string; weight: string; }
 interface Patient {
-  id: number;
-  token: string;
-  firstName: string;
-  lastName: string;
-  age: number;
-  gender: string;
-  symptoms: string;
-  medicalHistory: string;
-  vitals: Vitals;
+  id: number; token: string; firstName: string; lastName: string;
+  age: number; gender: string; symptoms: string; medicalHistory: string; vitals: Vitals;
 }
-
+interface DoctorProfile {
+  title: string; firstName: string; lastName: string;
+  email: string; password: string; phone: string; gender: string;
+  specializations: string[]; qualifications: string[];
+  experience: string; city: string; photo: string;
+}
 type Page = 'login' | 'signup' | 'dashboard' | 'profile';
+
+// ─── Reusable MultiSelect ─────────────────────────────────────────────────────
+
+const MultiSelect = ({
+  options, selected, onChange, placeholder, disabled = false, allowCustom = false,
+}: {
+  options: string[]; selected: string[]; onChange: (v: string[]) => void;
+  placeholder: string; disabled?: boolean; allowCustom?: boolean;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [customVal, setCustomVal] = useState('');
+
+  const toggle = (s: string) =>
+    onChange(selected.includes(s) ? selected.filter(x => x !== s) : [...selected, s]);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen(v => !v)}
+        className="w-full min-h-10.5 px-3 py-1.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-left flex flex-wrap items-center gap-1 pr-7 disabled:opacity-60 disabled:cursor-default"
+      >
+        {selected.length > 0 ? selected.map(s => (
+          <span key={s} className="bg-[#0297d6]/10 text-[#0297d6] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20 whitespace-nowrap">
+            {s}
+          </span>
+        )) : <span className="text-slate-400 text-sm">{placeholder}</span>}
+        {!disabled && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">▾</span>}
+      </button>
+
+      {open && !disabled && (
+        <div className="absolute z-50 mt-1 w-full bg-white rounded-2xl shadow-xl border border-slate-100 p-3 max-h-48 overflow-y-auto">
+          {options.map(s => (
+            <label key={s} className="flex items-center gap-2 py-1 cursor-pointer hover:text-[#0297d6] text-sm font-medium text-slate-600">
+              <input
+                type="checkbox"
+                checked={selected.includes(s)}
+                onChange={() => toggle(s)}
+                className="accent-[#0297d6]"
+              />
+              {s}
+            </label>
+          ))}
+          {allowCustom && selected.includes('Other') && (
+            <input
+              type="text"
+              value={customVal}
+              onChange={e => setCustomVal(e.target.value)}
+              placeholder="Enter custom value..."
+              className="mt-2 w-full px-3 py-2 bg-slate-50 rounded-xl text-sm border border-slate-200 outline-none focus:border-[#0297d6]"
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 const EZShifaPortal = () => {
   const [activePage, setActivePage] = useState<Page>('login');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [profilePreview, setProfilePreview] = useState<string>('');
-  const [specDropOpen, setSpecDropOpen] = useState(false);
-  const [qualDropOpen, setQualDropOpen] = useState(false);
-  const [selectedSpecs, setSelectedSpecs] = useState<string[]>([]);
-  const [selectedQuals, setSelectedQuals] = useState<string[]>([]);
+  const [profilePreview, setProfilePreview] = useState('');
+  const [tokenSearch, setTokenSearch] = useState('');
+  const [tokenEditMode, setTokenEditMode] = useState(false);
+  const [editMode, setEditMode] = useState(false);
 
-  // --- Doctor State (Simulating Session) ---
-  const [doctorProfile, setDoctorProfile] = useState({
-    name: "Dr. Muhammad Umer",
-    email: "umer.dev@example.com",
-    phone: "+92 300 1234567",
-    gender: "Male",
-    specialization: "General Physician",
-    qualification: "MBBS, MD",
-    experience: "5",
-    country: "Pakistan",
-    city: "Karachi",
-    photo: ""
+  // Registration state
+  const [regSpecs, setRegSpecs] = useState<string[]>([]);
+  const [regQuals, setRegQuals] = useState<string[]>([]);
+
+  // Profile/Doctor state
+  const [doctor, setDoctor] = useState<DoctorProfile>({
+    title: 'Dr.', firstName: 'Muhammad', lastName: 'Umer',
+    email: 'umer.dev@example.com', password: 'password123',
+    phone: '+92 300 1234567', gender: 'Male',
+    specializations: ['General Physician'], qualifications: ['MBBS', 'MD'],
+    experience: '5', city: 'Karachi', photo: '',
   });
 
-  // --- Mock Queue Data ---
-  const [queue] = useState<Patient[]>([
+  const fullName = `${doctor.title} ${doctor.firstName} ${doctor.lastName}`;
+
+  const queue: Patient[] = [
     {
-      id: 1, token: "101", firstName: "Ahmed", lastName: "Khan", age: 45, gender: "Male",
-      symptoms: "Persistent Cough, Fever", medicalHistory: "Type 2 Diabetes",
-      vitals: { temp: "101.2°F", bp: "130/85", pulse: "88 bpm", weight: "75kg" }
+      id: 1, token: '101', firstName: 'Ahmed', lastName: 'Khan', age: 45, gender: 'Male',
+      symptoms: 'Persistent Cough, Fever', medicalHistory: 'Type 2 Diabetes',
+      vitals: { temp: '101.2°F', bp: '130/85', pulse: '88 bpm', weight: '75kg' },
     },
     {
-      id: 2, token: "102", firstName: "Sara", lastName: "Ahmed", age: 29, gender: "Female",
-      symptoms: "Severe Headache", medicalHistory: "Migraine",
-      vitals: { temp: "98.4°F", bp: "110/70", pulse: "72 bpm", weight: "60kg" }
-    }
-  ]);
+      id: 2, token: '102', firstName: 'Sara', lastName: 'Ahmed', age: 29, gender: 'Female',
+      symptoms: 'Severe Headache', medicalHistory: 'Migraine',
+      vitals: { temp: '98.4°F', bp: '110/70', pulse: '72 bpm', weight: '60kg' },
+    },
+  ];
 
   const handleLogout = () => {
-    const reason = prompt("Please enter reason for logout (e.g., Shift Ended, Emergency, Break):");
-    if (reason !== null) {
-      console.log(`Logout Reason: ${reason}`);
-      setIsLoggedIn(false);
-      setActivePage('login');
-    }
+    const reason = prompt('Please enter reason for logout (e.g., Shift Ended, Emergency, Break):');
+    if (reason !== null) { setIsLoggedIn(false); setActivePage('login'); }
   };
 
+  // ── Input helper (controlled) ──
+  const field = (key: keyof DoctorProfile, type = 'text', placeholder = '') => (
+    <input
+      type={type}
+      value={doctor[key] as string}
+      placeholder={placeholder}
+      disabled={!editMode}
+      onChange={e => setDoctor(d => ({ ...d, [key]: e.target.value }))}
+      className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none disabled:opacity-60 disabled:cursor-default w-full"
+    />
+  );
+
+  const selectField = (key: keyof DoctorProfile, options: string[], placeholder = '') => (
+    <select
+      value={doctor[key] as string}
+      disabled={!editMode}
+      onChange={e => setDoctor(d => ({ ...d, [key]: e.target.value }))}
+      className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-600 disabled:opacity-60 disabled:cursor-default w-full"
+    >
+      {placeholder && <option value="" disabled>{placeholder}</option>}
+      {options.map(o => <option key={o}>{o}</option>)}
+    </select>
+  );
+
+  // ── Navbar ──
   const Navbar = () => (
     <nav className="bg-[#0297d6] sticky top-0 z-50 px-6 py-4 flex justify-between items-center shadow-md text-white">
-      <div className="flex items-center gap-2 cursor-pointer" onClick={() => { setActivePage('dashboard'); setSelectedPatient(null); }}>
-        <div className="bg-white p-2 rounded-xl text-[#0297d6]">
-          <Stethoscope size={22} />
+      <div
+        className="flex items-center gap-3 cursor-pointer"
+        onClick={() => { setActivePage('dashboard'); setSelectedPatient(null); }}
+      >
+        <div className="flex flex-col leading-none">
+          <span className="text-white font-black text-lg tracking-tighter uppercase">Doctor's Portal</span>
+          <span className="text-[10px] text-white/70 font-bold uppercase tracking-[0.2em]">EZShifa Digital Clinic</span>
         </div>
-        <img src="/logo.png" alt="EZShifa" className="h-8 w-auto bg-black rounded-lg px-2 py-0.5" />
       </div>
-
       <div className="flex items-center gap-6">
         <div className="text-right hidden sm:block">
-          <p className="text-xs font-black uppercase">{doctorProfile.name}</p>
+          <p className="text-xs font-black uppercase">{fullName}</p>
           <button onClick={handleLogout} className="text-[10px] font-bold opacity-80 hover:opacity-100 flex items-center gap-1 ml-auto">
             <LogOut size={12} /> LOGOUT
           </button>
         </div>
         <img
-          src={doctorProfile.photo || `https://ui-avatars.com/api/?name=${doctorProfile.name}&background=fff&color=0297d6`}
+          src={doctor.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=fff&color=0297d6`}
           onClick={() => setActivePage('profile')}
           className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white/30 hover:border-white transition-all object-cover"
           alt="Profile"
@@ -102,193 +194,107 @@ const EZShifaPortal = () => {
     </nav>
   );
 
-  // --- Auth Views ---
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  AUTH VIEWS
+  // ─────────────────────────────────────────────────────────────────────────────
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
         <div className="bg-white rounded-[2rem] shadow-2xl w-full overflow-hidden flex flex-col lg:flex-row">
 
           {/* LEFT PANEL */}
-          <div className="bg-[#0297d6] lg:w-85 shrink-0 px-8 py-6 flex flex-col lg:flex-col items-center justify-between gap-4">
+          <div className="bg-[#0297d6] lg:w-80 shrink-0 px-8 py-6 flex flex-col items-center justify-between gap-4">
             <div className="bg-white rounded-2xl px-5 py-4 flex items-center justify-center">
-              <img src="/logo.png" alt="EZShifa Logo" className="max-w-50 lg:max-w-39.5 h-auto" />
+              <img src="/logo.png" alt="EZShifa Logo" className="max-w-48 h-auto" onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
+              <span className="text-[#0297d6] font-black text-2xl hidden">EZShifa</span>
             </div>
-            <div className="text-white text-center lg:text-right">
-              <h2 className="text-4xl lg:text-3xl font-black leading-snug">Digital Health Clinic</h2>
-              <p className="text-[14px] opacity-75 font-semibold mt-1">Professional healthcare network, Karachi.</p>
+            <div className="text-white text-center">
+              <h2 className="text-3xl font-black leading-snug">Digital Health Clinic</h2>
+              <p className="text-sm opacity-75 font-semibold mt-1">Professional healthcare network, Karachi.</p>
             </div>
-            <div className="text-[9px] font-bold text-white/80 uppercase tracking-widest hidden lg:block">© 2026 EZShifa</div>
+            <div className="text-[9px] font-bold text-white/80 uppercase tracking-widest">© 2026 EZShifa</div>
           </div>
 
           {/* RIGHT PANEL */}
-          <div className="flex-1 px-8 py-4 overflow-y-auto max-h-[90vh]">
+          <div className="flex-1 px-8 py-6 overflow-y-auto max-h-[90vh]">
             {activePage === 'login' ? (
               <>
-                <h1 className="text-4xl font-black p-0 text-slate-800">Welcome Back</h1>
+                <h1 className="text-4xl font-black text-slate-800">Welcome Back</h1>
                 <p className="text-slate-400 font-semibold text-sm mt-1 mb-6">Login to your dashboard</p>
-                <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); setIsLoggedIn(true); setActivePage('dashboard'); }}>
-                  <input type="email" placeholder="Email Address" className="w-full px-4 py-3 bg-slate-50 rounded-2xl font-semibold text-xl lg:text-base border-2 border-transparent focus:border-[#0297d6] outline-none" required />
-                  <input type="password" placeholder="Password" className="w-full px-4 py-3 bg-slate-50 rounded-2xl font-semibold text-xl lg:text-base border-2 border-transparent focus:border-[#0297d6] outline-none" required />
-                  <button className="w-full bg-[#0297d6] text-white py-3.5 rounded-2xl font-black uppercase tracking-widest text-md shadow-md mt-6">Login</button>
+                <form className="space-y-3" onSubmit={e => { e.preventDefault(); setIsLoggedIn(true); setActivePage('dashboard'); }}>
+                  <input type="email" placeholder="Email Address" className="w-full px-4 py-3 bg-slate-50 rounded-2xl font-semibold text-base border-2 border-transparent focus:border-[#0297d6] outline-none" required />
+                  <input type="password" placeholder="Password" className="w-full px-4 py-3 bg-slate-50 rounded-2xl font-semibold text-base border-2 border-transparent focus:border-[#0297d6] outline-none" required />
+                  <button className="w-full bg-[#0297d6] text-white py-3.5 rounded-2xl font-black uppercase tracking-widest shadow-md mt-6">Login</button>
                 </form>
-                <button onClick={() => setActivePage('signup')} className="w-full mt-4 text-[12px] font-black text-slate-700 hover:text-[#0297d6] uppercase tracking-widest">Create an account →</button>
+                <button onClick={() => setActivePage('signup')} className="w-full mt-4 text-xs font-black text-slate-700 hover:text-[#0297d6] uppercase tracking-widest">
+                  Create an account →
+                </button>
               </>
             ) : (
               <>
                 <h1 className="text-2xl font-black text-slate-800">Doctor Registration</h1>
-                <p className="text-slate-400 font-semibold text-sm mt-0.5 mb-3">Create your professional profile</p>
-                <form className="space-y-2.5" onSubmit={(e) => { e.preventDefault(); setIsLoggedIn(true); setActivePage('dashboard'); }}>
+                <p className="text-slate-400 font-semibold text-sm mt-0.5 mb-4">Create your professional profile</p>
+                <form className="space-y-3" onSubmit={e => { e.preventDefault(); setIsLoggedIn(true); setActivePage('dashboard'); }}>
 
-                  {/* Profile Picture */}
-                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border-2 border-transparent">
+                  {/* Photo */}
+                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
                     <div className="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center overflow-hidden shrink-0">
                       {profilePreview
                         ? <img src={profilePreview} className="w-full h-full object-cover" alt="preview" />
-                        : <User size={20} className="text-slate-400" />
-                      }
+                        : <User size={20} className="text-slate-400" />}
                     </div>
-                    <div>
-                      <label className="cursor-pointer">
-                        <span className="text-sm lg:text-xs font-black text-[#0297d6] uppercase tracking-widest">Upload Photo</span>
-                        <span className="text-[12px] lg:text-[10px] text-slate-400 font-medium ml-2">(Optional)</span>
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) setProfilePreview(URL.createObjectURL(file));
-                        }} />
-                      </label>
-                      <p className="text-[10px] text-slate-400">JPG, PNG up to 5MB</p>
-                    </div>
+                    <label className="cursor-pointer">
+                      <span className="text-xs font-black text-[#0297d6] uppercase tracking-widest">Upload Photo</span>
+                      <span className="text-[11px] text-slate-400 ml-2">(Optional)</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={e => {
+                        const f = e.target.files?.[0];
+                        if (f) setProfilePreview(URL.createObjectURL(f));
+                      }} />
+                    </label>
                   </div>
 
-                  {/* Name Row */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex gap-2">
-                      <select
-                        defaultValue=""
-                        className="w-24 px-2 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-600"
-                      >
-                        <option value="" disabled>Title</option>
-                        <option>Dr.</option>
-                        <option>Mr.</option>
-                        <option>Ms.</option>
-                        <option>Mrs.</option>
-                        <option>Prof.</option>
-                        <option>Assoc. Prof.</option>
-                      </select>
-
-                      <input
-                        type="text"
-                        placeholder="First Name"
-                        className="flex-1 px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none"
-                        required
-                      />
-                    </div>
-
-                    <input
-                      type="text"
-                      placeholder="Last Name"
-                      className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none"
-                      required
-                    />
+                  {/* Name */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <select defaultValue="" className="px-2 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-600">
+                      <option value="" disabled>Title</option>
+                      {TITLE_OPTIONS.map(t => <option key={t}>{t}</option>)}
+                    </select>
+                    <input type="text" placeholder="First Name" required className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
+                    <input type="text" placeholder="Last Name" required className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
                   </div>
 
-                  {/* Email & Password */}
+                  {/* Email + Password */}
                   <div className="grid grid-cols-2 gap-2">
-                    <input type="email" placeholder="Email Address" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" required />
-                    <input type="password" placeholder="Password" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" required />
+                    <input type="email" placeholder="Email Address" required className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
+                    <input type="password" placeholder="Password" required className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
                   </div>
 
-                  {/* Phone & Gender */}
+                  {/* Phone + Gender */}
                   <div className="grid grid-cols-2 gap-2">
-                    <input type="tel" placeholder="Phone Number" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
-                    <select defaultValue="" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-500">
+                    <input type="tel" placeholder="Phone Number" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
+                    <select defaultValue="" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-500">
                       <option value="" disabled>Gender</option>
-                      <option>Male</option>
-                      <option>Female</option>
-                      <option>Other</option>
+                      {GENDER_OPTIONS.map(g => <option key={g}>{g}</option>)}
                     </select>
                   </div>
 
-                  {/* Professional Info */}
-                  <p className="text-[12px] font-black text-[#0297d6] uppercase tracking-widest pt-1">Professional Info</p>
-                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-2">
-
-                    {/* Specialization */}
-                    <div className="relative">
-                      <button type="button" onClick={() => setSpecDropOpen(v => !v)}
-                        className="w-full min-h-10.5 px-3 py-1.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-left text-slate-500 flex flex-wrap items-center gap-1 pr-7">
-                        {selectedSpecs.length > 0 ? (
-                          selectedSpecs.map(s => (
-                            <span key={s} className="bg-[#0297d6]/10 text-[#0297d6] text-[11px] lg:text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20 whitespace-nowrap">
-                              {s}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-slate-400 text-lg lg:text-sm">Specialization</span>
-                        )}
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">▾</span>
-                      </button>
-                      {specDropOpen && (
-                        <div className="absolute z-50 mt-1 w-full bg-white rounded-2xl shadow-xl border border-slate-100 p-3 max-h-44 overflow-y-auto">
-                          {['General Physician', 'Cardiologist', 'Dermatologist', 'ENT', 'Gynecologist', 'Neurologist', 'Orthopedic', 'Pediatrician', 'Psychiatrist', 'Urologist', 'Other'].map(s => (
-                            <label key={s} className="flex items-center gap-2 py-1 cursor-pointer hover:text-[#0297d6] text-sm font-medium text-slate-600">
-                              <input type="checkbox" checked={selectedSpecs.includes(s)} onChange={() => setSelectedSpecs(p => p.includes(s) ? p.filter(x => x !== s) : [...p, s])} className="accent-[#0297d6]" />
-                              {s}
-                            </label>
-                          ))}
-                          {selectedSpecs.includes('Other') && (
-                            <input type="text" placeholder="Enter specialization..." className="mt-1 w-full px-3 py-2 bg-slate-50 rounded-xl text-md lg:text-sm border border-slate-200 outline-none focus:border-[#0297d6]" />
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Qualification */}
-                    <div className="relative">
-                      <button type="button" onClick={() => setQualDropOpen(v => !v)}
-                        className="w-full min-h-10.5 px-3 py-1.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-left text-slate-500 flex flex-wrap items-center gap-1 pr-7">
-                        {selectedQuals.length > 0 ? (
-                          selectedQuals.map(q => (
-                            <span key={q} className="bg-[#0297d6]/10 text-[#0297d6] text-[11px] lg:text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20 whitespace-nowrap">
-                              {q}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-slate-400 text-md lg:text-sm">Qualification</span>
-                        )}
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">▾</span>
-                      </button>
-                      {qualDropOpen && (
-                        <div className="absolute z-50 mt-1 w-full bg-white rounded-2xl shadow-xl border border-slate-100 p-3 max-h-44 overflow-y-auto">
-                          {['MBBS', 'BDS', 'MD', 'MS', 'FCPS', 'MRCP', 'MRCS', 'PhD', 'DPT', 'Pharm-D', 'Other'].map(q => (
-                            <label key={q} className="flex items-center gap-2 py-1 cursor-pointer hover:text-[#0297d6] text-md lg:text-sm font-medium text-slate-600">
-                              <input type="checkbox" checked={selectedQuals.includes(q)} onChange={() => setSelectedQuals(p => p.includes(q) ? p.filter(x => x !== q) : [...p, q])} className="accent-[#0297d6]" />
-                              {q}
-                            </label>
-                          ))}
-                          {selectedQuals.includes('Other') && (
-                            <input type="text" placeholder="Enter qualification..." className="mt-1 w-full px-3 py-2 bg-slate-50 rounded-xl text-md lg:text-sm border border-slate-200 outline-none focus:border-[#0297d6]" />
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Experience */}
-                    <input type="number" placeholder="Experience (Years)" min="0" max="60"
-                      className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
-
-                    {/* City */}
-                    <select defaultValue="" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-500">
+                  {/* Professional */}
+                  <p className="text-[11px] font-black text-[#0297d6] uppercase tracking-widest pt-1">Professional Info</p>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                    <MultiSelect options={SPECIALIZATION_OPTIONS} selected={regSpecs} onChange={setRegSpecs} placeholder="Specialization" allowCustom />
+                    <MultiSelect options={QUALIFICATION_OPTIONS} selected={regQuals} onChange={setRegQuals} placeholder="Qualification" allowCustom />
+                    <input type="number" placeholder="Experience (Yrs)" min={0} max={60} className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
+                    <select defaultValue="" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-500">
                       <option value="" disabled>City</option>
-                      {['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Multan', 'Peshawar', 'Quetta', 'Hyderabad', 'Sialkot', 'Gujranwala', 'Bahawalpur', 'Sargodha', 'Sukkur', 'Larkana', 'Abbottabad', 'Mardan', 'Mingora', 'Rahim Yar Khan', 'Sahiwal'].map(c => (
-                        <option key={c}>{c}</option>
-                      ))}
+                      {CITY_OPTIONS.map(c => <option key={c}>{c}</option>)}
                     </select>
-
                   </div>
-                  <button className="w-full bg-[#0297d6] text-white py-3 rounded-2xl font-black uppercase tracking-widest text-md lg:text-xs shadow-md">Register Now</button>
+
+                  <button className="w-full bg-[#0297d6] text-white py-3 rounded-2xl font-black uppercase tracking-widest text-sm shadow-md">Register Now</button>
                 </form>
-                <button onClick={() => setActivePage('login')} className="w-full mt-2 mb-1 text-[10px] font-black text-slate-400 hover:text-[#0297d6] uppercase tracking-widest">← Back to Login</button>
+                <button onClick={() => setActivePage('login')} className="w-full mt-2 text-[10px] font-black text-slate-400 hover:text-[#0297d6] uppercase tracking-widest">
+                  ← Back to Login
+                </button>
               </>
             )}
           </div>
@@ -296,27 +302,31 @@ const EZShifaPortal = () => {
       </div>
     );
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  LOGGED IN
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
       <main className="max-w-7xl mx-auto p-6 lg:p-10">
 
-        {/* Dashboard */}
+        {/* ── DASHBOARD ── */}
         {activePage === 'dashboard' && !selectedPatient && (
-          <div className="animate-in fade-in duration-500">
+          <div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
               {[
                 { label: 'Today Patients', val: '24', icon: User, bg: 'bg-blue-50', text: 'text-blue-600' },
                 { label: 'In Queue', val: '08', icon: Clock, bg: 'bg-orange-50', text: 'text-orange-600' },
                 { label: 'Completed', val: '16', icon: CheckCircle, bg: 'bg-emerald-50', text: 'text-emerald-600' },
-              ].map((stat, i) => (
+              ].map((s, i) => (
                 <div key={i} className="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex items-center gap-5">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${stat.bg} ${stat.text}`}>
-                    <stat.icon size={28} />
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${s.bg} ${s.text}`}>
+                    <s.icon size={28} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                    <h3 className="text-2xl font-black text-slate-800">{stat.val}</h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{s.label}</p>
+                    <h3 className="text-2xl font-black text-slate-800">{s.val}</h3>
                   </div>
                 </div>
               ))}
@@ -330,22 +340,34 @@ const EZShifaPortal = () => {
                 <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
                   <tr>
                     <th className="px-6 py-4">SR. No</th>
-                    <th className="px-6 py-4">Token Number</th>
+                    <th className="px-6 py-4">
+                      {tokenEditMode ? (
+                        <div className="flex items-center gap-2">
+                          <input autoFocus type="text" value={tokenSearch} onChange={e => setTokenSearch(e.target.value)}
+                            onBlur={() => { if (!tokenSearch) setTokenEditMode(false); }}
+                            placeholder="Search token..."
+                            className="px-3 py-1 rounded-xl border-2 border-[#0297d6] outline-none text-[#0297d6] font-black text-xs w-36 bg-white" />
+                          {tokenSearch && <button onClick={() => { setTokenSearch(''); setTokenEditMode(false); }}><X size={14} /></button>}
+                        </div>
+                      ) : (
+                        <button onClick={() => setTokenEditMode(true)} className="hover:text-[#0297d6] flex items-center gap-1">
+                          Token Number <Search size={12} />
+                        </button>
+                      )}
+                    </th>
                     <th className="px-6 py-4">Symptoms</th>
                     <th className="px-6 py-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {queue.map((p, index) => (
+                  {queue.filter(p => !tokenSearch || p.token.includes(tokenSearch)).map((p, i) => (
                     <tr key={p.id} className="hover:bg-slate-50/50">
-                      <td className="px-6 py-5 font-bold text-slate-500">{index + 1}</td>
+                      <td className="px-6 py-5 font-bold text-slate-500">{i + 1}</td>
                       <td className="px-6 py-5 font-black text-[#0297d6]">#{p.token}</td>
                       <td className="px-6 py-5 text-sm font-medium text-slate-600">{p.symptoms}</td>
                       <td className="px-6 py-5 text-right">
-                        <button
-                          onClick={() => setSelectedPatient(p)}
-                          className="bg-[#0297d6] text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest"
-                        >
+                        <button onClick={() => setSelectedPatient(p)}
+                          className="bg-[#0297d6] text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">
                           Start
                         </button>
                       </td>
@@ -357,10 +379,10 @@ const EZShifaPortal = () => {
           </div>
         )}
 
-        {/* Patient Details View (Internal Consultation) */}
+        {/* ── PATIENT DETAIL ── */}
         {selectedPatient && activePage === 'dashboard' && (
-          <div className="animate-in slide-in-from-right-4 duration-500">
-            <button onClick={() => setSelectedPatient(null)} className="mb-6 flex items-center gap-2 text-slate-400 font-black text-xs uppercase hover:text-slate-800 transition-colors">
+          <div>
+            <button onClick={() => setSelectedPatient(null)} className="mb-6 flex items-center gap-2 text-slate-400 font-black text-xs uppercase hover:text-slate-800">
               <X size={16} /> Back to Queue
             </button>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -391,7 +413,8 @@ const EZShifaPortal = () => {
                 <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-3">
                   <Pill className="text-[#0297d6]" /> Prescription Box
                 </h3>
-                <textarea placeholder="Type medicines or clinical notes here..." className="w-full h-64 p-6 bg-slate-50 rounded-3xl border-2 border-transparent focus:border-[#0297d6] outline-none font-medium text-slate-700" />
+                <textarea placeholder="Type medicines or clinical notes here..."
+                  className="w-full h-64 p-6 bg-slate-50 rounded-3xl border-2 border-transparent focus:border-[#0297d6] outline-none font-medium text-slate-700" />
                 <div className="flex gap-4 mt-8">
                   <button className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3">
                     <Printer size={18} /> Print Rx
@@ -405,49 +428,119 @@ const EZShifaPortal = () => {
           </div>
         )}
 
-        {/* Profile View */}
+        {/* ── PROFILE ── */}
         {activePage === 'profile' && (
-          <div className="max-w-3xl mx-auto animate-in fade-in duration-500">
-            <div className="bg-slate-50 rounded-[3rem] overflow-hidden border border-slate-100 shadow-xl">
-              <div className="h-32 bg-[#0297d6] relative">
-                <button className="absolute right-6 top-6 bg-white/20 p-2 rounded-xl text-white hover:bg-white/40">
-                  <Edit2 size={18} />
-                </button>
-              </div>
-              <div className="px-10 pb-12 -mt-16">
-                <img
-                  src={doctorProfile.photo || `https://ui-avatars.com/api/?name=${doctorProfile.name}&background=f8fafc&color=0297d6`}
-                  className="w-32 h-32 rounded-[2.5rem] border-8 border-white bg-slate-100 shadow-lg object-cover mb-6"
-                  alt="Profile"
-                />
-                <h1 className="text-4xl font-black text-slate-800 tracking-tighter">{doctorProfile.name}</h1>
-                <p className="text-[#0297d6] font-black uppercase text-sm tracking-widest mb-10">{doctorProfile.specialization}</p>
+          <div className="max-w-3xl mx-auto pb-20">
+            <div className="bg-white rounded-[3rem] overflow-hidden border border-slate-100 shadow-xl">
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {[
-                    { label: 'Qualification', val: doctorProfile.qualification, icon: GraduationCap },
-                    { label: 'Experience', val: doctorProfile.experience + " Years", icon: Briefcase },
-                    { label: 'Contact', val: doctorProfile.phone, icon: Phone },
-                    { label: 'Email', val: doctorProfile.email, icon: Mail },
-                    { label: 'Location', val: `${doctorProfile.city}, ${doctorProfile.country}`, icon: MapPin },
-                    { label: 'Gender', val: doctorProfile.gender, icon: User },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                      <div className="p-3 bg-blue-50 text-[#0297d6] rounded-xl"><item.icon size={18} /></div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.label}</p>
-                        <p className="text-sm font-bold text-slate-700">{item.val}</p>
-                      </div>
-                    </div>
-                  ))}
+              {/* Blue Header */}
+              <div className="bg-[#0297d6] px-8 py-5 relative flex flex-col sm:flex-row items-center gap-6">
+                <button
+                  onClick={() => setEditMode(v => !v)}
+                  className="absolute right-6 top-6 bg-white/20 p-2 rounded-xl text-white hover:bg-white/40 transition-colors"
+                >
+                  {editMode ? <X size={18} /> : <Edit2 size={18} />}
+                </button>
+
+                {/* Avatar */}
+                <div className="relative group">
+                  <img
+                    src={doctor.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=ffffff&color=0297d6`}
+                    className="w-24 h-24 rounded-[2rem] border-4 border-white/30 shadow-lg object-cover"
+                    alt="Profile"
+                  />
+                  {editMode && (
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-[2rem] cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-white text-[10px] font-black uppercase">Change</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={e => {
+                        const f = e.target.files?.[0];
+                        if (f) setDoctor(d => ({ ...d, photo: URL.createObjectURL(f) }));
+                      }} />
+                    </label>
+                  )}
                 </div>
+
+                <div className="text-center sm:text-left">
+                  <h1 className="text-2xl font-black text-white">{fullName}</h1>
+                  <p className="text-white/80 font-bold uppercase text-xs mt-1">
+                    {doctor.specializations.join(' • ') || 'No specialization set'}
+                  </p>
+                </div>
+              </div>
+
+              {/* White content */}
+              <div className="px-6 sm:px-10 py-5 bg-white space-y-2.5">
+
+                {/* Row 1: Title + First + Last — same 3-col layout as registration */}
+                <div className="grid grid-cols-3 gap-2">
+                  {selectField('title', TITLE_OPTIONS)}
+                  {field('firstName', 'text', 'First Name')}
+                  {field('lastName', 'text', 'Last Name')}
+                </div>
+
+                {/* Row 2: Email + Password */}
+                <div className="grid grid-cols-2 gap-2">
+                  {field('email', 'email', 'Email')}
+                  {field('password', 'password', 'Password')}
+                </div>
+
+                {/* Row 3: Phone + Gender */}
+                <div className="grid grid-cols-2 gap-2">
+                  {field('phone', 'tel', 'Phone')}
+                  {selectField('gender', GENDER_OPTIONS)}
+                </div>
+
+                {/* Professional heading */}
+                <p className="text-[11px] font-black text-[#0297d6] uppercase tracking-widest pt-2">
+                  Professional Info
+                </p>
+
+                {/* Row 4: Spec + Qual + Exp + City — identical 4-col to registration */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 pb-48 -mb-48">
+                  <MultiSelect
+                    options={SPECIALIZATION_OPTIONS}
+                    selected={doctor.specializations}
+                    onChange={v => setDoctor(d => ({ ...d, specializations: v }))}
+                    placeholder="Specialization"
+                    disabled={!editMode}
+                    allowCustom
+                  />
+                  <MultiSelect
+                    options={QUALIFICATION_OPTIONS}
+                    selected={doctor.qualifications}
+                    onChange={v => setDoctor(d => ({ ...d, qualifications: v }))}
+                    placeholder="Qualification"
+                    disabled={!editMode}
+                    allowCustom
+                  />
+                  <input
+                    type="number"
+                    value={doctor.experience}
+                    placeholder="Experience (Yrs)"
+                    disabled={!editMode}
+                    min={0} max={60}
+                    onChange={e => setDoctor(d => ({ ...d, experience: e.target.value }))}
+                    className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none disabled:opacity-60 disabled:cursor-default"
+                  />
+                  {selectField('city', CITY_OPTIONS)}
+                </div>
+
+                {/* Save button */}
+                {editMode && (
+                  <button
+                    onClick={() => setEditMode(false)}
+                    className="w-full bg-[#0297d6] text-white py-3 rounded-2xl font-black uppercase tracking-widest text-sm shadow-md"
+                  >
+                    Update Profile
+                  </button>
+                )}
               </div>
             </div>
           </div>
         )}
       </main>
 
-      <style jsx global>{`
+      <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: white; }
       `}</style>
