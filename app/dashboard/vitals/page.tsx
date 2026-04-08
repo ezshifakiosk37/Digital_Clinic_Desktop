@@ -19,6 +19,12 @@ import {
   DialogOverlay
 } from "@/components/ui/dialog";
 
+const COMMON_SYMPTOMS = [
+  "Fever", "Cough", "Headache", "Shortness of Breath", "Chest Pain",
+  "Fatigue", "Body Ache", "Sore Throat", "Runny Nose", "Nausea",
+  "Vomiting", "Diarrhea", "Dizziness", "High Blood Pressure", "Low Blood Pressure"
+];
+
 const VitalsPage = () => {
   const [vitals, setVitals] = useState({
     BP: { value1: '120', value2: '80' },
@@ -26,11 +32,14 @@ const VitalsPage = () => {
     Temperature: '37',
     Spo2: '93',
     Height: "5.6",
-    Weight: "65"
+    Weight: "65",
+    symptoms: [] as string[]
   });
 
+  const [otherSymptom, setOtherSymptom] = useState("");
+  const [showOtherInput, setShowOtherInput] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useState([]);
+  const [history, setHistory] = useState<any[]>([]);
   const [fetching, setFetching] = useState(false);
   const [tokenNumber, setTokenNumber] = useState("");
   const [sessionPhone, setSessionPhone] = useState(""); // Phone of current active patient
@@ -40,6 +49,31 @@ const VitalsPage = () => {
   const [sessionName, setSessionName] = useState("");
   const [showExpiredDialog, setShowExpiredDialog] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  // Toggle symptom selection
+  const toggleSymptom = (symptom: string) => {
+    setVitals(prev => {
+      const current = prev.symptoms || [];
+      if (current.includes(symptom)) {
+        return { ...prev, symptoms: current.filter(s => s !== symptom) };
+      } else {
+        return { ...prev, symptoms: [...current, symptom] };
+      }
+    });
+  };
+
+  // Handle "Other" symptom
+  const addOtherSymptom = () => {
+    if (otherSymptom.trim()) {
+      setVitals(prev => ({
+        ...prev,
+        symptoms: [...(prev.symptoms || []), otherSymptom.trim()]
+      }));
+      setOtherSymptom("");
+      setShowOtherInput(false);
+    }
+  };
 
   // Verify token and start a session
   const handleVerifyToken = async () => {
@@ -60,7 +94,8 @@ const VitalsPage = () => {
           Temperature: '',
           Spo2: '',
           Height: "",
-          Weight: ""
+          Weight: "",
+          symptoms: []
         });
       }
     }
@@ -119,10 +154,12 @@ const VitalsPage = () => {
         setShowSuccessToast(true);
         setTimeout(() => setShowSuccessToast(false), 3000);
         // Reset and go back to token dialog for next patient
-        setVitals({ BP: { value1: '120', value2: '80' }, PulseRate: "90", Temperature: '37', Spo2: '93', Height: "5.6", Weight: "65" });
+        setVitals({ BP: { value1: '120', value2: '80' }, PulseRate: "90", Temperature: '37', Spo2: '93', Height: "5.6", Weight: "65", symptoms: [] });
         setTokenNumber("");
         setSessionPhone("");
         setOpenTokenDialog(true);
+        setOtherSymptom("");
+        setShowOtherInput(false);
       }
     } catch (error: any) {
       alert(`Failed: ${error.message}`);
@@ -149,6 +186,9 @@ const VitalsPage = () => {
       "Weight (kg)": `${rec.Weight} kg`,
       "Height (ft)": `${rec.Height} ft`,
       "Temperature (°C)": `${rec.Temperature} °C`,
+      "Symptoms": Array.isArray(rec.symptoms)
+        ? rec.symptoms.join(", ")
+        : (rec.symptoms || "—"),
     }));
 
     const ws = XLSX.utils.json_to_sheet([...infoRows, ...dataRows]);
@@ -181,14 +221,19 @@ const VitalsPage = () => {
       rec.Weight,
       rec.Height,
       rec.Temperature,
+      Array.isArray(rec.symptoms)
+        ? rec.symptoms.join(", ")
+        : (rec.symptoms || "—"),
+
     ]);
 
     autoTable(doc, {
-      head: [["Date", "Time", "BP (mmHg)", "Pulse", "SpO2 (%)", "Weight (kg)", "Height (ft)", "Temp (°C)"]],
+      head: [["Date", "Time", "BP (mmHg)", "Pulse", "SpO2 (%)", "Weight (kg)", "Height (ft)", "Temp (°C)", "Symptoms"]],
       body: tableData,
       startY: 38,
       styles: { fontSize: 9 },
       headStyles: { fillColor: [2, 151, 214] },
+      columnStyles: { 8: { cellWidth: 50 } },
     });
 
     doc.save(`History_${historySearchPhone}.pdf`);
@@ -282,6 +327,90 @@ const VitalsPage = () => {
             <VitalCard type={VitalType.WEIGHT} onChange={(val) => handleUpdate('Weight', val)} value={vitals.Weight} />
             <VitalCard type={VitalType.HEIGHT} onChange={(val) => handleUpdate('Height', val)} value={vitals.Height} />
           </div>
+          {/* Multi-Select Checkbox Dropdown for Symptoms */}
+          <div className="mt-10">
+            <h3 className="text-lg font-bold text-slate-800 mb-3">Symptoms</h3>
+
+            <div className="relative w-full md:w-96">
+              <button
+                type="button"
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-left flex items-center justify-between hover:border-[#0297d6] focus:border-[#0297d6] outline-none"
+              >
+                <span className="text-sm text-slate-700">
+                  {vitals.symptoms.length > 0
+                    ? `${vitals.symptoms.length} selected`
+                    : "Select Symptoms"}
+                </span>
+                <span className="text-slate-400">▼</span>
+              </button>
+
+              {/* Dropdown Menu */}
+              {showDropdown && (
+                <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-80 overflow-y-auto py-2">
+                  {COMMON_SYMPTOMS.map((symptom) => (
+                    <label
+                      key={symptom}
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={vitals.symptoms.includes(symptom)}
+                        onChange={() => toggleSymptom(symptom)}
+                        className="w-5 h-5 accent-[#0297d6] rounded"
+                      />
+                      <span className="text-sm text-slate-700">{symptom}</span>
+                    </label>
+                  ))}
+
+                  {/* Other Option */}
+                  <div className="border-t border-slate-100 mt-2 pt-2 px-4">
+                    <label className="flex items-center gap-3 py-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showOtherInput}
+                        onChange={() => setShowOtherInput(!showOtherInput)}
+                        className="w-5 h-5 accent-[#0297d6] rounded"
+                      />
+                      <span className="text-sm text-slate-700">Other</span>
+                    </label>
+
+                    {showOtherInput && (
+                      <div className="flex gap-2 mt-2 pl-8">
+                        <Input
+                          placeholder="Type custom symptom..."
+                          value={otherSymptom}
+                          onChange={(e) => setOtherSymptom(e.target.value)}
+                          className="flex-1 text-sm"
+                        />
+                        <Button onClick={addOtherSymptom} size="sm">Add</Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Selected Symptoms as Tags */}
+            {vitals.symptoms.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {vitals.symptoms.map((sym, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-[#0297d6]/10 text-[#0297d6] text-sm px-4 py-1.5 rounded-full flex items-center gap-2 border border-[#0297d6]/20"
+                  >
+                    {sym}
+                    <button
+                      onClick={() => toggleSymptom(sym)}
+                      className="text-[#0297d6] hover:text-red-500 font-bold text-lg leading-none"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
       </div>
       <div className="mt-8 md:mt-12">
@@ -324,6 +453,7 @@ const VitalsPage = () => {
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">SpO2</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Temp</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">W/H</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Symptoms</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -342,6 +472,11 @@ const VitalsPage = () => {
                         <td className="px-6 py-4 text-sm text-slate-700">{record.Spo2}%</td>
                         <td className="px-6 py-4 text-sm text-slate-700">{record.Temperature}°C</td>
                         <td className="px-6 py-4 text-sm text-slate-600">{record.Weight}kg / {record.Height}ft</td>
+                        <td className="px-6 py-4 text-sm text-slate-700 max-w-xs">
+                          {Array.isArray(record.symptoms)
+                            ? record.symptoms.join(", ")
+                            : (record.symptoms || "—")}
+                        </td>
                       </tr>
                     ))
                   ) : (
