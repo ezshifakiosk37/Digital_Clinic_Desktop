@@ -10,18 +10,18 @@ import {
 const TITLE_OPTIONS = ['Dr.', 'Mr.', 'Ms.', 'Mrs.', 'Prof.', 'Assoc. Prof.'];
 const GENDER_OPTIONS = ['Male', 'Female', 'Other'];
 const SPECIALIZATION_OPTIONS = [
-  'General Physician','Cardiologist','Dermatologist','ENT',
-  'Gynecologist','Neurologist','Orthopedic','Pediatrician',
-  'Psychiatrist','Urologist','Other',
+  'General Physician', 'Cardiologist', 'Dermatologist', 'ENT',
+  'Gynecologist', 'Neurologist', 'Orthopedic', 'Pediatrician',
+  'Psychiatrist', 'Urologist', 'Other',
 ];
 const QUALIFICATION_OPTIONS = [
-  'MBBS','BDS','MD','MS','FCPS','MRCP','MRCS','PhD','DPT','Pharm-D','Other',
+  'MBBS', 'BDS', 'MD', 'MS', 'FCPS', 'MRCP', 'MRCS', 'PhD', 'DPT', 'Pharm-D', 'Other',
 ];
 const CITY_OPTIONS = [
-  'Karachi','Lahore','Islamabad','Rawalpindi','Faisalabad',
-  'Multan','Peshawar','Quetta','Hyderabad','Sialkot',
-  'Gujranwala','Bahawalpur','Sargodha','Sukkur','Larkana',
-  'Abbottabad','Mardan','Mingora','Rahim Yar Khan','Sahiwal',
+  'Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad',
+  'Multan', 'Peshawar', 'Quetta', 'Hyderabad', 'Sialkot',
+  'Gujranwala', 'Bahawalpur', 'Sargodha', 'Sukkur', 'Larkana',
+  'Abbottabad', 'Mardan', 'Mingora', 'Rahim Yar Khan', 'Sahiwal',
 ];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -42,10 +42,10 @@ type Page = 'login' | 'signup' | 'dashboard' | 'profile';
 // ─── Reusable MultiSelect ─────────────────────────────────────────────────────
 
 const MultiSelect = ({
-  options, selected, onChange, placeholder, disabled = false, allowCustom = false,
+  options, selected, onChange, placeholder, disabled = false, allowCustom = false, position = 'bottom'
 }: {
   options: string[]; selected: string[]; onChange: (v: string[]) => void;
-  placeholder: string; disabled?: boolean; allowCustom?: boolean;
+  placeholder: string; disabled?: boolean; allowCustom?: boolean; position?: 'top' | 'bottom';
 }) => {
   const [open, setOpen] = useState(false);
   const [customVal, setCustomVal] = useState('');
@@ -59,20 +59,20 @@ const MultiSelect = ({
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen(v => !v)}
-        className="w-full min-h-10.5 px-3 py-1.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-left flex flex-wrap items-center gap-1 pr-7 disabled:opacity-60 disabled:cursor-default"
+        className="w-full min-h-10.5 px-3 py-1.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-left flex flex-wrap items-center gap-1 pr-7 disabled:opacity-60 disabled:cursor-default"
       >
         {selected.length > 0 ? selected.map(s => (
-          <span key={s} className="bg-[#0297d6]/10 text-[#0297d6] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20 whitespace-nowrap">
+          <span key={s} className="bg-[#0297d6]/10 text-[#0297d6] text-[14px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20 whitespace-nowrap">
             {s}
           </span>
         )) : <span className="text-slate-400 text-sm">{placeholder}</span>}
-        {!disabled && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">▾</span>}
+        {!disabled && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm lg:text-es">▾</span>}
       </button>
 
       {open && !disabled && (
-        <div className="absolute z-50 mt-1 w-full bg-white rounded-2xl shadow-xl border border-slate-100 p-3 max-h-48 overflow-y-auto">
+        <div className={`absolute z-50 w-full bg-white rounded-2xl shadow-xl border border-slate-100 p-3 max-h-48 overflow-y-auto ${position === 'top' ? 'bottom-full mb-2' : 'mt-1 top-full'}`}>
           {options.map(s => (
-            <label key={s} className="flex items-center gap-2 py-1 cursor-pointer hover:text-[#0297d6] text-sm font-medium text-slate-600">
+            <label key={s} className="flex items-center gap-2 py-1 cursor-pointer hover:text-[#0297d6] text-md lg:text-sm font-medium text-slate-600">
               <input
                 type="checkbox"
                 checked={selected.includes(s)}
@@ -88,7 +88,7 @@ const MultiSelect = ({
               value={customVal}
               onChange={e => setCustomVal(e.target.value)}
               placeholder="Enter custom value..."
-              className="mt-2 w-full px-3 py-2 bg-slate-50 rounded-xl text-sm border border-slate-200 outline-none focus:border-[#0297d6]"
+              className="mt-2 w-full px-3 py-2 bg-slate-50 rounded-xl text-md lg:text-sm border border-slate-200 outline-none focus:border-[#0297d6]"
             />
           )}
         </div>
@@ -96,7 +96,49 @@ const MultiSelect = ({
     </div>
   );
 };
+const SingleSelect = ({
+  options, value, onChange, placeholder, disabled = false, position = 'bottom'
+}: {
+  options: string[]; value: string; onChange: (v: string) => void;
+  placeholder: string; disabled?: boolean; position?: 'top' | 'bottom';
+}) => {
+  const [open, setOpen] = useState(false);
 
+  return (
+    <div className="relative w-full">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen(!open)}
+        className="w-full px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-left flex justify-between items-center disabled:opacity-60"
+      >
+        <span className={value ? "text-slate-800" : "text-slate-400"}>
+          {value || placeholder}
+        </span>
+        <span className="text-slate-400 text-xs">▾</span>
+      </button>
+
+      {open && !disabled && (
+        <>
+          {/* Backdrop to close when clicking outside */}
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+
+          <div className={`absolute z-50 w-full bg-white rounded-2xl shadow-xl border border-slate-100 p-2 max-h-48 overflow-y-auto ${position === 'top' ? 'bottom-full mb-2' : 'top-full mt-1'}`}>
+            {options.map(s => (
+              <div
+                key={s}
+                onClick={() => { onChange(s); setOpen(false); }}
+                className="px-3 py-2 cursor-pointer hover:bg-slate-50 hover:text-[#0297d6] rounded-xl text-sm font-medium text-slate-600 transition-colors"
+              >
+                {s}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const EZShifaPortal = () => {
@@ -149,7 +191,7 @@ const EZShifaPortal = () => {
       placeholder={placeholder}
       disabled={!editMode}
       onChange={e => setDoctor(d => ({ ...d, [key]: e.target.value }))}
-      className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none disabled:opacity-60 disabled:cursor-default w-full"
+      className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none disabled:opacity-60 disabled:cursor-default w-full"
     />
   );
 
@@ -158,7 +200,7 @@ const EZShifaPortal = () => {
       value={doctor[key] as string}
       disabled={!editMode}
       onChange={e => setDoctor(d => ({ ...d, [key]: e.target.value }))}
-      className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-600 disabled:opacity-60 disabled:cursor-default w-full"
+      className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-600 disabled:opacity-60 disabled:cursor-default w-full"
     >
       {placeholder && <option value="" disabled>{placeholder}</option>}
       {options.map(o => <option key={o}>{o}</option>)}
@@ -200,12 +242,12 @@ const EZShifaPortal = () => {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-[2rem] shadow-2xl w-full overflow-hidden flex flex-col lg:flex-row">
+        <div className="bg-white rounded-4xl shadow-2xl w-full overflow-hidden flex flex-col lg:flex-row">
 
           {/* LEFT PANEL */}
           <div className="bg-[#0297d6] lg:w-80 shrink-0 px-8 py-6 flex flex-col items-center justify-between gap-4">
             <div className="bg-white rounded-2xl px-5 py-4 flex items-center justify-center">
-              <img src="/logo.png" alt="EZShifa Logo" className="max-w-48 h-auto" onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
+              <img src="/logo.png" alt="EZShifa Logo" className="max-w-48 h-auto" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               <span className="text-[#0297d6] font-black text-2xl hidden">EZShifa</span>
             </div>
             <div className="text-white text-center">
@@ -255,42 +297,42 @@ const EZShifaPortal = () => {
 
                   {/* Name */}
                   <div className="grid grid-cols-3 gap-2">
-                    <select defaultValue="" className="px-2 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-600">
+                    <select defaultValue="" className="px-2 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-600">
                       <option value="" disabled>Title</option>
                       {TITLE_OPTIONS.map(t => <option key={t}>{t}</option>)}
                     </select>
-                    <input type="text" placeholder="First Name" required className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
-                    <input type="text" placeholder="Last Name" required className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
+                    <input type="text" placeholder="First Name" required className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
+                    <input type="text" placeholder="Last Name" required className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
                   </div>
 
                   {/* Email + Password */}
                   <div className="grid grid-cols-2 gap-2">
-                    <input type="email" placeholder="Email Address" required className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
-                    <input type="password" placeholder="Password" required className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
+                    <input type="email" placeholder="Email Address" required className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
+                    <input type="password" placeholder="Password" required className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
                   </div>
 
                   {/* Phone + Gender */}
                   <div className="grid grid-cols-2 gap-2">
-                    <input type="tel" placeholder="Phone Number" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
-                    <select defaultValue="" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-500">
+                    <input type="tel" placeholder="Phone Number" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
+                    <select defaultValue="" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-500">
                       <option value="" disabled>Gender</option>
                       {GENDER_OPTIONS.map(g => <option key={g}>{g}</option>)}
                     </select>
                   </div>
 
                   {/* Professional */}
-                  <p className="text-[11px] font-black text-[#0297d6] uppercase tracking-widest pt-1">Professional Info</p>
+                  <p className="text-[14px] font-black text-[#0297d6] uppercase tracking-widest pt-1">Professional Info</p>
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                     <MultiSelect options={SPECIALIZATION_OPTIONS} selected={regSpecs} onChange={setRegSpecs} placeholder="Specialization" allowCustom />
                     <MultiSelect options={QUALIFICATION_OPTIONS} selected={regQuals} onChange={setRegQuals} placeholder="Qualification" allowCustom />
-                    <input type="number" placeholder="Experience (Yrs)" min={0} max={60} className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
-                    <select defaultValue="" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-500">
+                    <input type="number" placeholder="Experience (Yrs)" min={0} max={60} className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
+                    <select defaultValue="" className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-500">
                       <option value="" disabled>City</option>
                       {CITY_OPTIONS.map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
 
-                  <button className="w-full bg-[#0297d6] text-white py-3 rounded-2xl font-black uppercase tracking-widest text-sm shadow-md">Register Now</button>
+                  <button className="w-full bg-[#0297d6] text-white py-3 rounded-2xl font-black uppercase tracking-widest text-md lg:text-sm shadow-md">Register Now</button>
                 </form>
                 <button onClick={() => setActivePage('login')} className="w-full mt-2 text-[10px] font-black text-slate-400 hover:text-[#0297d6] uppercase tracking-widest">
                   ← Back to Login
@@ -309,12 +351,12 @@ const EZShifaPortal = () => {
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
-      <main className="max-w-7xl mx-auto p-6 lg:p-10">
+      <main className="max-w-7xl mx-auto p-6 lg:p-1">
 
         {/* ── DASHBOARD ── */}
         {activePage === 'dashboard' && !selectedPatient && (
           <div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 pt-4 mx-4">
               {[
                 { label: 'Today Patients', val: '24', icon: User, bg: 'bg-blue-50', text: 'text-blue-600' },
                 { label: 'In Queue', val: '08', icon: Clock, bg: 'bg-orange-50', text: 'text-orange-600' },
@@ -325,19 +367,19 @@ const EZShifaPortal = () => {
                     <s.icon size={28} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{s.label}</p>
-                    <h3 className="text-2xl font-black text-slate-800">{s.val}</h3>
+                    <p className="text-[10px] lg:text-[16px] font-black text-slate-400 uppercase tracking-widest">{s.label}</p>
+                    <h3 className="text-2xl lg:text-3xl font-black text-slate-800">{s.val}</h3>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-slate-50 font-black text-slate-800 uppercase tracking-widest text-sm">
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden p-4 lg:mx-4">
+              <div className="p-2 border-b border-slate-50 font-black text-slate-800 uppercase tracking-widest text-lg">
                 Current Patient Queue
               </div>
               <table className="w-full text-left">
-                <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
+                <thead className="bg-slate-50 text-[13px] lg:text-[14px] font-black uppercase text-slate-400">
                   <tr>
                     <th className="px-6 py-4">SR. No</th>
                     <th className="px-6 py-4">
@@ -430,11 +472,11 @@ const EZShifaPortal = () => {
 
         {/* ── PROFILE ── */}
         {activePage === 'profile' && (
-          <div className="max-w-3xl mx-auto pb-20">
+          <div className="max-w-3xl mx-auto pb-0">
             <div className="bg-white rounded-[3rem] overflow-hidden border border-slate-100 shadow-xl">
 
               {/* Blue Header */}
-              <div className="bg-[#0297d6] px-8 py-5 relative flex flex-col sm:flex-row items-center gap-6">
+              <div className="bg-[#0297d6] px-8 py-3 relative flex flex-col sm:flex-row items-center gap-6">
                 <button
                   onClick={() => setEditMode(v => !v)}
                   className="absolute right-6 top-6 bg-white/20 p-2 rounded-xl text-white hover:bg-white/40 transition-colors"
@@ -446,11 +488,11 @@ const EZShifaPortal = () => {
                 <div className="relative group">
                   <img
                     src={doctor.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=ffffff&color=0297d6`}
-                    className="w-24 h-24 rounded-[2rem] border-4 border-white/30 shadow-lg object-cover"
+                    className="w-24 h-24 rounded-4xl border-4 border-white/30 shadow-lg object-cover"
                     alt="Profile"
                   />
                   {editMode && (
-                    <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-[2rem] cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-4xl cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
                       <span className="text-white text-[10px] font-black uppercase">Change</span>
                       <input type="file" accept="image/*" className="hidden" onChange={e => {
                         const f = e.target.files?.[0];
@@ -491,12 +533,12 @@ const EZShifaPortal = () => {
                 </div>
 
                 {/* Professional heading */}
-                <p className="text-[11px] font-black text-[#0297d6] uppercase tracking-widest pt-2">
-                  Professional Info
+                <p className="text-[14px] font-black text-[#0297d6] uppercase tracking-widest pt-2">
+                  Professional Information
                 </p>
 
                 {/* Row 4: Spec + Qual + Exp + City — identical 4-col to registration */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 pb-48 -mb-48">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                   <MultiSelect
                     options={SPECIALIZATION_OPTIONS}
                     selected={doctor.specializations}
@@ -504,6 +546,7 @@ const EZShifaPortal = () => {
                     placeholder="Specialization"
                     disabled={!editMode}
                     allowCustom
+                    position='top'
                   />
                   <MultiSelect
                     options={QUALIFICATION_OPTIONS}
@@ -512,6 +555,7 @@ const EZShifaPortal = () => {
                     placeholder="Qualification"
                     disabled={!editMode}
                     allowCustom
+                    position='top'
                   />
                   <input
                     type="number"
@@ -520,9 +564,16 @@ const EZShifaPortal = () => {
                     disabled={!editMode}
                     min={0} max={60}
                     onChange={e => setDoctor(d => ({ ...d, experience: e.target.value }))}
-                    className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-sm border-2 border-transparent focus:border-[#0297d6] outline-none disabled:opacity-60 disabled:cursor-default"
+                    className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none disabled:opacity-60 disabled:cursor-default"
                   />
-                  {selectField('city', CITY_OPTIONS)}
+                  <SingleSelect
+                    options={CITY_OPTIONS}
+                    value={doctor.city}
+                    onChange={v => setDoctor(d => ({ ...d, city: v }))}
+                    placeholder="Select City"
+                    disabled={!editMode}
+                    position="top" 
+                  />
                 </div>
 
                 {/* Save button */}
