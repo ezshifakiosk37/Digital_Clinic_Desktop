@@ -139,7 +139,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                         >
                                             <Trash2 size={13} />
                                         </button>
-                                        <div className="grid grid-cols-3 gap-3 mb-3">
+                                        <div className="grid grid-cols-2 gap-3 mb-3">
                                             <div className="relative">
                                                 {manualIds.includes(med.id) ? (
                                                     // Manual input mode
@@ -238,6 +238,12 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                                 className="p-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#0297d6] font-bold text-sm"
                                                 value={med.dosage ?? ''}
                                                 onChange={(e) => updateMedicine(med.id, 'dosage', e.target.value)}
+                                            />
+                                            <input
+                                                placeholder="Duration e.g. 5 Days, 1 Week"
+                                                className="p-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#0297d6] font-bold text-sm"
+                                                value={med.duration ?? ''}
+                                                onChange={(e) => updateMedicine(med.id, 'duration', e.target.value)}
                                             />
                                             <select
                                                 className="p-3 bg-white border border-slate-200 rounded-xl outline-none font-semibold text-slate-600 text-sm"
@@ -358,6 +364,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                                     <tr>
                                                         <th className="px-4 py-3">Medicine</th>
                                                         <th className="px-4 py-3">Dosage</th>
+                                                        <th className="px-4 py-3">Duration</th>
                                                         <th className="px-4 py-3 text-center">M — A — N</th>
                                                         <th className="px-4 py-3">Instructions</th>
                                                     </tr>
@@ -367,6 +374,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                                         <tr key={i}>
                                                             <td className="px-4 py-3 font-black text-sm text-slate-800">{m.name}</td>
                                                             <td className="px-4 py-3 text-xs font-bold text-slate-600">{m.dosage || '—'}</td>
+                                                            <td className="px-4 py-3 text-xs font-bold text-slate-600">{m.duration || '—'}</td>
                                                             <td className="px-4 py-3">
                                                                 <div className="flex justify-center gap-1">
                                                                     {[m.morning, m.afternoon, m.night].map((active, idx) => (
