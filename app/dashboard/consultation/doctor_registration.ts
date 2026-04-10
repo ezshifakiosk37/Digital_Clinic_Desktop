@@ -52,20 +52,20 @@ export interface DoctorProfile {
 //  DEFAULT PROFILE
 // ─────────────────────────────────────────────
 
-export const DEFAULT_DOCTOR_PROFILE: DoctorProfile = {
-  title: 'Dr.',
-  firstName: 'Muhammad',
-  lastName: 'Umer',
-  email: 'umer.dev@example.com',
-  password: 'password123',
-  phone: '+92 300 1234567',
-  gender: 'Male',
-  photo: '',
-  specializations: ['General Physician'],
-  qualifications: ['MBBS', 'MD'],
-  experience: '5',
-  city: 'Karachi',
-};
+// export const DEFAULT_DOCTOR_PROFILE: DoctorProfile = {
+//   title: 'Dr.',
+//   firstName: 'Muhammad',
+//   lastName: 'Umer',
+//   email: 'umer.dev@example.com',
+//   password: 'password123',
+//   phone: '+92 300 1234567',
+//   gender: 'Male',
+//   photo: '',
+//   specializations: ['General Physician'],
+//   qualifications: ['MBBS', 'MD'],
+//   experience: '5',
+//   city: 'Karachi',
+// };
 
 // ─────────────────────────────────────────────
 //  OPTION LISTS (Single Source of Truth)

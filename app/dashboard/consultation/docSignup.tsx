@@ -2,7 +2,7 @@
 "use client";
 import React, { useState } from 'react';
 import { User } from 'lucide-react'; // ✅ Fixed: Import User icon
-
+import { apiService } from '@/app/_utils/apiService';
 // ✅ Import from the correct file (doctor_registration.ts)
 import {
   TITLE_OPTIONS,
@@ -22,11 +22,47 @@ const DocSignup: React.FC<DocSignupProps> = ({ setActivePage }) => {
   const [regSpecs, setRegSpecs] = useState<string[]>([]);
   const [regQuals, setRegQuals] = useState<string[]>([]);
   const [profilePreview, setProfilePreview] = useState('');
+  const [profileFile, setProfileFile] = useState<File | null>(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = (e: React.FormEvent) => {
+  // form field states
+  const [title, setTitle] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [gender, setGender] = useState('');
+  const [experience, setExperience] = useState('');
+  const [city, setCity] = useState('');
+
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In real app: save data then redirect
-    setActivePage('dashboard');
+    setError('');
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('firstName', firstName);
+      formData.append('lastName', lastName);
+      formData.append('email', email);
+      formData.append('password', password);
+      formData.append('phone', phone);
+      formData.append('gender', gender);
+      formData.append('experience', experience);
+      formData.append('city', city);
+      formData.append('specializations', JSON.stringify(regSpecs));
+      formData.append('qualifications', JSON.stringify(regQuals));
+      if (profileFile) formData.append('photo', profileFile);
+
+      await apiService.docRegister(formData);
+      setActivePage('dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -73,75 +109,45 @@ const DocSignup: React.FC<DocSignupProps> = ({ setActivePage }) => {
                   className="hidden" 
                   onChange={e => {
                     const f = e.target.files?.[0];
-                    if (f) setProfilePreview(URL.createObjectURL(f));
+                    if (f) { setProfilePreview(URL.createObjectURL(f)); setProfileFile(f); }
                   }} 
                 />
               </label>
             </div>
 
             {/* Name Fields */}
+            {error && <div className="px-4 py-3 bg-red-50 border border-red-200 text-red-600 rounded-2xl text-sm font-semibold">{error}</div>}
+
             <div className="grid grid-cols-3 gap-2">
-              <select 
-                defaultValue="" 
+              <select value={title} onChange={e => setTitle(e.target.value)} required
                 className="px-2 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-600"
               >
                 <option value="" disabled>Title</option>
-                {TITLE_OPTIONS.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
+                {TITLE_OPTIONS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
-              <input 
-                type="text" 
-                placeholder="First Name" 
-                required 
-                className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" 
-              />
-              <input 
-                type="text" 
-                placeholder="Last Name" 
-                required 
-                className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" 
-              />
+              <input type="text" placeholder="First Name" required value={firstName} onChange={e => setFirstName(e.target.value)}
+                className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
+              <input type="text" placeholder="Last Name" required value={lastName} onChange={e => setLastName(e.target.value)}
+                className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
             </div>
 
-            {/* Email + Password */}
             <div className="grid grid-cols-2 gap-2">
-              <input 
-                type="email" 
-                placeholder="Email Address" 
-                required 
-                className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" 
-              />
-              <input 
-                type="password" 
-                placeholder="Password" 
-                required 
-                className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" 
-              />
+              <input type="email" placeholder="Email Address" required value={email} onChange={e => setEmail(e.target.value)}
+                className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
+              <input type="password" placeholder="Password" required value={password} onChange={e => setPassword(e.target.value)}
+                className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
             </div>
 
-            {/* Phone + Gender */}
             <div className="grid grid-cols-2 gap-2">
-              <input 
-                type="tel" 
-                placeholder="Phone Number" 
-                className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" 
-              />
-              <select 
-                defaultValue="" 
+              <input type="tel" placeholder="Phone Number" value={phone} onChange={e => setPhone(e.target.value)}
+                className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
+              <select value={gender} onChange={e => setGender(e.target.value)}
                 className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-500"
               >
                 <option value="" disabled>Gender</option>
-                {GENDER_OPTIONS.map((g) => (
-                  <option key={g.value} value={g.value}>
-                    {g.label}
-                  </option>
-                ))}
+                {GENDER_OPTIONS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
               </select>
             </div>
-
             {/* Professional Info */}
             <p className="text-[12px] font-black text-[#0297d6] uppercase tracking-widest pt-1">Professional Info</p>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
@@ -159,31 +165,22 @@ const DocSignup: React.FC<DocSignupProps> = ({ setActivePage }) => {
                 placeholder="Qualification" 
                 allowCustom 
               />
-              <input 
-                type="number" 
-                placeholder="Experience (Yrs)" 
-                min={0} 
-                max={60} 
-                className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" 
-              />
-              <select 
-                defaultValue="" 
+              <input type="number" placeholder="Experience (Yrs)" min={0} max={60} value={experience} onChange={e => setExperience(e.target.value)}
+                className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
+              <select value={city} onChange={e => setCity(e.target.value)}
                 className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-500"
               >
                 <option value="" disabled>City</option>
-                {CITY_OPTIONS.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
+                {CITY_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
 
             <button 
               type="submit"
-              className="w-full bg-[#0297d6] text-white py-2 rounded-2xl font-black uppercase tracking-widest text-md lg:text-sm shadow-md"
+              disabled={loading}
+              className="w-full bg-[#0297d6] disabled:opacity-60 text-white py-2 rounded-2xl font-black uppercase tracking-widest text-md lg:text-sm shadow-md"
             >
-              Register Now
+              {loading ? 'Registering...' : 'Register Now'}
             </button>
           </form>
 

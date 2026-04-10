@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Pill, Printer, Search, Trash2, User } from 'lucide-react';
 import { DoctorProfile, MEDICINE_OPTIONS } from './doctor_registration';
+import { apiService } from '@/app/_utils/apiService';
 
 interface Vitals {
     temp: string;
@@ -35,6 +36,9 @@ interface DocConsultProps {
     doctor: DoctorProfile;
     updateMedicine: (id: number, field: string, value: any) => void;
     fullName: string;
+    onSessionEnd: (patient: any) => void;
+    endingSession: boolean;
+    setEndingSession: (v: boolean) => void;
 }
 
 const DocConsult: React.FC<DocConsultProps> = ({
@@ -49,6 +53,9 @@ const DocConsult: React.FC<DocConsultProps> = ({
     doctor,
     updateMedicine,
     fullName,
+    onSessionEnd,
+    endingSession,
+    setEndingSession,
 }) => {
     const [manualIds, setManualIds] = useState<number[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -114,12 +121,17 @@ const DocConsult: React.FC<DocConsultProps> = ({
 
                             {/* Vitals */}
                             <div className="grid grid-cols-2 gap-3">
-                                {Object.entries(selectedPatient.vitals).map(([k, v]) => (
+                                {selectedPatient.vitals && Object.entries(selectedPatient.vitals).map(([k, v]) => (
                                     <div key={k} className="bg-white p-4 rounded-2xl border border-slate-100">
                                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{k.toUpperCase()}</p>
-                                        <p className="text-base font-black text-slate-800 mt-1">{v}</p>
+                                        <p className="text-base font-black text-slate-800 mt-1">{String(v)}</p>
                                     </div>
                                 ))}
+                                {!selectedPatient.vitals && (
+                                    <div className="col-span-2 bg-white p-4 rounded-2xl border border-slate-100 text-center">
+                                        <p className="text-xs font-bold text-slate-400">No vitals recorded</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -294,16 +306,36 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                 >
                                     <Pill size={16} /> Generate Prescription
                                 </button>
-                                <button
-                                    onClick={() => {
-                                        setSelectedPatient(null);
-                                        setMedicines([{ id: Date.now(), name: '', morning: false, afternoon: false, night: false, meal: 'After Meal' }]);
-                                        setNotes('');
-                                        setPrescriptionGenerated(false);
+<button
+                                    disabled={endingSession}
+                                    onClick={async () => {
+                                        if (!selectedPatient) return;
+                                        setEndingSession(true);
+                                        try {
+                                            await apiService.savePrescription({
+                                                patientId: selectedPatient.id,
+                                                token: selectedPatient.token,
+                                                diagnosis: selectedPatient.symptoms,
+                                                clinicalNotes: notes,
+                                                medicines: medicines.filter(m => m.name && m.name.trim() !== '')
+                                            });
+                                            onSessionEnd(selectedPatient);
+                                        } catch (err: any) {
+                                            console.error(err);
+                                            setEndingSession(false);
+                                        }
                                     }}
-                                    className="flex-1 bg-slate-200 text-slate-700 py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-slate-300 transition-all"
+                                    className="flex-1 bg-slate-200 disabled:opacity-60 text-slate-700 py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-slate-300 transition-all"
                                 >
-                                    End Session
+                                    {endingSession ? (
+                                        <>
+                                            <svg className="animate-spin w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                            </svg>
+                                            Saving...
+                                        </>
+                                    ) : 'End Session'}
                                 </button>
                             </div>
 

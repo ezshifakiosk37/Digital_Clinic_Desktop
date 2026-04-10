@@ -8,8 +8,9 @@ interface DocLogoutProps {
   setShowLogoutModal: (v: boolean) => void;
   selectedLogoutReason: string;
   setSelectedLogoutReason: (v: string) => void;
-  confirmLogout: () => void;   // This will handle the actual logout + redirect
+  confirmLogout: () => void;
   cancelLogout: () => void;
+  logoutLoading?: boolean;        // ← New prop for loader
 }
 
 const DocLogout: React.FC<DocLogoutProps> = ({
@@ -19,6 +20,7 @@ const DocLogout: React.FC<DocLogoutProps> = ({
   setSelectedLogoutReason,
   confirmLogout,
   cancelLogout,
+  logoutLoading = false,          // default false
 }) => {
   if (!showLogoutModal) return null;
 
@@ -32,7 +34,8 @@ const DocLogout: React.FC<DocLogoutProps> = ({
           </h2>
           <button
             onClick={cancelLogout}
-            className="text-red-500 hover:text-red-600 transition-colors text-xl leading-none"
+            disabled={logoutLoading}
+            className="text-red-500 hover:text-red-600 transition-colors text-xl leading-none disabled:opacity-50"
           >
             ✕
           </button>
@@ -50,7 +53,8 @@ const DocLogout: React.FC<DocLogoutProps> = ({
                 name="logoutReason"
                 checked={selectedLogoutReason === reason}
                 onChange={() => setSelectedLogoutReason(reason)}
-                className="w-5 h-5 accent-[#0297d6] cursor-pointer"
+                disabled={logoutLoading}
+                className="w-5 h-5 accent-[#0297d6] cursor-pointer disabled:cursor-not-allowed"
               />
               <span className="text-slate-700 font-medium group-hover:text-[#0297d6]">
                 {reason}
@@ -59,15 +63,22 @@ const DocLogout: React.FC<DocLogoutProps> = ({
           ))}
         </div>
 
-        {/* Confirm Button */}
+        {/* Confirm Button with Loader */}
         <div className="px-6 py-5 border-t bg-slate-50">
           <button
             onClick={confirmLogout}
-            disabled={!selectedLogoutReason}
+            disabled={!selectedLogoutReason || logoutLoading}
             className="w-full bg-[#0297d6] hover:bg-[#0288c2] disabled:bg-slate-300 disabled:cursor-not-allowed 
-                       text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all text-sm"
+                       text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all text-sm flex items-center justify-center gap-2"
           >
-            Confirm Logout
+            {logoutLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Logging out...
+              </>
+            ) : (
+              "Confirm Logout"
+            )}
           </button>
         </div>
       </div>

@@ -4,7 +4,7 @@ import React from 'react';
 import { LogOut } from 'lucide-react';
 
 interface NavbarProps {
-  fullName: string;           // e.g. "Dr. Muhammad Umer"
+  fullName: string;           
   doctorPhoto?: string;       // optional photo URL
   onProfileClick: () => void;
   onLogoutClick: () => void;

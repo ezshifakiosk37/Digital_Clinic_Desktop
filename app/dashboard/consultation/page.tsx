@@ -2,6 +2,7 @@
 "use client";
 import React, { useState } from 'react';
 import { User, CheckCircle, Clock, Search, X } from 'lucide-react';
+import { apiService } from '@/app/_utils/apiService';
 
 import Navbar from './components/Navbar';
 import DocConsult from './doc_consult';
@@ -11,6 +12,8 @@ import DocSignin from './docSignin';
 import DocSignup from './docSignup';
 
 import { DoctorProfile } from './doctor_registration';
+
+const API_BASE_URL = "https://bifurcation-clinic-api.vercel.app";
 
 interface Vitals {
   temp: string;
@@ -43,6 +46,13 @@ const EZShifaPortal = () => {
   const [medicines, setMedicines] = useState<any[]>([]);
   const [notes, setNotes] = useState('');
   const [prescriptionGenerated, setPrescriptionGenerated] = useState(false);
+  const [todayStats, setTodayStats] = useState({ todayPatients: 0, inQueue: 0, completed: 0 });
+  const [queue, setQueue] = useState<any[]>([]);
+  const [loadingQueue, setLoadingQueue] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
+  const [doneQueue, setDoneQueue] = useState<any[]>([]);
+  const [endingSession, setEndingSession] = useState(false);
+
 
   const updateMedicine = (id: number, field: string, value: any) => {
     setMedicines(prev =>
@@ -50,55 +60,163 @@ const EZShifaPortal = () => {
     );
   };
 
+
   const [doctor, setDoctor] = useState<DoctorProfile>({
-    title: 'Dr.',
-    firstName: 'Muhammad',
-    lastName: 'Umer',
-    email: 'umer.dev@example.com',
-    password: 'password123',
-    phone: '+92 300 1234567',
-    gender: 'Male',
-    specializations: ['General Physician'],
-    qualifications: ['MBBS', 'MD'],
-    experience: '5',
-    city: 'Karachi',
+    title: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    phone: '',
+    gender: '',
+    specializations: [],
+    qualifications: [],
+    experience: '',
+    city: '',
     photo: '',
   });
+  React.useEffect(() => {
+    const savedDoctor = apiService.getDoctor();
+    if (savedDoctor) {
+      setDoctor(savedDoctor);
+    }
+  }, []);
+
+  // Load today's stats and queue when component mounts or doctor logs in
+  // Load today's stats and queue (ONLY today's patients)
+  React.useEffect(() => {
+    const loadDashboardData = async () => {
+      setLoadingQueue(true);
+      try {
+        // Get stats
+        const stats = await apiService.getTodayStats();
+        setTodayStats(stats);
+
+        // Get only today's patients for queue
+        const response = await fetch(`${API_BASE_URL}/api/patients/today-queue`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('doc_token')}`,
+          },
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch queue');
+
+        const data = await response.json();
+        if (data.success) {
+          const dedupe = (arr: any[]) => {
+            const seen = new Set();
+            return arr.filter((p: any) => {
+              if (seen.has(p.id)) return false;
+              seen.add(p.id);
+              return true;
+            });
+          };
+          setQueue(dedupe(data.patients || []));
+          setDoneQueue(dedupe(data.completed || []));
+        }
+      } catch (err) {
+        console.error("Failed to load dashboard data", err);
+        // Optional: show user-friendly message
+        // setError("Failed to load queue. Please refresh.");
+      } finally {
+        setLoadingQueue(false);
+      }
+    };
+
+    if (isLoggedIn) {
+      loadDashboardData();
+    }
+  }, [isLoggedIn]);
+
+
+  // Fix for immediate doctor update after login
+  React.useEffect(() => {
+    const handleDoctorLogin = () => {
+      const savedDoctor = apiService.getDoctor();
+      if (savedDoctor) {
+        setDoctor(savedDoctor);
+      }
+    };
+
+    window.addEventListener('doctorLoggedIn', handleDoctorLogin);
+    return () => window.removeEventListener('doctorLoggedIn', handleDoctorLogin);
+  }, []);
 
   const fullName = `${doctor.title} ${doctor.firstName} ${doctor.lastName}`;
 
-  const queue: Patient[] = [
-    {
-      id: 1, token: '101', firstName: 'Ahmed', lastName: 'Khan', age: 45, gender: 'Male',
-      symptoms: 'Persistent Cough, Fever', medicalHistory: 'Type 2 Diabetes',
-      vitals: { temp: '101.2°F', bp: '130/85', pulse: '88 bpm', weight: '75kg' },
-    },
-    {
-      id: 2, token: '102', firstName: 'Sara', lastName: 'Ahmed', age: 29, gender: 'Female',
-      symptoms: 'Severe Headache', medicalHistory: 'Migraine',
-      vitals: { temp: '98.4°F', bp: '110/70', pulse: '72 bpm', weight: '60kg' },
-    },
-  ];
+  // const queue: Patient[] = [
+  //   {
+  //     id: 1, token: '101', firstName: 'Ahmed', lastName: 'Khan', age: 45, gender: 'Male',
+  //     symptoms: 'Persistent Cough, Fever', medicalHistory: 'Type 2 Diabetes',
+  //     vitals: { temp: '101.2°F', bp: '130/85', pulse: '88 bpm', weight: '75kg' },
+  //   },
+  //   {
+  //     id: 2, token: '102', firstName: 'Sara', lastName: 'Ahmed', age: 29, gender: 'Female',
+  //     symptoms: 'Severe Headache', medicalHistory: 'Migraine',
+  //     vitals: { temp: '98.4°F', bp: '110/70', pulse: '72 bpm', weight: '60kg' },
+  //   },
+  // ];
 
   const filteredQueue = queue.filter(p =>
-    !tokenSearch || p.token.toLowerCase().includes(tokenSearch.toLowerCase())
+    !tokenSearch || String(p.token || '').toLowerCase().includes(tokenSearch.toLowerCase())
   );
 
   const handleStartConsult = (patient: Patient) => {
     setSelectedPatient(patient);
   };
 
+  const handleSessionEnd = (completedPatient: any) => {
+    setQueue(prev => prev.filter(p => p.id !== completedPatient.id));
+    setDoneQueue(prev => [...prev, completedPatient]);
+    setTodayStats(prev => ({
+      ...prev,
+      inQueue: Math.max(0, prev.inQueue - 1),
+      completed: prev.completed + 1,
+    }));
+    setSelectedPatient(null);
+    setMedicines([]);
+    setNotes('');
+    setPrescriptionGenerated(false);
+    setEndingSession(false); // ← reset loader for next patient
+  };
+
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
   };
 
-  const confirmLogout = () => {
-    if (selectedLogoutReason) {
+  const confirmLogout = async () => {
+    if (!selectedLogoutReason) return;
+
+    setLogoutLoading(true);
+
+    try {
+      await fetch(`${API_BASE_URL}/api/doctors/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('doc_token')}`,
+        },
+        body: JSON.stringify({ reason: selectedLogoutReason }),
+      });
+
+      localStorage.removeItem('doc_token');
+      localStorage.removeItem('doctor');
+
       setShowLogoutModal(false);
-      setIsLoggedIn(false);           // Important: Log out the user
-      setActivePage('login');         // Redirect to signin page
+      setIsLoggedIn(false);
+      setActivePage('login');
       setSelectedLogoutReason('');
       setSelectedPatient(null);
+    } catch (err) {
+      console.error("Logout error:", err);
+      localStorage.removeItem('doc_token');
+      localStorage.removeItem('doctor');
+      setShowLogoutModal(false);
+      setIsLoggedIn(false);
+      setActivePage('login');
+    } finally {
+      setLogoutLoading(false);
     }
   };
 
@@ -134,9 +252,9 @@ const EZShifaPortal = () => {
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               {[
-                { label: 'TODAY PATIENTS', val: '24', icon: User, color: 'text-blue-600', bg: 'bg-blue-50' },
-                { label: 'IN QUEUE', val: '08', icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
-                { label: 'COMPLETED', val: '16', icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                { label: 'TODAY PATIENTS', val: todayStats.todayPatients, icon: User, color: 'text-blue-600', bg: 'bg-blue-50' },
+                { label: 'IN QUEUE', val: todayStats.inQueue, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
+                { label: 'COMPLETED', val: todayStats.completed, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
               ].map((s, i) => (
                 <div key={i} className="bg-white rounded-3xl p-6 flex items-center gap-5 shadow-sm border border-slate-100">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${s.bg} ${s.color}`}>
@@ -151,7 +269,7 @@ const EZShifaPortal = () => {
             </div>
 
             {/* Current Patient Queue */}
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-6">
               <div className="px-8 py-5 border-b">
                 <h2 className="font-bold text-xl text-slate-800">CURRENT PATIENT QUEUE</h2>
               </div>
@@ -194,7 +312,7 @@ const EZShifaPortal = () => {
                 </thead>
                 <tbody className="divide-y">
                   {filteredQueue.map((p, i) => (
-                    <tr key={p.id} className="hover:bg-slate-50">
+                    <tr key={`${p.id}-${p.token || i}`} className="hover:bg-slate-50">
                       <td className="px-8 py-5 font-medium text-slate-600">{i + 1}</td>
                       <td className="px-8 py-5 font-bold text-[#0297d6]">#{p.token}</td>
                       <td className="px-8 py-5 text-slate-700">{p.symptoms}</td>
@@ -211,6 +329,46 @@ const EZShifaPortal = () => {
                 </tbody>
               </table>
             </div>
+
+
+            {/* Done Queue */}
+            {doneQueue.length > 0 && (
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mt-6">
+                <div className="px-8 py-5 border-b flex items-center gap-3">
+                  <CheckCircle size={20} className="text-emerald-500" />
+                  <h2 className="font-bold text-xl text-slate-800">COMPLETED TODAY</h2>
+                  <span className="ml-auto bg-emerald-50 text-emerald-600 text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                    {doneQueue.length} Done
+                  </span>
+                </div>
+                <table className="w-full">
+                  <thead className="bg-slate-50">
+                    <tr className="text-sm text-slate-500 font-semibold">
+                      <th className="px-8 py-4 text-left">SR. NO</th>
+                      <th className="px-8 py-4 text-left">TOKEN</th>
+                      <th className="px-8 py-4 text-left">PATIENT</th>
+                      <th className="px-8 py-4 text-left">SYMPTOMS</th>
+                      <th className="px-8 py-4 text-right">STATUS</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {doneQueue.map((p, i) => (
+                      <tr key={`done-${p.id}`} className="bg-emerald-50/30">
+                        <td className="px-8 py-4 font-medium text-slate-400">{i + 1}</td>
+                        <td className="px-8 py-4 font-bold text-slate-400">#{p.token}</td>
+                        <td className="px-8 py-4 text-slate-600 font-semibold">{p.firstName} {p.lastName}</td>
+                        <td className="px-8 py-4 text-slate-500 text-sm">{p.symptoms || '—'}</td>
+                        <td className="px-8 py-4 text-right">
+                          <span className="bg-emerald-100 text-emerald-700 text-xs font-black px-3 py-1.5 rounded-xl uppercase tracking-widest">
+                            ✓ Done
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -228,6 +386,9 @@ const EZShifaPortal = () => {
             doctor={doctor}
             updateMedicine={updateMedicine}
             fullName={fullName}
+            onSessionEnd={handleSessionEnd}
+            endingSession={endingSession}
+            setEndingSession={setEndingSession}
           />
         )}
 
@@ -251,6 +412,7 @@ const EZShifaPortal = () => {
         setSelectedLogoutReason={setSelectedLogoutReason}
         confirmLogout={confirmLogout}
         cancelLogout={cancelLogout}
+        logoutLoading={logoutLoading}
       />
     </div>
   );

@@ -1,7 +1,8 @@
 // consultation/docProfile.tsx
 "use client";
-import React from 'react';
+import React,{useState} from 'react';
 import { Edit2, X } from 'lucide-react';
+import { apiService } from '@/app/_utils/apiService';
 
 // ✅ Import from the correct centralized config file
 import {
@@ -32,6 +33,9 @@ const DocProfile: React.FC<DocProfileProps> = ({
   setActivePage,
 }) => {
   const fullName = `${doctor.title} ${doctor.firstName} ${doctor.lastName}`;
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   // Reusable text field
   const field = (key: keyof DoctorProfileType, type: string = 'text', placeholder: string = '') => (
@@ -179,13 +183,42 @@ const DocProfile: React.FC<DocProfileProps> = ({
             />
           </div>
 
-          {editMode && (
-            <button
-              onClick={() => setEditMode(false)}
-              className="w-full bg-[#0297d6] text-white py-3 rounded-2xl font-black uppercase tracking-widest text-sm shadow-md"
-            >
-              Update Profile
-            </button>
+{editMode && (
+            <>
+              {error && <div className="px-4 py-3 bg-red-50 border border-red-200 text-red-600 rounded-2xl text-sm font-semibold">{error}</div>}
+              {success && <div className="px-4 py-3 bg-green-50 border border-green-200 text-green-600 rounded-2xl text-sm font-semibold">Profile updated successfully!</div>}
+              <button
+                disabled={loading}
+                onClick={async () => {
+                  setError(''); setSuccess(false); setLoading(true);
+                  try {
+                    const stored = apiService.getDoctor();
+                    await apiService.docUpdateProfile(stored.id, {
+                      title: doctor.title,
+                      firstName: doctor.firstName,
+                      lastName: doctor.lastName,
+                      email: doctor.email,
+                      password: doctor.password,
+                      phone: doctor.phone,
+                      gender: doctor.gender,
+                      specializations: doctor.specializations,
+                      qualifications: doctor.qualifications,
+                      experience: doctor.experience,
+                      city: doctor.city,
+                    });
+                    setSuccess(true);
+                    setEditMode(false);
+                  } catch (err: any) {
+                    setError(err.message || 'Update failed');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="w-full bg-[#0297d6] disabled:opacity-60 text-white py-3 rounded-2xl font-black uppercase tracking-widest text-sm shadow-md"
+              >
+                {loading ? 'Updating...' : 'Update Profile'}
+              </button>
+            </>
           )}
         </div>
       </div>

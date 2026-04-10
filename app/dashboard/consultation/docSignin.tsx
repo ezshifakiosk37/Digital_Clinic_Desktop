@@ -1,6 +1,7 @@
 // consultation/docSignin.tsx
 "use client";
-import React from 'react';
+import React, { useState } from 'react';
+import { apiService } from '@/app/_utils/apiService';
 
 interface DocSigninProps {
     setActivePage: React.Dispatch<React.SetStateAction<'login' | 'signup' | 'dashboard' | 'profile'>>;
@@ -8,11 +9,31 @@ interface DocSigninProps {
 }
 
 const DocSignin: React.FC<DocSigninProps> = ({ setActivePage, setIsLoggedIn }) => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsLoggedIn(true);
-        setActivePage('dashboard');
+        setError('');
+        setLoading(true);
+        try {
+            const data = await apiService.docLogin({ email, password });
+
+            // Immediately update doctor state in parent (page.tsx)
+            if (data.doctor) {
+                // This will trigger re-render with correct doctor
+                window.dispatchEvent(new Event('doctorLoggedIn'));
+            }
+
+            setIsLoggedIn(true);
+            setActivePage('dashboard');
+        } catch (err: any) {
+            setError(err.message || 'Login failed');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -36,9 +57,10 @@ const DocSignin: React.FC<DocSigninProps> = ({ setActivePage, setIsLoggedIn }) =
                     <p className="text-slate-400 font-semibold text-sm mt-1 mb-6">Login to your dashboard</p>
 
                     <form className="space-y-4" onSubmit={handleLogin}>
-                        <input type="email" placeholder="Email Address" className="w-full px-4 py-3 bg-slate-50 rounded-2xl font-semibold text-base border-2 border-transparent focus:border-[#0297d6] outline-none" required />
-                        <input type="password" placeholder="Password" className="w-full px-4 py-3 bg-slate-50 rounded-2xl font-semibold text-base border-2 border-transparent focus:border-[#0297d6] outline-none" required />
-                        <button className="w-full bg-[#0297d6] text-white py-3.5 rounded-2xl font-black uppercase tracking-widest shadow-md mt-6">Login</button>
+                        <input type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-3 bg-slate-50 rounded-2xl font-semibold text-base border-2 border-transparent focus:border-[#0297d6] outline-none" required />
+                        <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-3 bg-slate-50 rounded-2xl font-semibold text-base border-2 border-transparent focus:border-[#0297d6] outline-none" required />
+                        {error && <div className="px-4 py-3 bg-red-50 border border-red-200 text-red-600 rounded-2xl text-sm font-semibold">{error}</div>}
+                        <button disabled={loading} className="w-full bg-[#0297d6] disabled:opacity-60 text-white py-3.5 rounded-2xl font-black uppercase tracking-widest shadow-md mt-6">{loading ? 'Logging in...' : 'Login'}</button>
                     </form>
 
                     <button
