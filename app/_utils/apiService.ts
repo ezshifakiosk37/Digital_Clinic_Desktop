@@ -1,4 +1,3 @@
-// //app/_utils/apiService.ts
 // app/_utils/apiService.ts
 const API_BASE_URL = "https://bifurcation-clinic-api.vercel.app";
 
@@ -124,7 +123,7 @@ export const apiService = {
     },
 
     // ── DOCTOR AUTH ──
-    docLogin: async (credentials: { email: string; password: string }) => {
+docLogin: async (credentials: { email: string; password: string }) => {
         const response = await fetch(`${API_BASE_URL}/api/doc-auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -135,7 +134,9 @@ export const apiService = {
 
         if (data.token) {
             localStorage.setItem('doc_token', data.token);
-            // We no longer save full doctor object to prevent stale data
+            if (data.doctor) {
+                localStorage.setItem('doctor', JSON.stringify(data.doctor));
+            }
         }
         return data;
     },
@@ -149,7 +150,9 @@ export const apiService = {
 
         if (data.token) {
             localStorage.setItem('doc_token', data.token);
-            // We no longer save full doctor object here
+            if (data.doctor) {
+                localStorage.setItem('doctor', JSON.stringify(data.doctor));
+            }
         }
         return data;
     },

@@ -36,7 +36,8 @@ interface Patient {
 
 const EZShifaPortal = () => {
   const [activePage, setActivePage] = useState<'login' | 'signup' | 'dashboard' | 'profile'>('dashboard');
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [tokenSearch, setTokenSearch] = useState('');
   const [tokenEditMode, setTokenEditMode] = useState(false);
@@ -75,11 +76,21 @@ const EZShifaPortal = () => {
     city: '',
     photo: '',
   });
-  React.useEffect(() => {
+  
+React.useEffect(() => {
+    const token = localStorage.getItem('doc_token');
+    if (token) {
+      setIsLoggedIn(true);
+    } else {
+      setActivePage('login');
+    }
+
     const savedDoctor = apiService.getDoctor();
     if (savedDoctor) {
       setDoctor(savedDoctor);
     }
+
+    setAuthChecked(true);
   }, []);
 
   // Load today's stats and queue when component mounts or doctor logs in
@@ -124,8 +135,11 @@ const EZShifaPortal = () => {
       }
     };
 
-    if (isLoggedIn) {
+    if (isLoggedIn && localStorage.getItem('doc_token')) {
       loadDashboardData();
+    } else if (!localStorage.getItem('doc_token')) {
+      setIsLoggedIn(false);
+      setActivePage('login');
     }
   }, [isLoggedIn]);
 
@@ -166,19 +180,22 @@ const EZShifaPortal = () => {
     setSelectedPatient(patient);
   };
 
-  const handleSessionEnd = (completedPatient: any) => {
+  const handleSessionEnd = async (completedPatient: any) => {
     setQueue(prev => prev.filter(p => p.id !== completedPatient.id));
     setDoneQueue(prev => [...prev, completedPatient]);
-    setTodayStats(prev => ({
-      ...prev,
-      inQueue: Math.max(0, prev.inQueue - 1),
-      completed: prev.completed + 1,
-    }));
     setSelectedPatient(null);
     setMedicines([]);
     setNotes('');
     setPrescriptionGenerated(false);
-    setEndingSession(false); // ← reset loader for next patient
+    setEndingSession(false);
+
+    // Re-fetch accurate stats from API instead of guessing locally
+    try {
+      const stats = await apiService.getTodayStats();
+      setTodayStats(stats);
+    } catch (err) {
+      console.error("Failed to refresh stats", err);
+    }
   };
 
   const handleLogoutClick = () => {

@@ -59,6 +59,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
 }) => {
     const [manualIds, setManualIds] = useState<number[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
 
     const toggleManual = (id: number) => {
         setManualIds(prev =>
@@ -180,11 +181,12 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                                                 className="w-full outline-none font-bold text-sm bg-transparent"
                                                                 value={searchQuery}
                                                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                                                onFocus={() => setSearchQuery('')}
+                                                                onFocus={() => { setSearchQuery(''); setOpenDropdownId(med.id); }}
+                                                                onBlur={() => setTimeout(() => setOpenDropdownId(null), 150)}
                                                             />
                                                         </div>
 
-                                                        {searchQuery && (
+                                                        {(openDropdownId === med.id || searchQuery) && (
                                                             <div className="absolute z-50 top-full left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto">
                                                                 {/* Other — always on top */}
                                                                 <div
@@ -306,7 +308,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                 >
                                     <Pill size={16} /> Generate Prescription
                                 </button>
-<button
+                                <button
                                     disabled={endingSession}
                                     onClick={async () => {
                                         if (!selectedPatient) return;

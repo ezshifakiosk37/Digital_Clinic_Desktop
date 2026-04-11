@@ -4,7 +4,7 @@ import React from 'react';
 import { LogOut } from 'lucide-react';
 
 interface NavbarProps {
-  fullName: string;           
+  fullName: string;
   doctorPhoto?: string;       // optional photo URL
   onProfileClick: () => void;
   onLogoutClick: () => void;
@@ -57,6 +57,7 @@ const Navbar: React.FC<NavbarProps> = ({
           ) : (
             fullName
               .split(' ')
+              .filter((_, i) => i !== 0)
               .map((n) => n[0])
               .join('')
               .toUpperCase()
