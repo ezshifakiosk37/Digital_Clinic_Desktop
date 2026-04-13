@@ -1,19 +1,8 @@
 @import "tailwindcss";
 
-/* Ensure the entire chain is forced to full viewport height */
 html,
-body,
-#__next {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  min-height: 100vh;
-  /* Remove the height: auto you had before; it's killing the layout */
-  display: flex;
-  flex-direction: column;
+body{
+  font-family: var(--font-quicksand), sans-serif;
 }
 
 :root {
@@ -93,15 +82,11 @@ body {
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
 }
-
 @layer base {
-
   /* This targets inputs and selects without causing Tailwind errors */
-  input:not([type="button"]):not([type="submit"]),
+  input:not([type="button"]):not([type="submit"]), 
   select {
-    background-color: rgba(248, 250, 252, 0.5) !important;
-    /* slate-50/50 */
-    border-color: rgba(241, 245, 249, 0.8) !important;
-    /* slate-100/80 */
+    background-color: rgba(248, 250, 252, 0.5) !important; /* slate-50/50 */
+    border-color: rgba(241, 245, 249, 0.8) !important;    /* slate-100/80 */
   }
 }
