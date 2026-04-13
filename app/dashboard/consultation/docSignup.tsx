@@ -24,6 +24,7 @@ const DocSignup: React.FC<DocSignupProps> = ({ setActivePage }) => {
   const [profilePreview, setProfilePreview] = useState('');
   const [profileFile, setProfileFile] = useState<File | null>(null);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   // form field states
@@ -40,7 +41,9 @@ const DocSignup: React.FC<DocSignupProps> = ({ setActivePage }) => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
+
     try {
       const formData = new FormData();
       formData.append('title', title);
@@ -57,25 +60,32 @@ const DocSignup: React.FC<DocSignupProps> = ({ setActivePage }) => {
       if (profileFile) formData.append('photo', profileFile);
 
       await apiService.docRegister(formData);
-      setActivePage('dashboard');
+
+      // Success handling
+      setSuccess('Registration successful! Redirecting to sign-in...');
+
+      // Show blue message for 1.5 seconds then go to doctor login screen
+      setTimeout(() => {
+        setActivePage('login');   // ← goes to doctor sign-in screen
+      }, 1500);
+
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-4xl shadow-2xl w-full overflow-hidden flex flex-col lg:flex-row">
         {/* Left Panel */}
         <div className="bg-[#0297d6] lg:w-80 shrink-0 px-8 py-6 flex flex-col items-center justify-between gap-4">
           <div className="bg-white rounded-2xl px-5 py-4 flex items-center justify-center">
-            <img 
-              src="/logo.png" 
-              alt="EZShifa Logo" 
-              className="max-w-48 h-auto" 
-              onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} 
+            <img
+              src="/logo.png"
+              alt="EZShifa Logo"
+              className="max-w-48 h-auto"
+              onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           </div>
           <div className="text-white text-center">
@@ -103,20 +113,30 @@ const DocSignup: React.FC<DocSignupProps> = ({ setActivePage }) => {
               <label className="cursor-pointer">
                 <span className="text-xs font-black text-[#0297d6] uppercase tracking-widest">Upload Photo</span>
                 <span className="text-[11px] text-slate-400 ml-2">(Optional)</span>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
                   onChange={e => {
                     const f = e.target.files?.[0];
                     if (f) { setProfilePreview(URL.createObjectURL(f)); setProfileFile(f); }
-                  }} 
+                  }}
                 />
               </label>
             </div>
 
             {/* Name Fields */}
-            {error && <div className="px-4 py-3 bg-red-50 border border-red-200 text-red-600 rounded-2xl text-sm font-semibold">{error}</div>}
+            {error && (
+              <div className="px-4 py-3 bg-red-50 border border-red-200 text-red-600 rounded-2xl text-sm font-semibold">
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="px-4 py-3 bg-blue-50 border border-blue-200 text-blue-700 rounded-2xl text-sm font-semibold">
+                {success}
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-2">
               <select value={title} onChange={e => setTitle(e.target.value)} required
@@ -151,19 +171,19 @@ const DocSignup: React.FC<DocSignupProps> = ({ setActivePage }) => {
             {/* Professional Info */}
             <p className="text-[12px] font-black text-[#0297d6] uppercase tracking-widest pt-1">Professional Info</p>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-              <MultiSelect 
-                options={SPECIALIZATION_OPTIONS.map(opt => opt.value)} 
-                selected={regSpecs} 
-                onChange={setRegSpecs} 
-                placeholder="Specialization" 
-                allowCustom 
+              <MultiSelect
+                options={SPECIALIZATION_OPTIONS.map(opt => opt.value)}
+                selected={regSpecs}
+                onChange={setRegSpecs}
+                placeholder="Specialization"
+                allowCustom
               />
-              <MultiSelect 
-                options={QUALIFICATION_OPTIONS.map(opt => opt.value)} 
-                selected={regQuals} 
-                onChange={setRegQuals} 
-                placeholder="Qualification" 
-                allowCustom 
+              <MultiSelect
+                options={QUALIFICATION_OPTIONS.map(opt => opt.value)}
+                selected={regQuals}
+                onChange={setRegQuals}
+                placeholder="Qualification"
+                allowCustom
               />
               <input type="number" placeholder="Experience (Yrs)" min={0} max={60} value={experience} onChange={e => setExperience(e.target.value)}
                 className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
@@ -175,7 +195,7 @@ const DocSignup: React.FC<DocSignupProps> = ({ setActivePage }) => {
               </select>
             </div>
 
-            <button 
+            <button
               type="submit"
               disabled={loading}
               className="w-full bg-[#0297d6] disabled:opacity-60 text-white py-2 rounded-2xl font-black uppercase tracking-widest text-md lg:text-sm shadow-md"
@@ -184,8 +204,8 @@ const DocSignup: React.FC<DocSignupProps> = ({ setActivePage }) => {
             </button>
           </form>
 
-          <button 
-            onClick={() => setActivePage('login')} 
+          <button
+            onClick={() => setActivePage('login')}
             className="w-full mt-2 text-[10px] font-black text-slate-700 hover:text-[#0297d6] uppercase tracking-widest"
           >
             ← Back to Login
