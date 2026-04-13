@@ -1,8 +1,17 @@
 @import "tailwindcss";
 
 html,
-body{
+body {
+  background: var(--background);
+  color: var(--foreground);
   font-family: var(--font-quicksand), sans-serif;
+  width: 100%;
+  min-height: 100%;        /* ← change height to min-height */
+  height: auto;            /* ← allow body to grow */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-overflow-scrolling: touch;
 }
 
 :root {
