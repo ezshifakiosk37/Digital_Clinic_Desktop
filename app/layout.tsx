@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 const quicksand = Outfit({
   variable: "--font-quicksand",
   subsets: ["latin"],
-  weight: ['300', '400'], // Optional: specify weights
+  weight: ['300', '400'], // Optional:specify weights
 });
 
 export const metadata: Metadata = {
