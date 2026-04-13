@@ -1,17 +1,35 @@
 @import "tailwindcss";
 
+@import "tailwindcss";
+
+/* THE FIX: Force the entire hierarchy to be 100% of the viewport */
 html,
+body,
+:root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
 body {
+  /* Use svh (Small Viewport Height) for mobile to account for address bars */
+  min-height: 100svh; 
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-quicksand), sans-serif;
-  width: 100%;
-  min-height: 100%;        /* ← change height to min-height */
-  /* height: auto;            ← allow body to grow */
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  -webkit-overflow-scrolling: touch;
+  
+  /* Prevent accidental scrolling/bouncing in WebView */
+  overscroll-behavior-y: none; 
+}
+
+/* Next.js specific wrapper - if this isn't 100%, the body won't look full */
+#__next, 
+main {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 :root {
