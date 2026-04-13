@@ -29,9 +29,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className="min-h-screen">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${quicksand.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${quicksand.variable} min-h-screen antialiased`}
       >
         {children}
       </body>
