@@ -93,7 +93,7 @@ const DemographicPage: React.FC = () => {
     }
   };
 
- const handleSearch = async (searchType: 'phone' | 'cnic') => {
+  const handleSearch = async (searchType: 'phone' | 'cnic') => {
     const value = searchType === 'phone' ? form.phoneNumber : form.cnic;
     if (!value) return alert(`Please enter ${searchType} to search.`);
 
@@ -211,9 +211,86 @@ const DemographicPage: React.FC = () => {
           </div>
           <h2 className="text-lg md:text-xl font-bold text-slate-800">Patient Details</h2>
         </div>
+        <div className="mx-6  text-center px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[12px] text-slate-500">
+          Enter Phone Number or CNIC and click Find to retrieve existing patient data.
+        </div>
 
         <form className="py-3 px-4 sm:px-6 md:px-8 space-y-3 bg-white" onSubmit={(e) => e.preventDefault()}>
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Phone */}
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Phone Number *</Label>
+              <div className="flex h-9 overflow-hidden rounded-md border border-slate-100 focus-within:ring-1 focus-within:ring-[#0297d6] items-center">
+                <Popover open={openCode} onOpenChange={setOpenCode}>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" className="w-25 h-full rounded-none bg-slate-100 border-r px-3 text-xs md:text-sm font-bold">
+                      {form.countryCode || "+92"}
+                      <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-50 p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search code..." className="h-9 py-0" />
+                      <CommandList>
+                        <CommandEmpty>No code found.</CommandEmpty>
+                        <CommandGroup className="max-h-60 overflow-y-auto">
+                          {countries.map((c) => (
+                            <CommandItem
+                              key={c.isoCode}
+                              onSelect={() => {
+                                updateForm('countryCode', `+${c.phonecode.replace('+', '')}`)
+                                setOpenCode(false)
+                              }}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", form.countryCode === `+${c.phonecode.replace('+', '')}` ? "opacity-100" : "opacity-0")} />
+                              <span className="flex-1">{c.name}</span>
+                              <span className="text-slate-400">+{c.phonecode.replace('+', '')}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <Input
+                  className="border-none focus-visible:ring-0 h-9 flex-1 rounded-none py-0"
+                  placeholder="3331111111"
+                  value={form.phoneNumber || ""}
+                  onChange={(e) => updateForm('phoneNumber', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* CNIC + unified Find button */}
+            <div className="space-y-1">
+              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wide">CNIC</Label>
+              <div className="flex gap-2 h-9">
+                <Input
+                  className="h-9 py-0 flex-1"
+                  placeholder="42201XXXXXXXX"
+                  value={form.cnic || ""}
+                  onChange={(e) => updateForm('cnic', e.target.value)}
+                  onKeyDown={handleKeyDown}
+                />
+                <Button
+                  type="button"
+                  disabled={isFinding.phone || isFinding.cnic}
+                  onClick={() => {
+                    if (form.phoneNumber) handleSearch('phone');
+                    else if (form.cnic) handleSearch('cnic');
+                    else alert('Please enter a Phone Number or CNIC to search.');
+                  }}
+                  className="rounded-md bg-[#0297d6] hover:bg-[#0286c2] h-full px-6 font-bold shrink-0"
+                >
+                  {(isFinding.phone || isFinding.cnic)
+                    ? <Loader2 className="animate-spin w-4 h-4" />
+                    : "Find"
+                  }
+                </Button>
+              </div>
+            </div>
+          </div>
+          {/* <div className="grid grid-cols-1 gap-2">
             <Label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Phone Number *</Label>
             <div className="flex gap-3 h-9">
               <div className="flex flex-1 overflow-hidden rounded-md border border-slate-100 focus-within:ring-1 focus-within:ring-[#0297d6] items-center">
@@ -266,7 +343,7 @@ const DemographicPage: React.FC = () => {
                 {isFinding.phone ? <Loader2 className="animate-spin w-4 h-4" /> : "Find"}
               </Button>
             </div>
-          </div>
+          </div> */}
 
           {/* Names Row */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -308,7 +385,7 @@ const DemographicPage: React.FC = () => {
             </div>
           </div>
 
-          {/* CNIC */}
+          {/* CNIC
           <div>
             <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">CNIC</Label>
             <div className="flex gap-3 h-9">
@@ -328,7 +405,7 @@ const DemographicPage: React.FC = () => {
                 {isFinding.cnic ? <Loader2 className="animate-spin w-4 h-4" /> : "Find"}
               </Button>
             </div>
-          </div>
+          </div> */}
 
           {/* DOB + Age */}
           <div className="grid grid-cols-2 gap-4 items-end">
@@ -350,18 +427,32 @@ const DemographicPage: React.FC = () => {
           {/* Languages */}
           <div className="grid grid-cols-1 gap-4 mt-4">
             <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Primary Language *</Label>
-            <select
-              className="h-9 w-full border border-slate-200 rounded-md p-2 text-sm bg-white"
-              value={form.languages || ""}
-              onChange={(e) => updateForm('languages', e.target.value)}
-            >
-              <option value="">Select Language</option>
-              {languageList.map((lang) => (
-                <option key={lang.code} value={lang.name}>
-                  {lang.name} {lang.nativeName !== lang.name ? `(${lang.nativeName})` : ''}
-                </option>
-              ))}
-            </select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50">
+                  <span className={form.languages ? "text-slate-800" : "text-slate-400"}>
+                    {form.languages || "Select Language..."}
+                  </span>
+                  <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search language..." />
+                  <CommandList>
+                    <CommandEmpty>No language found.</CommandEmpty>
+                    <CommandGroup className="max-h-60 overflow-y-auto">
+                      {languageList.map((lang) => (
+                        <CommandItem key={lang.code} onSelect={() => updateForm('languages', lang.name)}>
+                          <Check className={cn("mr-2 h-4 w-4", form.languages === lang.name ? "opacity-100" : "opacity-0")} />
+                          {lang.name} {lang.nativeName !== lang.name ? `(${lang.nativeName})` : ''}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Location Section */}
@@ -379,24 +470,90 @@ const DemographicPage: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <Label className="text-[10px] font-bold text-slate-400 uppercase">Country</Label>
-                <select className="h-9 w-full border rounded-md p-2 text-sm bg-white" value={form.country} onChange={(e) => updateForm('country', e.target.value)}>
-                  <option value="">Select Country</option>
-                  {countries.map(c => <option key={c.isoCode} value={c.isoCode}>{c.name}</option>)}
-                </select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50">
+                      <span className={form.country ? "text-slate-800" : "text-slate-400"}>
+                        {countries.find(c => c.isoCode === form.country)?.name || "Select Country..."}
+                      </span>
+                      <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search country..." />
+                      <CommandList>
+                        <CommandEmpty>No country found.</CommandEmpty>
+                        <CommandGroup className="max-h-60 overflow-y-auto">
+                          {countries.map((c) => (
+                            <CommandItem key={c.isoCode} onSelect={() => updateForm('country', c.isoCode)}>
+                              <Check className={cn("mr-2 h-4 w-4", form.country === c.isoCode ? "opacity-100" : "opacity-0")} />
+                              {c.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label className="text-[10px] font-bold text-slate-400 uppercase">Province</Label>
-                <select className="h-9 w-full border rounded-md p-2 text-sm bg-white" value={form.province} onChange={(e) => updateForm('province', e.target.value)} disabled={!states.length}>
-                  <option value="">Select Province</option>
-                  {states.map(s => <option key={s.isoCode} value={s.isoCode}>{s.name}</option>)}
-                </select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50" disabled={!states.length}>
+                      <span className={form.province ? "text-slate-800" : "text-slate-400"}>
+                        {states.find(s => s.isoCode === form.province)?.name || "Select Province..."}
+                      </span>
+                      <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search province..." />
+                      <CommandList>
+                        <CommandEmpty>No province found.</CommandEmpty>
+                        <CommandGroup className="max-h-60 overflow-y-auto">
+                          {states.map((s) => (
+                            <CommandItem key={s.isoCode} onSelect={() => updateForm('province', s.isoCode)}>
+                              <Check className={cn("mr-2 h-4 w-4", form.province === s.isoCode ? "opacity-100" : "opacity-0")} />
+                              {s.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label className="text-[10px] font-bold text-slate-400 uppercase">City</Label>
-                <select className="h-9 w-full border rounded-md p-2 text-sm bg-white" value={form.city} onChange={(e) => updateForm('city', e.target.value)} disabled={!cities.length}>
-                  <option value="">Select City</option>
-                  {cities.map(city => <option key={city.name} value={city.name}>{city.name}</option>)}
-                </select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50" disabled={!cities.length}>
+                      <span className={form.city ? "text-slate-800" : "text-slate-400"}>
+                        {form.city || "Select City..."}
+                      </span>
+                      <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search city..." />
+                      <CommandList>
+                        <CommandEmpty>No city found.</CommandEmpty>
+                        <CommandGroup className="max-h-60 overflow-y-auto">
+                          {cities.map((city) => (
+                            <CommandItem key={city.name} onSelect={() => updateForm('city', city.name)}>
+                              <Check className={cn("mr-2 h-4 w-4", form.city === city.name ? "opacity-100" : "opacity-0")} />
+                              {city.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>

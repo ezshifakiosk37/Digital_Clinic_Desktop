@@ -37,6 +37,16 @@ const DocProfile: React.FC<DocProfileProps> = ({
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+    React.useEffect(() => {
+    apiService.docGetProfile().then((data) => {
+      if (data?.doctor) {
+        setDoctor((d) => ({ ...d, password: data.doctor.password ?? '' }));
+      }
+    }).catch(() => {});
+
+  }, []);
+  
   // Reusable text field
   const field = (key: keyof DoctorProfileType, type: string = 'text', placeholder: string = '') => (
     <input

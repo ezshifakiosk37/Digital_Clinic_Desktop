@@ -64,22 +64,77 @@ export const demographic: DemographicField[] = [
   },
 
   { key: "medicalHistory", 
-    question: "Medical History", 
+    question: "Existing Conditions", 
     type: "select", 
-    options: ["Diabetes", "Hypertension", "Asthma", "Other"] 
+    options: [
+  "Other","None",
+  "Acute Respiratory Infections (ARI)",
+  "Asthma",
+  "Breast Cancer",
+  "Cardiovascular Diseases",
+  "Chronic Kidney Disease",
+  "Chronic Liver Disease",
+  "COPD",
+  "CVA",
+  "Dengue Fever",
+  "Dengue Hemorrhagic Fever",
+  "Diabetes",
+  "DM",
+  "Diarrheal Diseases (cholera, typhoid fever, gastroenteritis)",
+  "Dyslipidemia",
+  "Gastrointestinal Cancers",
+  "Gastrointestinal Infections (such as amoebiasis)",
+  "Hepatitis A",
+  "Hepatitis B and C",
+  "HTN",
+  "Hypertension",
+  "Hypotension",
+  "Leishmaniasis",
+  "Lung Cancer",
+  "Malaria",
+  "Malnutrition",
+  "Measles",
+  "Polio",
+  "Pregnancy",
+  "Rabies",
+  "Respiratory Infections (including pneumonia, bronchitis)",
+  "Schistosomiasis",
+  "Seizures",
+  "Tuberculosis (TB)"
+]
+
   },
 
   { key: "medicineHistory", 
-    question: "Medicine History", 
+    question: "Current Medication", 
     type: "select", 
-    options: ["Insulin", "Metformin", "Aspirin", "Other"] 
+    options: ["Other","Insulin", "Metformin", "Aspirin"] 
   },
 
   { 
     key: "allergies", 
     question: "Allergies", 
     type: "select", 
-    options: ["Peanuts", "Dust", "Penicillin", "None", "Other"] 
+    options: 
+    [
+  "Other",
+  "Brazil nuts",
+  "Cashews",
+  "Dust allergy",
+  "Eggs",
+  "Fish",
+  "Hazelnuts (filberts)",
+  "Macadamia nuts",
+  "Milk",
+  "Pecans",
+  "Pine nuts (pinon, pignolias)",
+  "Pistachio",
+  "Sesame",
+  "Shellfish",
+  "Skin allergy",
+  "Soy",
+  "Wheat",
+  "Not Aware"] 
   },
 
   {

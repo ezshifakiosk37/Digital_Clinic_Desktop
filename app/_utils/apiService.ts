@@ -167,9 +167,17 @@ docRegister: async (formData: FormData) => {
         window.location.href = '/consultation';
     },
 
-    getDoctor: () => {
+getDoctor: () => {
         const doc = localStorage.getItem('doctor');
         return doc ? JSON.parse(doc) : null;
+    },
+
+    docGetProfile: async () => {
+        const response = await fetch(`${API_BASE_URL}/api/doctors/me`, {
+            method: 'GET',
+            headers: getDocHeaders(),
+        });
+        return handleResponse(response);
     },
 
     docUpdateProfile: async (doctorId: string, payload: Record<string, any>) => {
