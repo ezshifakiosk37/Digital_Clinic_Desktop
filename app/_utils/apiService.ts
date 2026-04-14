@@ -141,21 +141,25 @@ docLogin: async (credentials: { email: string; password: string }) => {
         return data;
     },
 
-    docRegister: async (formData: FormData) => {
-        const response = await fetch(`${API_BASE_URL}/api/doctors/register`, {
-            method: 'POST',
-            body: formData,
-        });
-        const data = await handleResponse(response);
+docRegister: async (formData: FormData) => {
+    const response = await fetch(`${API_BASE_URL}/api/doctors/register`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,   // ← staff token
+        },
+        body: formData,
+    });
 
-        if (data.token) {
-            localStorage.setItem('doc_token', data.token);
-            if (data.doctor) {
-                localStorage.setItem('doctor', JSON.stringify(data.doctor));
-            }
+    const data = await handleResponse(response);
+
+    if (data.token) {
+        localStorage.setItem('doc_token', data.token);
+        if (data.doctor) {
+            localStorage.setItem('doctor', JSON.stringify(data.doctor));
         }
-        return data;
-    },
+    }
+    return data;
+},
 
     docLogout: () => {
         localStorage.removeItem('doc_token');
