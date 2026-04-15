@@ -117,7 +117,7 @@ export const demographic: DemographicField[] = [
     type: "select", 
     options: 
     [
-  "Other",
+  "Other","None",
   "Brazil nuts",
   "Cashews",
   "Dust allergy",

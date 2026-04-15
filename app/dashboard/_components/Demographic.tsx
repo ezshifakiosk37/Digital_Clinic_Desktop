@@ -50,6 +50,7 @@ const DemographicPage: React.FC = () => {
   const [openCode, setOpenCode] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [showTokenDialog, setShowTokenDialog] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
 
 
   const countries = useMemo(() => Country.getAllCountries(), []);
@@ -64,6 +65,10 @@ const DemographicPage: React.FC = () => {
     updateForm(key, newValues);
   };
 
+  const showNotification = (msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 4000);
+  };
   const updateForm = (key: string, value: any) => {
     setForm((prev: any) => {
       const updated = { ...prev, [key]: value };
@@ -119,7 +124,7 @@ const DemographicPage: React.FC = () => {
         });
         setEntryId(data.entryId);
       } else {
-        alert("No record found. Please fill in the details.");
+        showNotification("No record found. Please fill in the details.");
       }
     } catch (error: any) {
       alert(error.message || "Search failed.");
@@ -130,10 +135,10 @@ const DemographicPage: React.FC = () => {
 
   // handleNextStep with this:
   const handleNextStep = async () => {
-    const required = ['phoneNumber', 'firstName', 'gender', 'dob', 'languages'];
+    const required = ['phoneNumber', 'firstName', 'gender', 'dob', 'age', 'country', 'city', 'province '];
     const missing = required.filter(field => !form[field]);
 
-    if (missing.length > 0) return alert(`Required: ${missing.join(', ')}`);
+    if (missing.length > 0) return showNotification("Please Fill the required fields marked with *.");
 
     setIsSaving(true);
     try {
@@ -190,7 +195,13 @@ const DemographicPage: React.FC = () => {
   }, []);
 
   return (
+    
     <div className="min-h-screen bg-slate-50 flex flex-col items-center w-full">
+      {notification && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#d602a1] text-white px-6 py-3 rounded-full shadow-lg text-sm font-semibold animate-fade-in flex items-center gap-2">
+          <span>ℹ️</span> {notification}
+        </div>
+      )}
       <div className="w-full bg-[#0297d6] pt-4 pb-12 px-4 text-white">
         <div className="max-w-3xl mx-auto flex items-center gap-3 min-w-0">
           <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm shrink-0">
@@ -204,449 +215,376 @@ const DemographicPage: React.FC = () => {
         </div>
       </div>
       {/* cards */}
-      <Card className="w-full py-2 max-w-3xl -mt-10 shadow-2xl border-none rounded-t-[2.5rem] bg-white overflow-hidden mb-12 mx-2">
-        <div className="px-4 sm:px-6 md:px-8 pt-3 pb-1 flex items-center gap-3">
-          <div className="p-1.5 bg-blue-50 rounded-full">
-            <User className="w-5 h-5 text-[#0297d6]" />
+      <div className="max-w-3xl px-4 md:px-4 flex flex-col items-center">
+        <Card className="w-full py-2  -mt-10 shadow-2xl border-none rounded-t-[2.5rem] bg-white overflow-hidden mb-8 mx-6 gap-1 md:mx-20">
+          <div className="px-4 sm:px-6 md:px-8 pt-3 pb-1 flex items-center gap-3">
+            <div className="p-1.5 bg-blue-50 rounded-full">
+              <User className="w-5 h-5 text-[#0297d6]" />
+            </div>
+            <h2 className="text-lg md:text-xl font-bold text-slate-800">Patient Details</h2>
           </div>
-          <h2 className="text-lg md:text-xl font-bold text-slate-800">Patient Details</h2>
-        </div>
-        <div className="mx-6  text-center px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[12px] text-slate-500">
-          Enter Phone Number or CNIC and click Find to retrieve existing patient data.
-        </div>
+          <div className="mx-6 text-center px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[12px] text-slate-500">
+            Enter Phone Number or CNIC and click Find to retrieve existing patient data.
+          </div>
 
-        <form className="py-3 px-4 sm:px-6 md:px-8 space-y-3 bg-white" onSubmit={(e) => e.preventDefault()}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Phone */}
-            <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Phone Number *</Label>
-              <div className="flex h-9 overflow-hidden rounded-md border border-slate-100 focus-within:ring-1 focus-within:ring-[#0297d6] items-center">
-                <Popover open={openCode} onOpenChange={setOpenCode}>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" className="w-25 h-full rounded-none bg-slate-100 border-r px-3 text-xs md:text-sm font-bold">
-                      {form.countryCode || "+92"}
-                      <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-50 p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search code..." className="h-9 py-0" />
-                      <CommandList>
-                        <CommandEmpty>No code found.</CommandEmpty>
-                        <CommandGroup className="max-h-60 overflow-y-auto">
-                          {countries.map((c) => (
-                            <CommandItem
-                              key={c.isoCode}
-                              onSelect={() => {
-                                updateForm('countryCode', `+${c.phonecode.replace('+', '')}`)
-                                setOpenCode(false)
-                              }}
-                            >
-                              <Check className={cn("mr-2 h-4 w-4", form.countryCode === `+${c.phonecode.replace('+', '')}` ? "opacity-100" : "opacity-0")} />
-                              <span className="flex-1">{c.name}</span>
-                              <span className="text-slate-400">+{c.phonecode.replace('+', '')}</span>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                <Input
-                  className="border-none focus-visible:ring-0 h-9 flex-1 rounded-none py-0"
-                  placeholder="3331111111"
-                  value={form.phoneNumber || ""}
-                  onChange={(e) => updateForm('phoneNumber', e.target.value)}
-                />
+          <form className="py-3 px-4 sm:px-6 md:px-8 space-y-3 bg-white" onSubmit={(e) => e.preventDefault()}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Phone */}
+              <div className="space-y-1">
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wide">Phone Number <span className='text-red-500'>*</span></Label>
+                <div className="flex h-9 overflow-hidden rounded-md border border-slate-100 focus-within:ring-1 focus-within:ring-[#0297d6] items-center">
+                  <Popover open={openCode} onOpenChange={setOpenCode}>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" className="w-25 h-full rounded-none bg-slate-100 border-r px-3 text-xs md:text-sm font-bold">
+                        {form.countryCode || "+92"}
+                        <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-50 p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search code..." className="h-9 py-0" />
+                        <CommandList>
+                          <CommandEmpty>No code found.</CommandEmpty>
+                          <CommandGroup className="max-h-60 overflow-y-auto">
+                            {countries.map((c) => (
+                              <CommandItem
+                                key={c.isoCode}
+                                onSelect={() => {
+                                  updateForm('countryCode', `+${c.phonecode.replace('+', '')}`)
+                                  setOpenCode(false)
+                                }}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4", form.countryCode === `+${c.phonecode.replace('+', '')}` ? "opacity-100" : "opacity-0")} />
+                                <span className="flex-1">{c.name}</span>
+                                <span className="text-slate-400">+{c.phonecode.replace('+', '')}</span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <Input
+                    className="border-none focus-visible:ring-0 h-9 flex-1 rounded-none py-0"
+                    placeholder="3331111111"
+                    value={form.phoneNumber || ""}
+                    onChange={(e) => updateForm('phoneNumber', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* CNIC + unified Find button */}
+              <div className="space-y-1">
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wide">CNIC</Label>
+                <div className="flex gap-2 h-9">
+                  <Input
+                    className="h-9 py-0 flex-1"
+                    placeholder="42201XXXXXXXX"
+                    value={form.cnic || ""}
+                    onChange={(e) => updateForm('cnic', e.target.value)}
+                    onKeyDown={handleKeyDown}
+                  />
+                  <Button
+                    type="button"
+                    disabled={isFinding.phone || isFinding.cnic}
+                    onClick={() => {
+                      if (form.phoneNumber) handleSearch('phone');
+                      else if (form.cnic) handleSearch('cnic');
+                      else alert('Please enter a Phone Number or CNIC to search.');
+                    }}
+                    className="rounded-md bg-[#0297d6] hover:bg-[#0286c2] h-full px-6 font-bold shrink-0"
+                  >
+                    {(isFinding.phone || isFinding.cnic)
+                      ? <Loader2 className="animate-spin w-4 h-4" />
+                      : "Find"
+                    }
+                  </Button>
+                </div>
               </div>
             </div>
 
-            {/* CNIC + unified Find button */}
-            <div className="space-y-1">
-              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wide">CNIC</Label>
-              <div className="flex gap-2 h-9">
-                <Input
-                  className="h-9 py-0 flex-1"
-                  placeholder="42201XXXXXXXX"
-                  value={form.cnic || ""}
-                  onChange={(e) => updateForm('cnic', e.target.value)}
-                  onKeyDown={handleKeyDown}
-                />
-                <Button
-                  type="button"
-                  disabled={isFinding.phone || isFinding.cnic}
-                  onClick={() => {
-                    if (form.phoneNumber) handleSearch('phone');
-                    else if (form.cnic) handleSearch('cnic');
-                    else alert('Please enter a Phone Number or CNIC to search.');
-                  }}
-                  className="rounded-md bg-[#0297d6] hover:bg-[#0286c2] h-full px-6 font-bold shrink-0"
-                >
-                  {(isFinding.phone || isFinding.cnic)
-                    ? <Loader2 className="animate-spin w-4 h-4" />
-                    : "Find"
-                  }
-                </Button>
-              </div>
-            </div>
-          </div>
-          {/* <div className="grid grid-cols-1 gap-2">
-            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Phone Number *</Label>
-            <div className="flex gap-3 h-9">
-              <div className="flex flex-1 overflow-hidden rounded-md border border-slate-100 focus-within:ring-1 focus-within:ring-[#0297d6] items-center">
-                <Popover open={openCode} onOpenChange={setOpenCode}>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" className="w-25 h-full rounded-none bg-slate-100 border-r px-3 text-xs font-bold">
-                      {form.countryCode || "+92"}
-                      <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-50 p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search code..." className="h-9 py-0" />
-                      <CommandList>
-                        <CommandEmpty>No code found.</CommandEmpty>
-                        <CommandGroup className="max-h-60 overflow-y-auto">
-                          {countries.map((c) => (
-                            <CommandItem
-                              key={c.isoCode}
-                              onSelect={() => {
-                                updateForm('countryCode', `+${c.phonecode.replace('+', '')}`)
-                                setOpenCode(false)
-                              }}
-                            >
-                              <Check className={cn("mr-2 h-4 w-4", form.countryCode === `+${c.phonecode.replace('+', '')}` ? "opacity-100" : "opacity-0")} />
-                              <span className="flex-1">{c.name}</span>
-                              <span className="text-slate-400">+{c.phonecode.replace('+', '')}</span>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-
-                <Input
-                  className="border-none focus-visible:ring-0 h-9 flex-1 rounded-none py-0"
-                  placeholder="3331111111"
-                  value={form.phoneNumber || ""}
-                  onChange={(e) => updateForm('phoneNumber', e.target.value)}
-                />
-              </div>
-
-              <Button
-                type="button"
-                disabled={isFinding.phone}
-                onClick={() => handleSearch('phone')}
-                className="rounded-md bg-[#0297d6] hover:bg-[#0286c2] h-full px-8 font-bold"
-              >
-                {isFinding.phone ? <Loader2 className="animate-spin w-4 h-4" /> : "Find"}
-              </Button>
-            </div>
-          </div> */}
-
-          {/* Names Row */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div>
-              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">First Name *</Label>
-              <Input className="h-9 py-0" value={form.firstName || ""} onChange={(e) => updateForm('firstName', e.target.value)} onKeyDown={handleKeyDown} />
-            </div>
-            <div>
-              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Last Name</Label>
-              <Input className="h-9 py-0" value={form.lastName || ""} onChange={(e) => updateForm('lastName', e.target.value)} onKeyDown={handleKeyDown} />
-            </div>
-            <div>
-              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Father/Husband Name</Label>
-              <Input className="h-9 py-0" value={form.father_husband || ""} onChange={(e) => updateForm('father_husband', e.target.value)} onKeyDown={handleKeyDown} />
-            </div>
-          </div>
-
-          {/* Email & Gender */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Email Address</Label>
-              <Input className="h-9 py-0" type="email" value={form.email || ""} onChange={(e) => updateForm('email', e.target.value)} onKeyDown={handleKeyDown} />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Gender *</Label>
-              <div className="flex gap-4 mt-1">
-                {['Male', 'Female', 'Other'].map((g) => (
-                  <label key={g} className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 font-medium">
-                    <input
-                      type="radio"
-                      name="gender"
-                      checked={form.gender === g}
-                      onChange={() => updateForm('gender', g)}
-                      className="accent-[#0297d6] h-4 w-4"
-                    /> {g}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* CNIC
-          <div>
-            <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">CNIC</Label>
-            <div className="flex gap-3 h-9">
-              <Input
-                className="h-9 py-0 flex-1"
-                placeholder="42201XXXXXXXX"
-                value={form.cnic || ""}
-                onChange={(e) => updateForm('cnic', e.target.value)}
-                onKeyDown={handleKeyDown}
-              />
-              <Button
-                type="button"
-                disabled={isFinding.cnic}
-                onClick={() => handleSearch('cnic')}
-                className="rounded-md bg-[#0297d6] hover:bg-[#0286c2] h-full px-8 font-bold"
-              >
-                {isFinding.cnic ? <Loader2 className="animate-spin w-4 h-4" /> : "Find"}
-              </Button>
-            </div>
-          </div> */}
-
-          {/* DOB + Age */}
-          <div className="grid grid-cols-2 gap-4 items-end">
-            <div>
-              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">DOB *</Label>
-              <Input className="h-9 py-0" type="date" value={form.dob || ""} onChange={(e) => updateForm('dob', e.target.value)} onKeyDown={handleKeyDown} />
-            </div>
-            <div>
-              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase block">Age</Label>
-              <Input
-                type="number"
-                value={form.age || ""}
-                onChange={(e) => updateForm('age', e.target.value)}
-                className="h-9 py-0 bg-slate-50 border-dashed text-center font-bold text-[#0297d6]"
-              />
-            </div>
-          </div>
-
-          {/* Languages */}
-          <div className="grid grid-cols-1 gap-4 mt-4">
-            <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Primary Language *</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50">
-                  <span className={form.languages ? "text-slate-800" : "text-slate-400"}>
-                    {form.languages || "Select Language..."}
-                  </span>
-                  <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Search language..." />
-                  <CommandList>
-                    <CommandEmpty>No language found.</CommandEmpty>
-                    <CommandGroup className="max-h-60 overflow-y-auto">
-                      {languageList.map((lang) => (
-                        <CommandItem key={lang.code} onSelect={() => updateForm('languages', lang.name)}>
-                          <Check className={cn("mr-2 h-4 w-4", form.languages === lang.name ? "opacity-100" : "opacity-0")} />
-                          {lang.name} {lang.nativeName !== lang.name ? `(${lang.nativeName})` : ''}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Location Section */}
-          <div className="border-t border-slate-100 space-y-3 pt-3">
-            <div className="flex items-center gap-2 mb-1">
-              <MapPin className="w-4 h-4 text-slate-400" />
-              <h3 className="text-sm font-bold text-slate-700 uppercase">Address & Location</h3>
-            </div>
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <Label className="text-[10px] font-bold text-slate-400 uppercase">Street Address</Label>
-                <Input className="h-9 py-0" placeholder="House #, Street..." value={form.stAddress || ""} onChange={(e) => updateForm('stAddress', e.target.value)} onKeyDown={handleKeyDown} />
-              </div>
-            </div>
+            {/* Names Row */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <Label className="text-[10px] font-bold text-slate-400 uppercase">Country</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50">
-                      <span className={form.country ? "text-slate-800" : "text-slate-400"}>
-                        {countries.find(c => c.isoCode === form.country)?.name || "Select Country..."}
-                      </span>
-                      <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search country..." />
-                      <CommandList>
-                        <CommandEmpty>No country found.</CommandEmpty>
-                        <CommandGroup className="max-h-60 overflow-y-auto">
-                          {countries.map((c) => (
-                            <CommandItem key={c.isoCode} onSelect={() => updateForm('country', c.isoCode)}>
-                              <Check className={cn("mr-2 h-4 w-4", form.country === c.isoCode ? "opacity-100" : "opacity-0")} />
-                              {c.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">First Name <span className='text-red-500'>*</span></Label>
+                <Input className="h-9 py-0" value={form.firstName || ""} onChange={(e) => updateForm('firstName', e.target.value)} onKeyDown={handleKeyDown} />
               </div>
               <div>
-                <Label className="text-[10px] font-bold text-slate-400 uppercase">Province</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50" disabled={!states.length}>
-                      <span className={form.province ? "text-slate-800" : "text-slate-400"}>
-                        {states.find(s => s.isoCode === form.province)?.name || "Select Province..."}
-                      </span>
-                      <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search province..." />
-                      <CommandList>
-                        <CommandEmpty>No province found.</CommandEmpty>
-                        <CommandGroup className="max-h-60 overflow-y-auto">
-                          {states.map((s) => (
-                            <CommandItem key={s.isoCode} onSelect={() => updateForm('province', s.isoCode)}>
-                              <Check className={cn("mr-2 h-4 w-4", form.province === s.isoCode ? "opacity-100" : "opacity-0")} />
-                              {s.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Last Name</Label>
+                <Input className="h-9 py-0" value={form.lastName || ""} onChange={(e) => updateForm('lastName', e.target.value)} onKeyDown={handleKeyDown} />
               </div>
               <div>
-                <Label className="text-[10px] font-bold text-slate-400 uppercase">City</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50" disabled={!cities.length}>
-                      <span className={form.city ? "text-slate-800" : "text-slate-400"}>
-                        {form.city || "Select City..."}
-                      </span>
-                      <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search city..." />
-                      <CommandList>
-                        <CommandEmpty>No city found.</CommandEmpty>
-                        <CommandGroup className="max-h-60 overflow-y-auto">
-                          {cities.map((city) => (
-                            <CommandItem key={city.name} onSelect={() => updateForm('city', city.name)}>
-                              <Check className={cn("mr-2 h-4 w-4", form.city === city.name ? "opacity-100" : "opacity-0")} />
-                              {city.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Father/Husband Name</Label>
+                <Input className="h-9 py-0" value={form.father_husband || ""} onChange={(e) => updateForm('father_husband', e.target.value)} onKeyDown={handleKeyDown} />
               </div>
             </div>
-          </div>
 
-          {/* Medical History Section */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 border-t border-slate-100 pt-3">
-            {['medicalHistory', 'medicineHistory', 'allergies'].map((key) => (
-              <div key={key} className="space-y-2">
-                <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">{getField(key)?.question}</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between h-auto min-h-9 py-0 text-left bg-slate-50/50">
-                      <div className="flex flex-wrap gap-1 py-1">
-                        {form[key]?.length > 0 ? (
-                          form[key].map((val: string) => (
-                            <span key={val} className="bg-[#0297d6]/10 text-[#0297d6] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20">{val}</span>
-                          ))
-                        ) : (
-                          <span className="text-slate-400 text-sm">Select multiple...</span>
-                        )}
-                      </div>
-                      <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-62.5 p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search..." />
-                      <CommandList>
-                        <CommandGroup className="max-h-60 overflow-y-auto">
-                          {getField(key)?.options?.map((option) => (
-                            <CommandItem key={option} onSelect={() => toggleSelection(key, option)} className="flex items-center gap-2">
-                              <div className={cn("flex h-4 w-4 items-center justify-center rounded border border-primary", form[key]?.includes(option) ? "bg-primary text-primary-foreground" : "opacity-50")}>
-                                {form[key]?.includes(option) && <Check className="h-3 w-3" />}
-                              </div>
-                              <span>{option}</span>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {form[key]?.includes("Other") && (
-                  <Input
-                    placeholder="Please specify..."
-                    className="mt-2 h-9 text-xs border-blue-100 bg-blue-50/30"
-                    onChange={(e) => updateForm(`${key}Custom`, e.target.value)}
-                  />
+            {/* Email & Gender */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Email Address</Label>
+                <Input className="h-9 py-0" type="email" value={form.email || ""} onChange={(e) => updateForm('email', e.target.value)} onKeyDown={handleKeyDown} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Gender <span className='text-red-500'>*</span> </Label>
+                <div className="flex gap-4 mt-1">
+                  {['Male', 'Female', 'Other'].map((g) => (
+                    <label key={g} className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 font-medium">
+                      <input
+                        type="radio"
+                        name="gender"
+                        checked={form.gender === g}
+                        onChange={() => updateForm('gender', g)}
+                        className="accent-[#0297d6] h-4 w-4"
+                      /> {g}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* DOB + Age */}
+            <div className="grid grid-cols-2 gap-4 items-end">
+              <div>
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">DOB <span className='text-red-500'>*</span></Label>
+                <Input className="h-9 py-0" type="date" value={form.dob || ""} onChange={(e) => updateForm('dob', e.target.value)} onKeyDown={handleKeyDown} />
+              </div>
+              <div>
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase block">Age <span className='text-red-500'>*</span></Label>
+                <Input
+                  type="number"
+                  value={form.age || ""}
+                  onChange={(e) => updateForm('age', e.target.value)}
+                  className="h-9 py-0 bg-slate-50 border-dashed text-center font-bold text-[#0297d6]"
+                />
+              </div>
+            </div>
+
+            {/* Languages */}
+            <div className="grid grid-cols-1 gap-4 mt-4">
+              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Primary Language </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50">
+                    <span className={form.languages ? "text-slate-800" : "text-slate-400"}>
+                      {form.languages || "Select Language..."}
+                    </span>
+                    <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search language..." />
+                    <CommandList>
+                      <CommandEmpty>No language found.</CommandEmpty>
+                      <CommandGroup className="max-h-60 overflow-y-auto">
+                        {languageList.map((lang) => (
+                          <CommandItem key={lang.code} onSelect={() => updateForm('languages', lang.name)}>
+                            <Check className={cn("mr-2 h-4 w-4", form.languages === lang.name ? "opacity-100" : "opacity-0")} />
+                            {lang.name} {lang.nativeName !== lang.name ? `(${lang.nativeName})` : ''}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Location Section */}
+            <div className="border-t border-slate-100 space-y-3 pt-3">
+              <div className="flex items-center gap-2 mb-1">
+                <MapPin className="w-4 h-4 text-slate-400" />
+                <h3 className="text-sm font-bold text-slate-700 uppercase">Address & Location</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase">Street Address</Label>
+                  <Input className="h-9 py-0" placeholder="House #, Street..." value={form.stAddress || ""} onChange={(e) => updateForm('stAddress', e.target.value)} onKeyDown={handleKeyDown} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase">Country <span className='text-red-500'>*</span></Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50">
+                        <span className={form.country ? "text-slate-800" : "text-slate-400"}>
+                          {countries.find(c => c.isoCode === form.country)?.name || "Select Country..."}
+                        </span>
+                        <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search country..." />
+                        <CommandList>
+                          <CommandEmpty>No country found.</CommandEmpty>
+                          <CommandGroup className="max-h-60 overflow-y-auto">
+                            {countries.map((c) => (
+                              <CommandItem key={c.isoCode} onSelect={() => updateForm('country', c.isoCode)}>
+                                <Check className={cn("mr-2 h-4 w-4", form.country === c.isoCode ? "opacity-100" : "opacity-0")} />
+                                {c.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase">Province <span className='text-red-500'>*</span></Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50" disabled={!states.length}>
+                        <span className={form.province ? "text-slate-800" : "text-slate-400"}>
+                          {states.find(s => s.isoCode === form.province)?.name || "Select Province..."}
+                        </span>
+                        <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search province..." />
+                        <CommandList>
+                          <CommandEmpty>No province found.</CommandEmpty>
+                          <CommandGroup className="max-h-60 overflow-y-auto">
+                            {states.map((s) => (
+                              <CommandItem key={s.isoCode} onSelect={() => updateForm('province', s.isoCode)}>
+                                <Check className={cn("mr-2 h-4 w-4", form.province === s.isoCode ? "opacity-100" : "opacity-0")} />
+                                {s.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase">City <span className='text-red-500'>*</span></Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50" disabled={!cities.length}>
+                        <span className={form.city ? "text-slate-800" : "text-slate-400"}>
+                          {form.city || "Select City..."}
+                        </span>
+                        <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search city..." />
+                        <CommandList>
+                          <CommandEmpty>No city found.</CommandEmpty>
+                          <CommandGroup className="max-h-60 overflow-y-auto">
+                            {cities.map((city) => (
+                              <CommandItem key={city.name} onSelect={() => updateForm('city', city.name)}>
+                                <Check className={cn("mr-2 h-4 w-4", form.city === city.name ? "opacity-100" : "opacity-0")} />
+                                {city.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </div>
+
+            {/* Medical History Section */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 border-t border-slate-100 pt-3">
+              {['medicalHistory', 'medicineHistory', 'allergies'].map((key) => (
+                <div key={key} className="space-y-2">
+                  <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">{getField(key)?.question}</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between h-auto min-h-9 py-0 text-left bg-slate-50/50">
+                        <div className="flex flex-wrap gap-1 py-1">
+                          {form[key]?.length > 0 ? (
+                            form[key].map((val: string) => (
+                              <span key={val} className="bg-[#0297d6]/10 text-[#0297d6] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20">{val}</span>
+                            ))
+                          ) : (
+                            <span className="text-slate-400 text-sm">Select multiple...</span>
+                          )}
+                        </div>
+                        <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-62.5 p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search..." />
+                        <CommandList>
+                          <CommandGroup className="max-h-60 overflow-y-auto">
+                            {getField(key)?.options?.map((option) => (
+                              <CommandItem key={option} onSelect={() => toggleSelection(key, option)} className="flex items-center gap-2">
+                                <div className={cn("flex h-4 w-4 items-center justify-center rounded border border-primary", form[key]?.includes(option) ? "bg-primary text-primary-foreground" : "opacity-50")}>
+                                  {form[key]?.includes(option) && <Check className="h-3 w-3" />}
+                                </div>
+                                <span>{option}</span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {form[key]?.includes("Other") && (
+                    <Input
+                      placeholder="Please specify..."
+                      className="mt-2 h-9 text-xs border-blue-100 bg-blue-50/30"
+                      onChange={(e) => updateForm(`${key}Custom`, e.target.value)}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Surgical History */}
+            <div className="md:col-span-3 border-t border-slate-100 pt-3">
+              <div className="flex flex-row items-center justify-between gap-4 bg-slate-50/50 border border-slate-100 rounded-lg px-4 py-2">
+                <span className="text-sm font-semibold text-slate-600">Any surgical History in the past? <span className='text-red-500'>*</span></span>
+                <div className="flex gap-6">
+                  {['Yes', 'No'].map((option) => (
+                    <label key={option} className="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700">
+                      <input
+                        type="radio"
+                        name="surgicalHistoryToggle"
+                        checked={form.surgicalHistory === option}
+                        onChange={() => updateForm('surgicalHistory', option)}
+                        className="accent-[#0297d6] h-4 w-4"
+                      /> {option}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-between items-center">
+              <Button variant="ghost" onClick={resetForm} className="rounded-full w-12 h-12 p-0 hover:bg-red-50 hover:text-red-500">
+                <RotateCcw className="w-6 h-6" />
+              </Button>
+
+              <Button
+                disabled={isSaving}
+                onClick={handleNextStep}
+                className="bg-[#0297d6] hover:bg-[#0286c2] rounded-xl px-10 py-4 text-base md:text-lg font-bold shadow-lg shadow-blue-100 flex items-center gap-3 transition-transform active:scale-95 disabled:opacity-70"
+              >
+                {isSaving ? (
+                  <>Saving... <Loader2 className="animate-spin w-5 h-5" /></>
+                ) : (
+                  <>Next Step <ChevronRight className="w-6 h-6" /></>
                 )}
-              </div>
-            ))}
-          </div>
-
-          {/* Surgical History */}
-          <div className="md:col-span-3 border-t border-slate-100 pt-3">
-            <div className="flex flex-row items-center justify-between gap-4 bg-slate-50/50 border border-slate-100 rounded-lg px-4 py-2">
-              <span className="text-sm font-semibold text-slate-600">Any surgical History in the past?</span>
-              <div className="flex gap-6">
-                {['Yes', 'No'].map((option) => (
-                  <label key={option} className="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700">
-                    <input
-                      type="radio"
-                      name="surgicalHistoryToggle"
-                      checked={form.surgicalHistory === option}
-                      onChange={() => updateForm('surgicalHistory', option)}
-                      className="accent-[#0297d6] h-4 w-4"
-                    /> {option}
-                  </label>
-                ))}
-              </div>
+              </Button>
             </div>
-          </div>
+          </form>
+        </Card>
+      </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-between items-center">
-            <Button variant="ghost" onClick={resetForm} className="rounded-full w-12 h-12 p-0 hover:bg-red-50 hover:text-red-500">
-              <RotateCcw className="w-6 h-6" />
-            </Button>
-
-            <Button
-              disabled={isSaving}
-              onClick={handleNextStep}
-              className="bg-[#0297d6] hover:bg-[#0286c2] rounded-xl px-10 py-4 text-base md:text-lg font-bold shadow-lg shadow-blue-100 flex items-center gap-3 transition-transform active:scale-95 disabled:opacity-70"
-            >
-              {isSaving ? (
-                <>Saving... <Loader2 className="animate-spin w-5 h-5" /></>
-              ) : (
-                <>Next Step <ChevronRight className="w-6 h-6" /></>
-              )}
-            </Button>
-          </div>
-        </form>
-      </Card>
       {/* Success Token Dialog */}
       <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
         <DialogContent className="sm:max-w-md text-center py-10">
