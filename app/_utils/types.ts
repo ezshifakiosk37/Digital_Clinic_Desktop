@@ -35,7 +35,8 @@ export enum VitalType {
   WEIGHT = 'Weight',
   HEIGHT = 'Height',
   BLOOD_SUGAR = 'Blood Sugar',
-  PULSE_RATE = "Pulse Rate"
+  PULSE_RATE = "Pulse Rate",
+  BMI = 'BMI'
 }
 
 export interface VitalReading {

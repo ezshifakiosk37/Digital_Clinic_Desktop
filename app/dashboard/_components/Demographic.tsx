@@ -135,7 +135,7 @@ const DemographicPage: React.FC = () => {
 
   // handleNextStep with this:
   const handleNextStep = async () => {
-    const required = ['phoneNumber', 'firstName', 'gender', 'dob', 'age', 'country', 'city', 'province '];
+    const required = ['phoneNumber', 'firstName', 'gender', 'dob', 'age', 'country', 'city', 'province'];
     const missing = required.filter(field => !form[field]);
 
     if (missing.length > 0) return showNotification("Please Fill the required fields marked with *.");

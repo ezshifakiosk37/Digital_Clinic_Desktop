@@ -1,5 +1,6 @@
+//vitals page
 'use client'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import VitalCard from './_components/VitalCard'
 import { VitalType } from '@/app/_utils/types'
 import { Button } from '@/components/ui/button'
@@ -79,7 +80,7 @@ const VitalsPage = () => {
   const handleVerifyToken = async () => {
     if (!tokenNumber) return;
     try {
-      const res = await apiService.verifyToken(tokenNumber);
+      const res = await apiService.verifyToken(parseInt(tokenNumber).toString());
       if (res.success) {
         localStorage.setItem("localClinic_entryId", res.patientId);
         setSessionPhone(res.phoneNumber);
@@ -239,8 +240,24 @@ const VitalsPage = () => {
     doc.save(`History_${historySearchPhone}.pdf`);
   };
 
+  const bmi = useMemo(() => {
+    const weight = parseFloat(vitals.Weight);
+    const feet = parseFloat(vitals.Height?.split('.')[0] || '0');
+    const inches = parseFloat(vitals.Height?.split('.')[1] || '0');
+    const heightMeters = ((feet * 12) + inches) * 0.0254;
+    if (!weight || !heightMeters) return null;
+    const value = weight / (heightMeters * heightMeters);
+    let label = '';
+    let color = '';
+    if (value < 18.5) { label = 'Underweight'; color = 'text-purple-500'; }
+    else if (value < 25) { label = 'Healthy'; color = 'text-purple-500'; }
+    else if (value < 30) { label = 'Overweight'; color = 'text-purple-500'; }
+    else { label = 'Obese'; color = 'text-purple-500'; }
+    return { value: value.toFixed(1), label, color };
+  }, [vitals.Weight, vitals.Height]);
+
   return (
-    <div className="pl-20 pr-4 sm:pr-6 py-6 md:py-10 relative">
+    <div className="pl-4 pr-4 sm:pr-6 py-1 md:py-3 relative justify-center-safe">
       {/* Success Toast */}
       <div className={`fixed top-6 right-6 z-100 transition-all duration-500 ${showSuccessToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
         <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
@@ -257,9 +274,9 @@ const VitalsPage = () => {
         <DialogContent className="sm:max-w-md text-center py-10">
           <DialogHeader>
             <div className="mx-auto bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-              <span className="text-red-600 text-3xl font-black">!</span>
+              <span className="text-blue-600 text-3xl font-black">!</span>
             </div>
-            <DialogTitle className="text-2xl text-center text-red-600">Token Already Used</DialogTitle>
+            <DialogTitle className="text-2xl text-center text-blue-600">Token Already Used</DialogTitle>
             <DialogDescription className="text-center text-base mt-2">
               Vitals for token <span className="font-bold text-slate-800">#{tokenNumber}</span> have already been recorded today. Please check the token number and try again.
             </DialogDescription>
@@ -269,7 +286,7 @@ const VitalsPage = () => {
               setShowExpiredDialog(false);
               setTokenNumber("");
             }}
-            className="w-full mt-4 bg-red-500 hover:bg-red-600 h-12 text-lg font-bold"
+            className="w-full mt-4 bg-blue-500 hover:bg-blue-600 h-12 text-lg font-bold"
           >
             Try Again
           </Button>
@@ -314,9 +331,6 @@ const VitalsPage = () => {
               <h2 className="text-xl md:text-3xl font-extrabold text-slate-900">Patient Vitals</h2>
               {sessionPhone && <p className="text-blue-600 text-sm font-medium">Active Session: {sessionPhone}</p>}
             </div>
-            <Button onClick={handleAddVitals} disabled={loading}>
-              {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : "Add Vitals"}
-            </Button>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
@@ -325,70 +339,119 @@ const VitalsPage = () => {
             <VitalCard type={VitalType.TEMPERATURE} onChange={(val) => handleUpdate('Temperature', val)} value={vitals.Temperature} />
             <VitalCard type={VitalType.BLOOD_OXYGEN} onChange={(val) => handleUpdate('Spo2', val)} value={vitals.Spo2} />
             <VitalCard type={VitalType.WEIGHT} onChange={(val) => handleUpdate('Weight', val)} value={vitals.Weight} />
-            <VitalCard type={VitalType.HEIGHT} onChange={(val) => handleUpdate('Height', val)} value={vitals.Height} />
+            <VitalCard
+              type={VitalType.HEIGHT}
+              customContent={
+                <div className="flex items-baseline gap-1 w-full">
+                  <input
+                    type="text"
+                    placeholder="--"
+                    value={vitals.Height?.split('.')[0] || ''}
+                    onChange={(e) => {
+                      const inches = vitals.Height?.split('.')[1] || '0';
+                      handleUpdate('Height', `${e.target.value}.${inches}`);
+                    }}
+                    className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-12 md:w-14 rounded px-1"
+                  />
+                  <span className="text-slate-400 font-medium">ft</span>
+                  <input
+                    type="text"
+                    placeholder="--"
+                    value={vitals.Height?.split('.')[1] || ''}
+                    onChange={(e) => {
+                      const feet = vitals.Height?.split('.')[0] || '0';
+                      handleUpdate('Height', `${feet}.${e.target.value}`);
+                    }}
+                    className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-12 md:w-14 rounded px-1"
+                  />
+                  <span className="text-slate-400 font-medium">in</span>
+                </div>
+              }
+            />
+            <div className="col-span-2 md:col-span-2 lg:col-span-1 lg:col-start-2">
+              <div className='justify-center w-full sm:w-79 md:w-79 md:ml-40 lg:w-full lg:ml-0'>
+                <VitalCard
+                  type={VitalType.BMI}
+                  customContent={
+                    <div className="flex items-baseline justify-between w-full">
+                      <span className="text-2xl md:text-4xl font-bold text-secondary">
+                        {bmi ? bmi.value : '—'}
+                      </span>
+                      <span className={`text-sm font-bold ${bmi ? bmi.color : 'text-slate-400'}`}>
+                        {bmi ? bmi.label : 'Fill weight & height'}
+                      </span>
+                    </div>
+                  }
+                />
+              </div>
+            </div>
           </div>
           {/* Multi-Select Checkbox Dropdown for Symptoms */}
           <div className="mt-10">
-            <h3 className="text-lg font-bold text-slate-800 mb-3">Symptoms</h3>
+            <h3 className="text-lg font-bold text-slate-800">Symptoms</h3>
+            <div className="flex items-center gap-3 w-full">
+              <div className="relative w-full md:w-96">
+                <button
+                  type="button"
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-left flex items-center justify-between hover:border-[#0297d6] focus:border-[#0297d6] outline-none"
+                >
+                  <span className="text-sm text-slate-700">
+                    {vitals.symptoms.length > 0
+                      ? `${vitals.symptoms.length} selected`
+                      : "Select Symptoms"}
+                  </span>
+                  <span className="text-slate-400">▼</span>
+                </button>
 
-            <div className="relative w-full md:w-96">
-              <button
-                type="button"
-                onClick={() => setShowDropdown(!showDropdown)}
-                className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-left flex items-center justify-between hover:border-[#0297d6] focus:border-[#0297d6] outline-none"
-              >
-                <span className="text-sm text-slate-700">
-                  {vitals.symptoms.length > 0
-                    ? `${vitals.symptoms.length} selected`
-                    : "Select Symptoms"}
-                </span>
-                <span className="text-slate-400">▼</span>
-              </button>
-
-              {/* Dropdown Menu */}
-              {showDropdown && (
-                <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-80 overflow-y-auto py-2">
-                  {COMMON_SYMPTOMS.map((symptom) => (
-                    <label
-                      key={symptom}
-                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={vitals.symptoms.includes(symptom)}
-                        onChange={() => toggleSymptom(symptom)}
-                        className="w-5 h-5 accent-[#0297d6] rounded"
-                      />
-                      <span className="text-sm text-slate-700">{symptom}</span>
-                    </label>
-                  ))}
-
-                  {/* Other Option */}
-                  <div className="border-t border-slate-100 mt-2 pt-2 px-4">
-                    <label className="flex items-center gap-3 py-2.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={showOtherInput}
-                        onChange={() => setShowOtherInput(!showOtherInput)}
-                        className="w-5 h-5 accent-[#0297d6] rounded"
-                      />
-                      <span className="text-sm text-slate-700">Other</span>
-                    </label>
-
-                    {showOtherInput && (
-                      <div className="flex gap-2 mt-2 pl-8">
-                        <Input
-                          placeholder="Type custom symptom..."
-                          value={otherSymptom}
-                          onChange={(e) => setOtherSymptom(e.target.value)}
-                          className="flex-1 text-sm"
+                {/* Dropdown Menu */}
+                {showDropdown && (
+                  <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-80 overflow-y-auto py-2">
+                    {COMMON_SYMPTOMS.map((symptom) => (
+                      <label
+                        key={symptom}
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={vitals.symptoms.includes(symptom)}
+                          onChange={() => toggleSymptom(symptom)}
+                          className="w-5 h-5 accent-[#0297d6] rounded"
                         />
-                        <Button onClick={addOtherSymptom} size="sm">Add</Button>
-                      </div>
-                    )}
+                        <span className="text-sm text-slate-700">{symptom}</span>
+                      </label>
+                    ))}
+
+                    {/* Other Option */}
+                    <div className="border-t border-slate-100 mt-2 pt-2 px-4">
+                      <label className="flex items-center gap-3 py-2.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={showOtherInput}
+                          onChange={() => setShowOtherInput(!showOtherInput)}
+                          className="w-5 h-5 accent-[#0297d6] rounded"
+                        />
+                        <span className="text-sm text-slate-700">Other</span>
+                      </label>
+
+                      {showOtherInput && (
+                        <div className="flex gap-2 mt-2 pl-8">
+                          <Input
+                            placeholder="Type custom symptom..."
+                            value={otherSymptom}
+                            onChange={(e) => setOtherSymptom(e.target.value)}
+                            className="flex-1 text-sm"
+                          />
+                          <Button onClick={addOtherSymptom} size="sm">Add</Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+              <Button onClick={handleAddVitals} disabled={loading} className="shrink-0 ml-auto px-8 py-5 text-base font-bold">
+                {loading ? <><Loader2 className="animate-spin mr-2 h-4 w-4" />Saving...</> : "Add Vitals"}
+              </Button>
             </div>
 
             {/* Selected Symptoms as Tags */}
@@ -471,7 +534,12 @@ const VitalsPage = () => {
                         <td className="px-6 py-4 text-sm text-slate-700">{record.PulseRate} bpm</td>
                         <td className="px-6 py-4 text-sm text-slate-700">{record.Spo2}%</td>
                         <td className="px-6 py-4 text-sm text-slate-700">{record.Temperature}°C</td>
-                        <td className="px-6 py-4 text-sm text-slate-600">{record.Weight}kg / {record.Height}ft</td>
+                        <td className="px-6 py-4 text-sm text-slate-600">
+                          {record.Weight}kg / {(() => {
+                            const parts = record.Height?.split('.');
+                            return parts?.length === 2 ? `${parts[0]}ft ${parts[1]} in` : `${record.Height} ft`;
+                          })()}
+                        </td>
                         <td className="px-6 py-4 text-sm text-slate-700 max-w-xs">
                           {Array.isArray(record.symptoms)
                             ? record.symptoms.join(", ")
