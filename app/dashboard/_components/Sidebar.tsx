@@ -11,10 +11,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { apiService } from '@/app/_utils/apiService';
 
 export default function Sidebar() {
-  const [activeTab, setActiveTab] = useState('');
+  const pathname = usePathname();
+  const [activeTab, setActiveTab] = useState(pathname);
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
-  const pathname = usePathname();
 
   const menuItems: MenuItem[] = [
     { name: "Demographic", path: "/dashboard/demographic", icon: <User size={20} /> },
@@ -85,14 +85,14 @@ export default function Sidebar() {
         {/* ── Nav Items ── */}
         <nav className="flex-1 space-y-3">
           {menuItems.map((item) => {
-            const isActive = activeTab === item.path;
+            const isActive = pathname.startsWith(item.path);
             return (
               <button
                 key={item.path}
                 onClick={() => handleRouteChange(item.path)}
                 title={item.name}
                 className={`w-full group flex cursor-pointer items-center justify-between gap-3 p-3 rounded-xl font-semibold transition-all duration-200 ${isActive
-                  ? "bg-primary text-white scale-[1.02]"
+                  ? "bg-[#0297d6] text-white scale-[1.02]"
                   : "text-slate-500 bg-slate-100 hover:text-slate-900"
                   }`}
               >
