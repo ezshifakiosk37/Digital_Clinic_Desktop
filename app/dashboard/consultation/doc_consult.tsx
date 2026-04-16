@@ -60,6 +60,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
     const [manualIds, setManualIds] = useState<number[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+    const [isOpenPrescriptionSend, setIsOpenPrescriptionSend] = useState(false);
 
     const toggleManual = (id: number) => {
         setManualIds(prev =>
@@ -451,9 +452,35 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                         >
                                             <Printer size={16} /> Print Rx
                                         </button>
-                                        <button className="flex-1 bg-slate-100 text-slate-700 py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition-all">
-                                            Save PDF
-                                        </button>
+                                        <div className="relative flex-1">
+                                            {/* Trigger Button */}
+                                            <button
+                                                onClick={() => setIsOpenPrescriptionSend(!isOpenPrescriptionSend)}
+                                                className="w-full bg-slate-100 text-slate-700 py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition-all"
+                                            >
+                                                Actions
+                                                {/* Simple chevron icon to indicate dropdown */}
+                                                <span className={`transition-transform ${isOpenPrescriptionSend ? 'rotate-180' : ''}`}>▼</span>
+                                            </button>
+
+                                            {/* Dropdown Menu */}
+                                            {isOpenPrescriptionSend && (
+                                                <div className="absolute top-full left-0 mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-10 overflow-hidden">
+                                                    <button
+                                                        onClick={() => { console.log("Save PDF logic"); setIsOpenPrescriptionSend(false); }}
+                                                        className="w-full text-left px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 hover:bg-slate-50 transition-colors"
+                                                    >
+                                                        Save PDF
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { console.log("Dispense logic"); setIsOpenPrescriptionSend(false); }}
+                                                        className="w-full text-left px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 hover:bg-slate-50 border-t border-slate-100 transition-colors"
+                                                    >
+                                                        Dispense
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </>
                             )}
