@@ -62,6 +62,34 @@ const DocConsult: React.FC<DocConsultProps> = ({
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
     const [isOpenPrescriptionSend, setIsOpenPrescriptionSend] = useState(false);
 
+    const handleDispense = () => {
+        // 1. Define your sample packet
+        const medicinePacket = {
+            name: "Panadol",
+            dosage: 1,
+            slot: 2,
+            timestamp: new Date().toISOString()
+        };
+
+        // 2. Check if we are running inside your Android App
+        if (window.AndroidNative && typeof window.AndroidNative.sendMedicinePacket === "function") {
+            try {
+                // We MUST stringify the JSON because the Bridge expects a String
+                const jsonString = JSON.stringify(medicinePacket);
+
+                window.AndroidNative.sendMedicinePacket(jsonString);
+
+                console.log("Packet sent to ESP32:", medicinePacket);
+            } catch (error) {
+                console.error("Failed to send packet through bridge:", error);
+            }
+        } else {
+            // 3. Fallback for testing in a normal browser
+            console.warn("Android Bridge not detected. Are you running in the app?");
+            alert("Dispense triggered (Simulated: No Hardware Connected)");
+        }
+    };
+
     const toggleManual = (id: number) => {
         setManualIds(prev =>
             prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
@@ -473,7 +501,10 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                                         Save PDF
                                                     </button>
                                                     <button
-                                                        onClick={() => { console.log("Dispense logic"); setIsOpenPrescriptionSend(false); }}
+                                                        onClick={() => {
+                                                            handleDispense(); // <--- Call the bridge here
+                                                            setIsOpenPrescriptionSend(false);
+                                                        }}
                                                         className="w-full text-left px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 hover:bg-slate-50 border-t border-slate-100 transition-colors"
                                                     >
                                                         Dispense
