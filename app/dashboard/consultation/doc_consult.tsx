@@ -65,9 +65,8 @@ const DocConsult: React.FC<DocConsultProps> = ({
     const handleDispense = () => {
         // 1. Define your sample packet
         const medicinePacket = {
-            name: "Panadol",
-            dosage: 1,
-            slot: 2,
+            Row: 2,
+            Quantity: 4,
             timestamp: new Date().toISOString()
         };
 
