@@ -65,9 +65,11 @@ const DocConsult: React.FC<DocConsultProps> = ({
     const handleDispense = () => {
         // 1. Define your sample packet
         const medicinePacket = {
+            Action: "Dispense",
             Row: 2,
+            Col: 0,
             Quantity: 4,
-            timestamp: new Date().toISOString()
+            Timestamp: new Date().toISOString()
         };
 
         // 2. Check if we are running inside your Android App
