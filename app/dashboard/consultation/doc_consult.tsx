@@ -29,14 +29,32 @@ const DocConsult: React.FC<DocConsultProps> = ({
     const [isOpenPrescriptionSend, setIsOpenPrescriptionSend] = useState(false);
 
     const handleDispense = () => {
-    // Logic is now a one-liner. 
-    // If it returns false, you can trigger your UI feedback/toast.
-    const success = AndroidBridge.dispenseMedicine(2, 4, 6);
-    
-    if (!success) {
-        alert("Dispense triggered (Simulated: No Hardware Connected)");
+        // Logic is now a one-liner. 
+        // If it returns false, you can trigger your UI feedback/toast.
+        const success = AndroidBridge.dispenseMedicine(2, 4, 6);
+
+        if (!success) {
+            alert("Dispense triggered (Simulated: No Hardware Connected)");
+        }
+    };
+
+    const handlePrescriptionPrint = () => {
+        // 1. Grab the element
+        const rxElement = document.getElementById('prescription-paper');
+
+        // 2. Validate existence (Fail fast)
+        if (!rxElement) {
+            console.error("Print Error: 'rx-content' ID not found in DOM.");
+            return;
+        }
+
+        // 3. Extract content
+        const content = rxElement.innerHTML;
+
+        // 4. Delegate to the Bridge
+        // The bridge itself handles the "Android vs Windows" logic internally
+        AndroidBridge.printPrescription(content);
     }
-};
 
     const toggleManual = (id: number) => {
         setManualIds(prev =>
@@ -423,7 +441,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
 
                                     <div className="flex gap-3 print:hidden">
                                         <button
-                                            onClick={() => window.print()}
+                                            onClick={handlePrescriptionPrint}
                                             className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-[#0297d6] transition-all"
                                         >
                                             <Printer size={16} /> Print Rx

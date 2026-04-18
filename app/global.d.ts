@@ -6,6 +6,8 @@ declare global {
     AndroidNative?: {
       sendMedicinePacket: (jsonString: string) => void;
       connectUsb: () => void;
+      // Added for the Speed X / ESC/POS thermal printer bridge
+      printReceipt: (htmlContent: string) => void;
     };
     // These are the listeners we call FROM Android TO JavaScript
     onSerialData?: (data: string) => void;
