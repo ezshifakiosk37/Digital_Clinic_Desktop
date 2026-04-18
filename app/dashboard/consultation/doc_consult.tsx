@@ -41,27 +41,47 @@ const DocConsult: React.FC<DocConsultProps> = ({
 
 
     const handlePrescriptionPrint = async () => {
+        console.log("Print process started...");
         const rxElement = document.getElementById('prescription-paper');
-        if (!rxElement) return;
+
+        if (!rxElement) {
+            console.error("Critical Error: 'prescription-paper' div not found in DOM.");
+            return;
+        }
 
         try {
-            // Convert the DIV to a Base64 Image string
+            // 1. Generate the Image
+            // Use toPng or toJpeg. Thermal printers are B&W, so quality matters.
             const dataUrl = await toPng(rxElement, {
                 backgroundColor: '#ffffff',
-                pixelRatio: 2 // Higher quality for thermal clarity
+                pixelRatio: 3, // Increased for sharper text on small thermal labels
+                cacheBust: true,
             });
 
-            // Strip the "data:image/png;base64," prefix so only the raw base64 goes to Android
             const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
 
-            // Call a NEW bridge method specifically for images
-            if (window.AndroidNative?.printImage) {
-                window.AndroidNative.printImage(base64Data);
+            // 2. Logic Check: Are we on Android or Windows?
+            const bridge = window.AndroidNative;
+
+            if (bridge) {
+                // CASE: Android App
+                if (typeof bridge.printImage === 'function') {
+                    console.log("Sending image to Android Bridge...");
+                    bridge.printImage(base64Data);
+                } else {
+                    // If you haven't added printImage to Java yet, 
+                    // fall back to sending raw text so it does SOMETHING.
+                    console.warn("printImage not found, trying printReceipt as fallback.");
+                    bridge.printReceipt("PRECH-IMAGE-DATA-INCOMING: " + base64Data.substring(0, 20));
+                }
             } else {
-                window.print(); // Fallback for desktop
+                // CASE: Browser / Laptop
+                console.log("No Bridge. Using System Print.");
+                window.print();
             }
-        } catch (err) {
-            console.error("Image generation failed", err);
+        } catch (err: any) {
+            console.error("Prescription Print Failure:", err);
+            alert("Print Error: " + err.message);
         }
     };
 
