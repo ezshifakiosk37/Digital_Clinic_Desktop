@@ -1,45 +1,50 @@
 import { HARDWARE_PARSERS } from "../data/HardwareParser";
-import { VitalsData } from "../types";
+import { VitalsDataForHardware } from "../types";
 
 export const AndroidBridge = {
   /**
-   * Sends dispense command to ESP32
-   * Format: D:row,col,qty (e.g., "D:2,4,6")
+   * Sends dispense command: D:row,col,qty
    */
   dispenseMedicine: (row: number, col: number, quantity: number) => {
-    if (window.AndroidNative?.sendMedicinePacket) {
-      // Ditching JSON for the lightweight custom string protocol
+    const bridge = window.AndroidNative;
+    if (bridge?.sendMedicinePacket) {
       const payload = `D:${row},${col},${quantity}`;
-
       try {
-        window.AndroidNative.sendMedicinePacket(payload);
-        console.log("Sent to Hardware:", payload);
+        bridge.sendMedicinePacket(payload);
         return true;
       } catch (err) {
-        console.error("Bridge Communication Error:", err);
+        console.error("Hardware Write Error:", err);
         return false;
       }
     }
-
-    console.warn("Android Bridge not found. Simulation mode active.");
     return false;
   },
 
-  initVitalsListener: (onUpdate: (data: VitalsData) => void) => {
+  /**
+   * Listens to serial data and maps it to the Vitals State
+   */
+  initVitalsListener: (onUpdate: (data: Partial<VitalsDataForHardware>) => void) => {
     window.onSerialData = (rawData: string) => {
       if (!rawData) return;
       const data = rawData.trim();
+      
+      console.log("Incoming Serial:", data); // Logic: Always log to verify hardware output
 
       for (const parser of HARDWARE_PARSERS) {
         const match = data.match(parser.pattern);
         if (match) {
-          const result: VitalsData = {};
-          parser.keys.forEach((key, index) => {
-            // match[0] is full string, match[1] is first group
-            result[key as keyof VitalsData] = match[index + 1];
-          });
-          onUpdate(result);
-          break;
+          if (parser.transform) {
+            // Use custom transform for nested data (like BP)
+            onUpdate(parser.transform(match));
+          } else if (parser.keys) {
+            // Standard mapping for flat values
+            const result: any = {};
+            parser.keys.forEach((key, index) => {
+              result[key] = match[index + 1];
+            });
+            onUpdate(result);
+          }
+          break; 
         }
       }
     };

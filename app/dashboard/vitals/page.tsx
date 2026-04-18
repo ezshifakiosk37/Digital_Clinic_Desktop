@@ -54,14 +54,27 @@ const VitalsPage = () => {
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
-    // Initialize the bridge listener once on mount
     AndroidBridge.initVitalsListener((newVitals) => {
-      setVitals(prev => ({ ...prev, ...newVitals }));
+      setVitals(prev => {
+        // Create a copy of the previous state
+        const updated = { ...prev, ...newVitals };
+
+        // LOGIC: If the incoming data contains BP, we must merge it 
+        // specifically to ensure the nested object structure is preserved
+        if (newVitals.BP) {
+          updated.BP = {
+            ...prev.BP,
+            ...newVitals.BP
+          };
+        }
+
+        return updated;
+      });
     });
 
-    // Cleanup to prevent memory leaks or duplicate listeners
     return () => { window.onSerialData = () => { }; };
   }, []);
+
   const handleUpdate = (type: keyof typeof vitals, val: string) => {
     setVitals(prev => ({ ...prev, [type]: val }));
   };

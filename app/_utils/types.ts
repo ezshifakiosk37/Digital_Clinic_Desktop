@@ -62,11 +62,15 @@ export interface Vitals {
     weight: string;
 }
 
-export interface VitalsData {
+export interface VitalsDataForHardware {
   Spo2?: string;
   PulseRate?: string;
   Temperature?: string;
   Weight?: string;
+  BP?: {
+    value1: string; // Systolic
+    value2: string; // Diastolic
+  };
 }
 
 export interface Patient {
