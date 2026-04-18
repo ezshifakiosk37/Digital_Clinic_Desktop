@@ -6,6 +6,7 @@ import { DoctorProfile, MEDICINE_OPTIONS } from './doctor_registration';
 import { apiService } from '@/app/_utils/apiService';
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge';
 import { DocConsultProps } from '@/app/_utils/types';
+import { toPng } from 'html-to-image';
 
 const DocConsult: React.FC<DocConsultProps> = ({
     selectedPatient,
@@ -38,23 +39,31 @@ const DocConsult: React.FC<DocConsultProps> = ({
         }
     };
 
-    const handlePrescriptionPrint = () => {
-        // 1. Grab the element
+
+    const handlePrescriptionPrint = async () => {
         const rxElement = document.getElementById('prescription-paper');
+        if (!rxElement) return;
 
-        // 2. Validate existence (Fail fast)
-        if (!rxElement) {
-            console.error("Print Error: 'rx-content' ID not found in DOM.");
-            return;
+        try {
+            // Convert the DIV to a Base64 Image string
+            const dataUrl = await toPng(rxElement, {
+                backgroundColor: '#ffffff',
+                pixelRatio: 2 // Higher quality for thermal clarity
+            });
+
+            // Strip the "data:image/png;base64," prefix so only the raw base64 goes to Android
+            const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
+
+            // Call a NEW bridge method specifically for images
+            if (window.AndroidNative?.printImage) {
+                window.AndroidNative.printImage(base64Data);
+            } else {
+                window.print(); // Fallback for desktop
+            }
+        } catch (err) {
+            console.error("Image generation failed", err);
         }
-
-        // 3. Extract content
-        const content = rxElement.innerHTML;
-
-        // 4. Delegate to the Bridge
-        // The bridge itself handles the "Android vs Windows" logic internally
-        AndroidBridge.printPrescription(content);
-    }
+    };
 
     const toggleManual = (id: number) => {
         setManualIds(prev =>
