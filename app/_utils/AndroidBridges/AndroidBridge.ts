@@ -1,3 +1,4 @@
+import { HARDWARE_PARSERS } from "../data/HardwareParser";
 import { VitalsData } from "../types";
 
 export const AndroidBridge = {
