@@ -4,42 +4,8 @@ import React, { useState } from 'react';
 import { Pill, Printer, Search, Trash2, User } from 'lucide-react';
 import { DoctorProfile, MEDICINE_OPTIONS } from './doctor_registration';
 import { apiService } from '@/app/_utils/apiService';
-
-interface Vitals {
-    temp: string;
-    bp: string;
-    pulse: string;
-    weight: string;
-}
-
-interface Patient {
-    id: number;
-    token: string;
-    firstName: string;
-    lastName: string;
-    age: number;
-    gender: string;
-    symptoms: string;
-    medicalHistory: string;
-    vitals: Vitals;
-}
-
-interface DocConsultProps {
-    selectedPatient: Patient;
-    setSelectedPatient: (p: Patient | null) => void;
-    medicines: any[];
-    setMedicines: React.Dispatch<React.SetStateAction<any[]>>;
-    notes: string;
-    setNotes: (n: string) => void;
-    prescriptionGenerated: boolean;
-    setPrescriptionGenerated: (v: boolean) => void;
-    doctor: DoctorProfile;
-    updateMedicine: (id: number, field: string, value: any) => void;
-    fullName: string;
-    onSessionEnd: (patient: any) => void;
-    endingSession: boolean;
-    setEndingSession: (v: boolean) => void;
-}
+import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge';
+import { DocConsultProps } from '@/app/_utils/types';
 
 const DocConsult: React.FC<DocConsultProps> = ({
     selectedPatient,
@@ -63,33 +29,14 @@ const DocConsult: React.FC<DocConsultProps> = ({
     const [isOpenPrescriptionSend, setIsOpenPrescriptionSend] = useState(false);
 
     const handleDispense = () => {
-        // 1. Define your sample packet
-        const medicinePacket = {
-            action: "dispense",
-            row: 2,
-            col: 4,
-            quantity: 6,
-            timestamp: new Date().toISOString()
-        };
-
-        // 2. Check if we are running inside your Android App
-        if (window.AndroidNative && typeof window.AndroidNative.sendMedicinePacket === "function") {
-            try {
-                // We MUST stringify the JSON because the Bridge expects a String
-                const jsonString = JSON.stringify(medicinePacket);
-
-                window.AndroidNative.sendMedicinePacket(jsonString);
-
-                console.log("Packet sent to ESP32:", medicinePacket);
-            } catch (error) {
-                console.error("Failed to send packet through bridge:", error);
-            }
-        } else {
-            // 3. Fallback for testing in a normal browser
-            console.warn("Android Bridge not detected. Are you running in the app?");
-            alert("Dispense triggered (Simulated: No Hardware Connected)");
-        }
-    };
+    // Logic is now a one-liner. 
+    // If it returns false, you can trigger your UI feedback/toast.
+    const success = AndroidBridge.dispenseMedicine(2, 4, 6);
+    
+    if (!success) {
+        alert("Dispense triggered (Simulated: No Hardware Connected)");
+    }
+};
 
     const toggleManual = (id: number) => {
         setManualIds(prev =>

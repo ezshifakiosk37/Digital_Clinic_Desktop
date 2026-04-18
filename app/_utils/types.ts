@@ -1,4 +1,5 @@
 //app/_utils/types.ts
+import { DoctorProfile } from "../dashboard/consultation/doctor_registration";
 import { demographic } from "./data/demographicData";
 
 export type DemographicField = {
@@ -52,4 +53,47 @@ export interface AIInsight {
   summary: string;
   recommendations: string[];
   status: 'Normal' | 'Alert' | 'Warning';
+}
+
+export interface Vitals {
+    temp: string;
+    bp: string;
+    pulse: string;
+    weight: string;
+}
+
+export interface VitalsData {
+  Spo2?: string;
+  PulseRate?: string;
+  Temperature?: string;
+  Weight?: string;
+}
+
+export interface Patient {
+    id: number;
+    token: string;
+    firstName: string;
+    lastName: string;
+    age: number;
+    gender: string;
+    symptoms: string;
+    medicalHistory: string;
+    vitals: Vitals;
+}
+
+export interface DocConsultProps {
+    selectedPatient: Patient;
+    setSelectedPatient: (p: Patient | null) => void;
+    medicines: any[];
+    setMedicines: React.Dispatch<React.SetStateAction<any[]>>;
+    notes: string;
+    setNotes: (n: string) => void;
+    prescriptionGenerated: boolean;
+    setPrescriptionGenerated: (v: boolean) => void;
+    doctor: DoctorProfile;
+    updateMedicine: (id: number, field: string, value: any) => void;
+    fullName: string;
+    onSessionEnd: (patient: any) => void;
+    endingSession: boolean;
+    setEndingSession: (v: boolean) => void;
 }
