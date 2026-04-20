@@ -29,6 +29,8 @@ const DocConsult: React.FC<DocConsultProps> = ({
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
     const [isOpenPrescriptionSend, setIsOpenPrescriptionSend] = useState(false);
 
+    console.log(medicines)
+
     const handleDispense = () => {
         // Logic is now a one-liner. 
         // If it returns false, you can trigger your UI feedback/toast.
@@ -334,23 +336,23 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                 </button>
                                 <button
                                     disabled={endingSession}
-                                    onClick={async () => {
-                                        if (!selectedPatient) return;
-                                        setEndingSession(true);
-                                        try {
-                                            await apiService.savePrescription({
-                                                patientId: selectedPatient.id,
-                                                token: selectedPatient.token,
-                                                diagnosis: selectedPatient.symptoms,
-                                                clinicalNotes: notes,
-                                                medicines: medicines.filter(m => m.name && m.name.trim() !== '')
-                                            });
-                                            onSessionEnd(selectedPatient);
-                                        } catch (err: any) {
-                                            console.error(err);
-                                            setEndingSession(false);
-                                        }
-                                    }}
+                                    // onClick={async () => {
+                                    //     if (!selectedPatient) return;
+                                    //     setEndingSession(true);
+                                    //     try {
+                                    //         await apiService.savePrescription({
+                                    //             patientId: selectedPatient.id,
+                                    //             token: selectedPatient.token,
+                                    //             diagnosis: selectedPatient.symptoms,
+                                    //             clinicalNotes: notes,
+                                    //             medicines: medicines.filter(m => m.name && m.name.trim() !== '')
+                                    //         });
+                                    //         onSessionEnd(selectedPatient);
+                                    //     } catch (err: any) {
+                                    //         console.error(err);
+                                    //         setEndingSession(false);
+                                    //     }
+                                    // }}
                                     className="flex-1 bg-slate-200 disabled:opacity-60 text-slate-700 py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-slate-300 transition-all"
                                 >
                                     {endingSession ? (

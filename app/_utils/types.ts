@@ -85,10 +85,22 @@ export interface Patient {
     vitals: Vitals;
 }
 
+interface Medicine {
+  id: number;
+  name: string;
+  dosage: string;
+  duration: string;
+  [key: string]: any; // Using a union for stricter checks
+  morning: boolean;
+  afternoon: boolean;
+  night: boolean;
+}
+
+
 export interface DocConsultProps {
     selectedPatient: Patient;
     setSelectedPatient: (p: Patient | null) => void;
-    medicines: any[];
+    medicines: Medicine[];
     setMedicines: React.Dispatch<React.SetStateAction<any[]>>;
     notes: string;
     setNotes: (n: string) => void;
