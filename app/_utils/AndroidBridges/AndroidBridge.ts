@@ -8,7 +8,17 @@ export const AndroidBridge = {
   dispenseMedicine: (row: number, col: number, quantity: number) => {
     const bridge = window.AndroidNative;
     if (bridge?.sendMedicinePacket) {
-      const payload = `D:${row},${col},${quantity}`;
+      // 1. Create a JSON object that matches what your Kotlin code expects
+      const payloadObject = {
+        action: "dispense",
+        row: row,
+        col: col,
+        quantity: quantity
+      };
+
+      // 2. Convert it to a string (Stringify)
+      const payload = JSON.stringify(payloadObject);
+
       try {
         bridge.sendMedicinePacket(payload);
         return true;
