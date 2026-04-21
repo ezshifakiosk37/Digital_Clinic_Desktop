@@ -152,7 +152,7 @@ docRegister: async (formData: FormData) => {
 
     const data = await handleResponse(response);
 
-    if (data.token) {
+     if (data.token) {
         localStorage.setItem('doc_token', data.token);
         if (data.doctor) {
             localStorage.setItem('doctor', JSON.stringify(data.doctor));
