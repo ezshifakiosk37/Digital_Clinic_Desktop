@@ -222,3 +222,32 @@ export const MEDICINE_OPTIONS: string[] = [
   'Prednisolone', 'Dexamethasone', 'Hydrocortisone', 'Fluticasone',
   'Fluconazole', 'Clotrimazole', 'Albendazole', 'Mebendazole',
 ];
+
+export const DOSAGE_UNIT_OPTIONS = ['Tab', 'Tsp', 'Tbsp', 'Ampoule', 'Drop', 'Sachet', 'Capsule', 'Puff', 'ml'];
+
+export const DURATION_UNIT_OPTIONS = ['Day(s)', 'Week(s)', 'Month(s)', 'As needed'];
+
+export const FREQUENCY_OPTIONS = ['OD', 'BD', 'TDS', 'QID', 'HS', 'SOS', 'Stat'];
+
+export const DIAGNOSIS_OPTIONS: string[] = [
+  // Infectious Diseases
+  'Upper Respiratory Tract Infection (URTI)', 'Lower Respiratory Tract Infection (LRTI)',
+  'Urinary Tract Infection (UTI)', 'Typhoid Fever', 'Malaria', 'Dengue Fever',
+  'Hepatitis A', 'Hepatitis B', 'Hepatitis C', 'Tuberculosis (TB)',
+  'COVID-19', 'Influenza', 'Gastroenteritis', 'Tonsillitis', 'Sinusitis',
+  // Chronic / Non-communicable
+  'Hypertension', 'Type 2 Diabetes Mellitus', 'Type 1 Diabetes Mellitus',
+  'Asthma', 'COPD', 'Coronary Artery Disease', 'Heart Failure',
+  'Chronic Kidney Disease', 'Hypothyroidism', 'Hyperthyroidism',
+  'Anemia', 'Osteoarthritis', 'Rheumatoid Arthritis', 'Gout',
+  'GERD / Acid Reflux', 'Peptic Ulcer Disease', 'IBS', 'Fatty Liver Disease',
+  // Neurological / Mental Health
+  'Migraine', 'Tension Headache', 'Epilepsy', 'Anxiety Disorder',
+  'Depression', 'Insomnia', 'Vertigo',
+  // Skin
+  'Eczema / Dermatitis', 'Psoriasis', 'Acne', 'Fungal Skin Infection',
+  'Scabies', 'Urticaria (Hives)',
+  // Other Common
+  'Vitamin D Deficiency', 'Iron Deficiency Anemia', 'Dehydration',
+  'Fever (Unspecified)', 'Cough (Unspecified)', 'Back Pain', 'Knee Pain',
+];

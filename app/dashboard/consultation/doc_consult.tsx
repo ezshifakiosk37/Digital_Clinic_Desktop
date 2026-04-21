@@ -1,9 +1,796 @@
+// // consultation/doc_consult.tsx
+// "use client";
+// import React, { useState, useEffect } from 'react';
+// import { Pill, Printer, Search, Trash2, User } from 'lucide-react';
+// import { DoctorProfile, MEDICINE_OPTIONS } from './doctor_registration';
+// import { apiService } from '@/app/_utils/apiService';
+
+// // ─── New: Diagnosis options ───────────────────────────────────────────────────
+// const DIAGNOSIS_OPTIONS: string[] = [
+//     'URTI (Upper Respiratory Tract Infection)',
+//     'LRTI (Lower Respiratory Tract Infection)',
+//     'Hypertension',
+//     'Type 2 Diabetes Mellitus',
+//     'Acute Gastroenteritis',
+//     'Peptic Ulcer Disease',
+//     'GERD (Acid Reflux)',
+//     'Urinary Tract Infection',
+//     'Acute Pharyngitis',
+//     'Allergic Rhinitis',
+//     'Bronchial Asthma',
+//     'Anemia',
+//     'Fever (Pyrexia)',
+//     'Migraine',
+//     'Anxiety Disorder',
+//     'Insomnia',
+//     'Skin Infection / Cellulitis',
+//     'Conjunctivitis',
+//     'Otitis Media',
+//     'Musculoskeletal Pain',
+//     'Vitamin D Deficiency',
+//     'Iron Deficiency',
+//     'Hyperlipidemia',
+//     'Thyroid Disorder',
+//     'COVID-19 / Viral Syndrome',
+// ];
+
+// // ─── New: Unit & Duration option lists ────────────────────────────────────────
+// const DOSE_UNIT_OPTIONS = [
+//     'Tab', 'Tsp', 'Tbsp', 'Ampoule', 'Sachet', 'Drop(s)',
+//     'Puff(s)', 'Capsule', 'Patch', 'Suppository', 'ml', 'mg',
+// ];
+
+// const DURATION_UNIT_OPTIONS = [
+//     'Day(s)', 'Week(s)', 'Month(s)', 'SOS (As needed)', 'Immediately', 'Ongoing',
+// ];
+
+// interface Vitals {
+//     temp: string;
+//     bp: string;
+//     pulse: string;
+//     weight: string;
+// }
+
+// interface Patient {
+//     id: number;
+//     token: string;
+//     firstName: string;
+//     lastName: string;
+//     age: number;
+//     gender: string;
+//     symptoms: string;
+//     medicalHistory: string;
+//     vitals: Vitals;
+// }
+
+// interface DocConsultProps {
+//     selectedPatient: Patient;
+//     setSelectedPatient: (p: Patient | null) => void;
+//     medicines: any[];
+//     setMedicines: React.Dispatch<React.SetStateAction<any[]>>;
+//     notes: string;
+//     setNotes: (n: string) => void;
+//     prescriptionGenerated: boolean;
+//     setPrescriptionGenerated: (v: boolean) => void;
+//     doctor: DoctorProfile;
+//     updateMedicine: (id: number, field: string, value: any) => void;
+//     fullName: string;
+//     onSessionEnd: (patient: any) => void;
+//     endingSession: boolean;
+//     setEndingSession: (v: boolean) => void;
+// }
+
+// const DocConsult: React.FC<DocConsultProps> = ({
+//     selectedPatient,
+//     setSelectedPatient,
+//     medicines,
+//     setMedicines,
+//     notes,
+//     setNotes,
+//     prescriptionGenerated,
+//     setPrescriptionGenerated,
+//     doctor,
+//     updateMedicine,
+//     fullName,
+//     onSessionEnd,
+//     endingSession,
+//     setEndingSession,
+// }) => {
+//     const [manualIds, setManualIds] = useState<number[]>([]);
+//     const [searchQuery, setSearchQuery] = useState('');
+//     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+//     const [isOpenPrescriptionSend, setIsOpenPrescriptionSend] = useState(false);
+
+//     // ─── New: Diagnosis state ────────────────────────────────────────────────
+//     const [selectedDiagnoses, setSelectedDiagnoses] = useState<string[]>([]);
+//     const [diagSearchQuery, setDiagSearchQuery] = useState('');
+//     const [diagDropdownOpen, setDiagDropdownOpen] = useState(false);
+
+//     // ─── FIX: Prevent dosage/duration from ever being null/undefined ─────
+//     useEffect(() => {
+//         const needsFix = medicines.some(m =>
+//             m.doseQty === null || m.doseQty === undefined ||
+//             m.doseUnit === null || m.doseUnit === undefined ||
+//             m.durationQty === null || m.durationQty === undefined ||
+//             m.durationUnit === null || m.durationUnit === undefined
+//         );
+
+//         if (needsFix) {
+//             setMedicines(prev =>
+//                 prev.map(m => ({
+//                     ...m,
+//                     doseQty: m.doseQty ?? '',
+//                     doseUnit: m.doseUnit ?? 'Tab',
+//                     durationQty: m.durationQty ?? '',
+//                     durationUnit: m.durationUnit ?? 'Day(s)',
+//                 }))
+//             );
+//         }
+//     }, [medicines, setMedicines]);
+
+//     const addDiagnosis = (diag: string) => {
+//         if (!selectedDiagnoses.includes(diag)) {
+//             setSelectedDiagnoses(prev => [...prev, diag]);
+//         }
+//         setDiagSearchQuery('');
+//         setDiagDropdownOpen(false);
+//     };
+
+//     const removeDiagnosis = (diag: string) => {
+//         setSelectedDiagnoses(prev => prev.filter(d => d !== diag));
+//     };
+
+//     const handleDispense = () => {
+//         const medicinePacket = {
+//             action: "dispense",
+//             row: 2,
+//             col: 4,
+//             quantity: 6,
+//             timestamp: new Date().toISOString()
+//         };
+//         if (window.AndroidNative && typeof window.AndroidNative.sendMedicinePacket === "function") {
+//             try {
+//                 const jsonString = JSON.stringify(medicinePacket);
+//                 window.AndroidNative.sendMedicinePacket(jsonString);
+//                 console.log("Packet sent to ESP32:", medicinePacket);
+//             } catch (error) {
+//                 console.error("Failed to send packet through bridge:", error);
+//             }
+//         } else {
+//             console.warn("Android Bridge not detected. Are you running in the app?");
+//             alert("Dispense triggered (Simulated: No Hardware Connected)");
+//         }
+//     };
+
+//     const toggleManual = (id: number) => {
+//         setManualIds(prev =>
+//             prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+//         );
+//     };
+
+//     return (
+//         <div className="min-h-screen bg-white">
+//             <main className="max-w-7xl mx-auto p-6 lg:p-1">
+//                 {/* ── PATIENT DETAIL ── */}
+//                 <div className="lg:mt-2 lg:mx-4 lg:pb-8">
+//                     {/* Back Button */}
+//                     <button
+//                         onClick={() => setSelectedPatient(null)}
+//                         className="mb-6 bg-[#0297d6] text-white py-3 px-6 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-[#0288c2] transition-all"
+//                     >
+//                         ← Back to Queue
+//                     </button>
+
+//                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+//                         {/* LEFT PANEL - Patient Info + Vitals */}
+//                         <div className="lg:col-span-5 bg-slate-50 p-6 lg:p-8 rounded-[2.5rem]">
+//                             <div className="flex gap-20 lg:gap-4 mb-8 bg-white p-5 rounded-3xl shadow-sm">
+//                                 <div className="w-25 h-25 bg-slate-100 rounded-2xl flex items-center justify-center text-[#0297d6] shrink-0">
+//                                     <User size={72} />
+//                                 </div>
+
+//                                 <div className="flex-1">
+//                                     <div className="mb-3">
+//                                         <span className="text-lg lg:text-xs font-black text-slate-400 uppercase tracking-widest">NAME: </span>
+//                                         <span className="text-2xl lg:text-sm font-black text-slate-900">
+//                                             {selectedPatient.firstName} {selectedPatient.lastName}
+//                                         </span>
+//                                     </div>
+
+//                                     <div className="flex gap-6">
+//                                         <div>
+//                                             <span className="text-lg lg:text-xs font-black text-slate-400 uppercase tracking-widest">AGE: </span>
+//                                             <span className="text-2xl lg:text-sm font-semibold text-slate-700">
+//                                                 {selectedPatient.age} Years
+//                                             </span>
+//                                         </div>
+
+//                                         <div>
+//                                             <span className="text-lg lg:text-xs font-black text-slate-400 uppercase tracking-widest">GENDER: </span>
+//                                             <span className="text-2xl lg:text-sm font-semibold text-slate-700">
+//                                                 {selectedPatient.gender}
+//                                             </span>
+//                                         </div>
+//                                     </div>
+//                                 </div>
+//                             </div>
+
+//                             {/* Current Symptoms */}
+//                             <div className="bg-white p-5 rounded-2xl shadow-sm mb-6">
+//                                 <p className="text-[9px] font-black text-slate-400 uppercase mb-1">CURRENT SYMPTOMS</p>
+//                                 <p className="text-sm font-bold text-red-500">{selectedPatient.symptoms}</p>
+//                             </div>
+
+//                             {/* Vitals */}
+//                             <div className="grid grid-cols-2 gap-3">
+//                                 {selectedPatient.vitals && Object.entries(selectedPatient.vitals).map(([k, v]) => (
+//                                     <div key={k} className="bg-white p-4 rounded-2xl border border-slate-100">
+//                                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{k.toUpperCase()}</p>
+//                                         <p className="text-base font-black text-slate-800 mt-1">{String(v)}</p>
+//                                     </div>
+//                                 ))}
+//                                 {!selectedPatient.vitals && (
+//                                     <div className="col-span-2 bg-white p-4 rounded-2xl border border-slate-100 text-center">
+//                                         <p className="text-xs font-bold text-slate-400">No vitals recorded</p>
+//                                     </div>
+//                                 )}
+//                             </div>
+//                         </div>
+
+//                         {/* RIGHT PANEL - Prescription Builder */}
+//                         <div className="lg:col-span-7 bg-white border border-slate-100 p-6 lg:p-8 rounded-[2.5rem] shadow-sm">
+//                             <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-3">
+//                                 <Pill className="text-[#0297d6]" /> Prescription Builder
+//                             </h3>
+
+//                             {/* ── DIAGNOSIS MULTI-SELECT ─────────────────────────────────────── */}
+//                             <div className="mb-5">
+//                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Diagnosis</p>
+
+//                                 {/* Selected diagnoses tags */}
+//                                 {selectedDiagnoses.length > 0 && (
+//                                     <div className="flex flex-wrap gap-2 mb-2">
+//                                         {selectedDiagnoses.map(d => (
+//                                             <span
+//                                                 key={d}
+//                                                 className="flex items-center gap-1.5 text-xs font-black text-[#0297d6] bg-[#0297d6]/10 px-3 py-1.5 rounded-lg"
+//                                             >
+//                                                 {d}
+//                                                 <button
+//                                                     onClick={() => removeDiagnosis(d)}
+//                                                     className="text-[#0297d6] hover:text-red-400 font-black leading-none"
+//                                                 >
+//                                                     ✕
+//                                                 </button>
+//                                             </span>
+//                                         ))}
+//                                     </div>
+//                                 )}
+
+//                                 {/* Diagnosis search dropdown */}
+//                                 <div className="relative">
+//                                     <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-[#0297d6]">
+//                                         <Search size={14} className="text-slate-400 shrink-0" />
+//                                         <input
+//                                             placeholder="Search or add diagnosis..."
+//                                             className="w-full outline-none font-bold text-sm bg-transparent"
+//                                             value={diagSearchQuery}
+//                                             onChange={e => setDiagSearchQuery(e.target.value)}
+//                                             onFocus={() => setDiagDropdownOpen(true)}
+//                                             onBlur={() => setTimeout(() => setDiagDropdownOpen(false), 150)}
+//                                         />
+//                                     </div>
+
+//                                     {diagDropdownOpen && (
+//                                         <div className="absolute z-50 top-full left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto">
+//                                             {/* Custom entry option */}
+//                                             {diagSearchQuery && !DIAGNOSIS_OPTIONS.find(d => d.toLowerCase() === diagSearchQuery.toLowerCase()) && (
+//                                                 <div
+//                                                     onMouseDown={() => addDiagnosis(diagSearchQuery.trim())}
+//                                                     className="px-4 py-2.5 text-sm font-black text-[#0297d6] hover:bg-[#0297d6]/10 cursor-pointer border-b border-slate-100 flex items-center gap-2"
+//                                                 >
+//                                                     ✏️ Add "{diagSearchQuery}"
+//                                                 </div>
+//                                             )}
+//                                             {DIAGNOSIS_OPTIONS.filter(d =>
+//                                                 d.toLowerCase().includes(diagSearchQuery.toLowerCase()) &&
+//                                                 !selectedDiagnoses.includes(d)
+//                                             ).map(option => (
+//                                                 <div
+//                                                     key={option}
+//                                                     onMouseDown={() => addDiagnosis(option)}
+//                                                     className="px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-[#0297d6]/10 hover:text-[#0297d6] cursor-pointer"
+//                                                 >
+//                                                     {option}
+//                                                 </div>
+//                                             ))}
+//                                             {DIAGNOSIS_OPTIONS.filter(d =>
+//                                                 d.toLowerCase().includes(diagSearchQuery.toLowerCase()) &&
+//                                                 !selectedDiagnoses.includes(d)
+//                                             ).length === 0 && !diagSearchQuery && (
+//                                                     <div className="px-4 py-3 text-xs text-slate-400 font-bold uppercase">
+//                                                         All diagnoses selected
+//                                                     </div>
+//                                                 )}
+//                                         </div>
+//                                     )}
+//                                 </div>
+//                             </div>
+
+//                             {/* ── MEDICINE ROWS ──────────────────────────────────────────────── */}
+//                             <div className="space-y-3 mb-4">
+//                                 {medicines.map((med) => (
+//                                     <div key={med.id} className="p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl relative group hover:border-[#0297d6]/20 transition-all">
+//                                         <button
+//                                             onClick={() => setMedicines(medicines.filter(m => m.id !== med.id))}
+//                                             className="absolute -right-2 -top-2 bg-white border border-slate-200 text-red-400 p-1.5 rounded-full opacity-0 group-hover:opacity-100 shadow transition-all"
+//                                         >
+//                                             <Trash2 size={13} />
+//                                         </button>
+
+//                                         {/* Row 1: Medicine Name */}
+//                                         <div className="mb-3">
+//                                             <div className="relative">
+//                                                 {manualIds.includes(med.id) ? (
+//                                                     <div className="flex gap-2">
+//                                                         <input
+//                                                             autoFocus
+//                                                             placeholder="Type medicine name..."
+//                                                             className="w-full p-3 bg-white border-2 border-[#0297d6] rounded-xl outline-none font-bold text-sm"
+//                                                             value={med.name}
+//                                                             onChange={(e) => updateMedicine(med.id, 'name', e.target.value)}
+//                                                         />
+//                                                         <button
+//                                                             onMouseDown={() => toggleManual(med.id)}
+//                                                             className="px-3 text-slate-400 hover:text-red-400 bg-white border border-slate-200 rounded-xl text-xs font-black"
+//                                                         >
+//                                                             ✕
+//                                                         </button>
+//                                                     </div>
+//                                                 ) : (
+//                                                     <>
+//                                                         <div className="flex items-center gap-2 p-3 bg-white border border-slate-200 rounded-xl focus-within:border-[#0297d6]">
+//                                                             <Search size={14} className="text-slate-400 shrink-0" />
+//                                                             <input
+//                                                                 placeholder="Search medicine..."
+//                                                                 className="w-full outline-none font-bold text-sm bg-transparent"
+//                                                                 value={searchQuery}
+//                                                                 onChange={(e) => setSearchQuery(e.target.value)}
+//                                                                 onFocus={() => { setSearchQuery(''); setOpenDropdownId(med.id); }}
+//                                                                 onBlur={() => setTimeout(() => setOpenDropdownId(null), 150)}
+//                                                             />
+//                                                         </div>
+
+//                                                         {(openDropdownId === med.id || searchQuery) && (
+//                                                             <div className="absolute z-50 top-full left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto">
+//                                                                 <div
+//                                                                     onMouseDown={() => {
+//                                                                         toggleManual(med.id);
+//                                                                         updateMedicine(med.id, 'name', '');
+//                                                                         setSearchQuery('');
+//                                                                     }}
+//                                                                     className="px-4 py-2.5 text-sm font-black text-[#0297d6] hover:bg-[#0297d6]/10 cursor-pointer border-b border-slate-100 flex items-center gap-2"
+//                                                                 >
+//                                                                     ✏️ Other (type manually)
+//                                                                 </div>
+//                                                                 {MEDICINE_OPTIONS.filter(m =>
+//                                                                     m.toLowerCase().includes(searchQuery.toLowerCase())
+//                                                                 ).length > 0 ? (
+//                                                                     MEDICINE_OPTIONS.filter(m =>
+//                                                                         m.toLowerCase().includes(searchQuery.toLowerCase())
+//                                                                     ).map((option) => (
+//                                                                         <div
+//                                                                             key={option}
+//                                                                             onMouseDown={() => {
+//                                                                                 updateMedicine(med.id, 'name', option);
+//                                                                                 setSearchQuery('');
+//                                                                             }}
+//                                                                             className="px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-[#0297d6]/10 hover:text-[#0297d6] cursor-pointer"
+//                                                                         >
+//                                                                             {option}
+//                                                                         </div>
+//                                                                     ))
+//                                                                 ) : (
+//                                                                     <div className="px-4 py-3 text-xs text-slate-400 font-bold uppercase">
+//                                                                         No match — use "Other" above
+//                                                                     </div>
+//                                                                 )}
+//                                                             </div>
+//                                                         )}
+
+//                                                         {med.name && !searchQuery && (
+//                                                             <div className="mt-1.5 flex items-center gap-2">
+//                                                                 <span className="text-xs font-black text-[#0297d6] bg-[#0297d6]/10 px-3 py-1 rounded-lg">
+//                                                                     {med.name}
+//                                                                 </span>
+//                                                                 <button
+//                                                                     onMouseDown={() => {
+//                                                                         updateMedicine(med.id, 'name', '');
+//                                                                         setSearchQuery('');
+//                                                                     }}
+//                                                                     className="text-[10px] text-slate-400 hover:text-red-400 font-black"
+//                                                                 >
+//                                                                     ✕ clear
+//                                                                 </button>
+//                                                             </div>
+//                                                         )}
+//                                                     </>
+//                                                 )}
+//                                             </div>
+//                                         </div>
+
+//                                         {/* Row 2: Dosage + Duration side by side */}
+//                                         <div className="grid grid-cols-2 gap-3 mb-3">
+//                                             {/* Dosage: qty + unit */}
+//                                             <div>
+//                                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Dosage</p>
+//                                                 <div className="flex gap-1.5">
+//                                                     <input
+//                                                         type="number"
+//                                                         min="0"
+//                                                         placeholder="Qty"
+//                                                         className="w-16 p-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#0297d6] font-bold text-sm text-center"
+//                                                         value={med.doseQty ?? ''}
+//                                                         onChange={(e) => updateMedicine(med.id, 'doseQty', e.target.value)}
+//                                                     />
+//                                                     <select
+//                                                         className="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl outline-none font-semibold text-slate-600 text-sm"
+//                                                         value={med.doseUnit ?? 'Tab'}
+//                                                         onChange={(e) => updateMedicine(med.id, 'doseUnit', e.target.value)}
+//                                                     >
+//                                                         {DOSE_UNIT_OPTIONS.map(u => (
+//                                                             <option key={u}>{u}</option>
+//                                                         ))}
+//                                                     </select>
+//                                                 </div>
+//                                             </div>
+
+//                                             {/* Duration: qty + unit */}
+//                                             <div>
+//                                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Duration</p>
+//                                                 <div className="flex gap-1.5">
+//                                                     <input
+//                                                         type="number"
+//                                                         min="0"
+//                                                         placeholder="No."
+//                                                         className="w-16 p-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#0297d6] font-bold text-sm text-center"
+//                                                         value={med.durationQty ?? ''}
+//                                                         onChange={(e) => updateMedicine(med.id, 'durationQty', e.target.value)}
+//                                                     />
+//                                                     <select
+//                                                         className="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl outline-none font-semibold text-slate-600 text-sm"
+//                                                         value={med.durationUnit ?? 'Day(s)'}
+//                                                         onChange={(e) => updateMedicine(med.id, 'durationUnit', e.target.value)}
+//                                                     >
+//                                                         {DURATION_UNIT_OPTIONS.map(u => (
+//                                                             <option key={u}>{u}</option>
+//                                                         ))}
+//                                                     </select>
+//                                                 </div>
+//                                             </div>
+//                                         </div>
+
+//                                         {/* Row 3: Schedule checkboxes + Meal — single line */}
+//                                         <div className="flex items-center gap-4 flex-wrap pl-1">
+//                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Schedule</span>
+//                                             {['morning', 'afternoon', 'night'].map((time) => (
+//                                                 <label key={time} className="flex items-center gap-1.5 cursor-pointer">
+//                                                     <input
+//                                                         type="checkbox"
+//                                                         className="w-4 h-4 accent-[#0297d6]"
+//                                                         checked={!!med[time]}
+//                                                         onChange={(e) => updateMedicine(med.id, time, e.target.checked)}
+//                                                     />
+//                                                     <span className="text-xs font-black text-slate-500 uppercase">{time}</span>
+//                                                 </label>
+//                                             ))}
+//                                             {/* Meal — inline on same row */}
+//                                             <select
+//                                                 className="ml-auto p-2 bg-white border border-slate-200 rounded-xl outline-none font-semibold text-slate-600 text-xs"
+//                                                 value={med.meal}
+//                                                 onChange={(e) => updateMedicine(med.id, 'meal', e.target.value)}
+//                                             >
+//                                                 <option>After Meal</option>
+//                                                 <option>Before Meal</option>
+//                                                 <option>Empty Stomach</option>
+//                                                 <option>With Meal</option>
+//                                             </select>
+//                                         </div>
+//                                     </div>
+//                                 ))}
+//                             </div>
+
+//                             <button
+//                                 onClick={() => setMedicines([...medicines, {
+//                                     id: Date.now(),
+//                                     name: '',
+//                                     doseQty: '',
+//                                     doseUnit: 'Tab',
+//                                     durationQty: '',
+//                                     durationUnit: 'Day(s)',
+//                                     morning: false,
+//                                     afternoon: false,
+//                                     night: false,
+//                                     meal: 'After Meal',
+//                                 }])}
+//                                 className="mb-4 bg-[#0297d6]/10 text-[#0297d6] px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-[#0297d6]/20 transition-all"
+//                             >
+//                                 + Add Medicine
+//                             </button>
+
+//                             <textarea
+//                                 rows={2}
+//                                 value={notes}
+//                                 onChange={(e) => setNotes(e.target.value)}
+//                                 placeholder="Clinical remarks, lifestyle advice..."
+//                                 className="w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-[#0297d6] focus:bg-white outline-none transition-all font-medium text-slate-700 text-sm mb-6"
+//                             />
+
+//                             <div className="flex gap-3 print:hidden">
+//                                 <button
+//                                     onClick={() => setPrescriptionGenerated(true)}
+//                                     className="flex-1 bg-[#0297d6] text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-[#0297d6]/80 transition-all"
+//                                 >
+//                                     <Pill size={16} /> Generate Prescription
+//                                 </button>
+//                                 <button
+//                                     disabled={endingSession}
+//                                     onClick={async () => {
+//                                         if (!selectedPatient) return;
+//                                         setEndingSession(true);
+//                                         try {
+//                                             await apiService.savePrescription({
+
+//                                                 patientId: selectedPatient.id,
+//                                                 token: selectedPatient.token,
+//                                                 diagnosis: selectedDiagnoses.join(', ') || selectedPatient.symptoms,
+//                                                 clinicalNotes: notes,
+//                                                 medicines: medicines
+//                                                     .filter(m => m.name && m.name.trim() !== '')
+//                                                     .map(m => ({
+//                                                         ...m,
+//                                                         // Convert new fields to old format for backend compatibility
+//                                                         dosage: m.doseQty ? `${m.doseQty} ${m.doseUnit}` : '',
+//                                                         duration: m.durationQty ? `${m.durationQty} ${m.durationUnit}` : '',
+//                                                         // You can keep the new fields too if you want
+//                                                         doseQty: m.doseQty,
+//                                                         doseUnit: m.doseUnit,
+//                                                         durationQty: m.durationQty,
+//                                                         durationUnit: m.durationUnit,
+//                                                     }))
+//                                             });
+//                                             onSessionEnd(selectedPatient);
+//                                         } catch (err: any) {
+//                                             console.error(err);
+//                                             setEndingSession(false);
+//                                         }
+//                                     }}
+//                                     className="flex-1 bg-slate-200 disabled:opacity-60 text-slate-700 py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-slate-300 transition-all"
+//                                 >
+//                                     {endingSession ? (
+//                                         <>
+//                                             <svg className="animate-spin w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24">
+//                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+//                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+//                                             </svg>
+//                                             Saving...
+//                                         </>
+//                                     ) : 'End Session'}
+//                                 </button>
+//                             </div>
+
+//                             {/* ── PRINTABLE PRESCRIPTION ─────────────────────────────────────── */}
+//                             {prescriptionGenerated && (
+//                                 <>
+//                                     <div id="prescription-paper" className="bg-white border border-slate-100 rounded-2xl p-6 mt-6 mb-4 print:shadow-none">
+//                                         <div className="flex justify-between items-start border-b-2 border-slate-100 pb-4 mb-5">
+//                                             <div className="flex items-center gap-3">
+//                                                 <img src="/logo2.png" alt="EZShifa" className="h-18 w-auto" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+//                                             </div>
+//                                             <div className="text-center">
+//                                                 <p className="text-lg font-black text-slate-700 uppercase tracking-widest">Prescription</p>
+//                                                 <p className="text-[10px] font-bold text-slate-400 uppercase">EZShifa Digital Health</p>
+//                                             </div>
+//                                             <div className="text-right">
+//                                                 <p className="text-5xl font-black text-slate-200 italic leading-none">Rx</p>
+//                                                 <p className="text-[10px] font-black text-slate-400 uppercase">Date: {new Date().toLocaleDateString()}</p>
+//                                                 <p className="text-[10px] font-black text-slate-400 uppercase">Token: #{selectedPatient.token}</p>
+//                                             </div>
+//                                         </div>
+
+//                                         <div className="mb-5 space-y-3 border-b border-slate-100 pb-5">
+//                                             <div className="flex items-end gap-2">
+//                                                 <span className="text-xs font-black text-slate-500 uppercase whitespace-nowrap">Patient Name:</span>
+//                                                 <span className="flex-1 border-b border-slate-300 pb-0.5 font-bold text-slate-800 text-sm">
+//                                                     {selectedPatient.firstName} {selectedPatient.lastName}
+//                                                 </span>
+//                                                 <span className="text-xs font-black text-slate-500 uppercase whitespace-nowrap ml-4">Date:</span>
+//                                                 <span className="w-28 border-b border-slate-300 pb-0.5 font-bold text-slate-800 text-sm">
+//                                                     {new Date().toLocaleDateString()}
+//                                                 </span>
+//                                             </div>
+//                                             <div className="flex items-end gap-2">
+//                                                 <span className="text-xs font-black text-slate-500 uppercase whitespace-nowrap">Age:</span>
+//                                                 <span className="w-20 border-b border-slate-300 pb-0.5 font-bold text-slate-800 text-sm">{selectedPatient.age} Yrs</span>
+//                                                 <span className="text-xs font-black text-slate-500 uppercase whitespace-nowrap ml-4">Gender:</span>
+//                                                 <span className="w-24 border-b border-slate-300 pb-0.5 font-bold text-slate-800 text-sm">{selectedPatient.gender}</span>
+//                                                 <span className="text-xs font-black text-slate-500 uppercase whitespace-nowrap ml-4">Weight:</span>
+//                                                 <span className="w-24 border-b border-slate-300 pb-0.5 font-bold text-slate-800 text-sm">{selectedPatient.vitals.weight}</span>
+//                                             </div>
+//                                             {/* Diagnosis row — now from multi-select */}
+//                                             <div className="flex items-start gap-2">
+//                                                 <span className="text-xs font-black text-slate-500 uppercase whitespace-nowrap mt-0.5">Diagnosis:</span>
+//                                                 <div className="flex-1 border-b border-slate-300 pb-0.5">
+//                                                     {selectedDiagnoses.length > 0 ? (
+//                                                         <div className="flex flex-wrap gap-1.5">
+//                                                             {selectedDiagnoses.map(d => (
+//                                                                 <span key={d} className="text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
+//                                                                     {d}
+//                                                                 </span>
+//                                                             ))}
+//                                                         </div>
+//                                                     ) : (
+//                                                         <span className="font-bold text-slate-800 text-sm">{selectedPatient.symptoms}</span>
+//                                                     )}
+//                                                 </div>
+//                                             </div>
+//                                         </div>
+
+//                                         <div className="text-right mb-4">
+//                                             <p className="text-[9px] font-black text-[#0297d6] uppercase tracking-widest">Attending Physician</p>
+//                                             <p className="font-black text-slate-800">{fullName}</p>
+//                                             <p className="text-xs text-slate-500 font-bold uppercase">{doctor.specializations.join(', ')}</p>
+//                                             <p className="text-[10px] text-slate-400 font-bold">{doctor.qualifications.join(', ')}</p>
+//                                         </div>
+
+//                                         <div className="border border-slate-100 rounded-xl overflow-hidden mb-4">
+//                                             <table className="w-full text-left">
+//                                                 <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
+//                                                     <tr>
+//                                                         <th className="px-4 py-3">Medicine</th>
+//                                                         <th className="px-4 py-3">Dosage</th>
+//                                                         <th className="px-4 py-3">Duration</th>
+//                                                         <th className="px-4 py-3 text-center">M — A — N</th>
+//                                                         <th className="px-4 py-3">Instructions</th>
+//                                                     </tr>
+//                                                 </thead>
+//                                                 <tbody className="divide-y divide-slate-50">
+//                                                     {medicines.filter(m => m.name).map((m, i) => (
+//                                                         <tr key={i}>
+//                                                             <td className="px-4 py-3 font-black text-sm text-slate-800">{m.name}</td>
+//                                                             {/* Safe display: works with new doseQty/doseUnit OR old dosage/duration */}
+//                                                             <td className="px-4 py-3 text-xs font-bold text-slate-600">
+//                                                                 {m.doseQty && m.doseUnit
+//                                                                     ? `${m.doseQty} ${m.doseUnit}`
+//                                                                     : (m.dosage || '—')}
+//                                                             </td>
+//                                                             <td className="px-4 py-3 text-xs font-bold text-slate-600">
+//                                                                 {m.durationQty && m.durationUnit
+//                                                                     ? `${m.durationQty} ${m.durationUnit}`
+//                                                                     : (m.duration || '—')}
+//                                                             </td>
+//                                                             <td className="px-4 py-3">
+//                                                                 <div className="flex justify-center gap-1">
+//                                                                     {[m.morning, m.afternoon, m.night].map((active, idx) => (
+//                                                                         <span
+//                                                                             key={idx}
+//                                                                             className={`w-6 h-6 flex items-center justify-center rounded text-[10px] font-bold border ${active ? 'bg-[#0297d6] border-[#0297d6] text-white' : 'border-slate-200 text-slate-300'}`}
+//                                                                         >
+//                                                                             {active ? '1' : '0'}
+//                                                                         </span>
+//                                                                     ))}
+//                                                                 </div>
+//                                                             </td>
+//                                                             <td className="px-4 py-3 text-xs font-bold text-[#0297d6] italic uppercase">{m.meal}</td>
+//                                                         </tr>
+//                                                     ))}
+//                                                 </tbody>
+//                                             </table>
+//                                         </div>
+
+//                                         {notes && (
+//                                             <div className="p-4 bg-blue-50/50 border-l-4 border-[#0297d6] rounded-r-xl mb-4">
+//                                                 <p className="text-[10px] font-black text-[#0297d6] uppercase tracking-widest mb-1">Clinical Notes</p>
+//                                                 <p className="text-sm italic text-slate-700 font-medium">{notes}</p>
+//                                             </div>
+//                                         )}
+
+//                                         <div className="border-t pt-4 flex justify-between items-center opacity-50">
+//                                             <p className="text-[9px] font-bold text-slate-400 uppercase">System Generated — EZShifa Digital Health</p>
+//                                             <div className="h-10 w-24 bg-slate-100 rounded border border-dashed border-slate-300 flex items-center justify-center">
+//                                                 <span className="text-[8px] text-slate-400 font-bold uppercase">Doctor's Stamp</span>
+//                                             </div>
+//                                         </div>
+//                                     </div>
+
+//                                     <div className="flex gap-3 print:hidden">
+//                                         <button
+//                                             onClick={() => window.print()}
+//                                             className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-[#0297d6] transition-all"
+//                                         >
+//                                             <Printer size={16} /> Print Rx
+//                                         </button>
+//                                         <div className="relative flex-1">
+//                                             <button
+//                                                 onClick={() => setIsOpenPrescriptionSend(!isOpenPrescriptionSend)}
+//                                                 className="w-full bg-slate-100 text-slate-700 py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition-all"
+//                                             >
+//                                                 Actions
+//                                                 <span className={`transition-transform ${isOpenPrescriptionSend ? 'rotate-180' : ''}`}>▼</span>
+//                                             </button>
+
+//                                             {isOpenPrescriptionSend && (
+//                                                 <div className="absolute top-full left-0 mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-10 overflow-hidden">
+//                                                     <button
+//                                                         onClick={() => { console.log("Save PDF logic"); setIsOpenPrescriptionSend(false); }}
+//                                                         className="w-full text-left px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 hover:bg-slate-50 transition-colors"
+//                                                     >
+//                                                         Save PDF
+//                                                     </button>
+//                                                     <button
+//                                                         onClick={() => {
+//                                                             handleDispense();
+//                                                             setIsOpenPrescriptionSend(false);
+//                                                         }}
+//                                                         className="w-full text-left px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 hover:bg-slate-50 border-t border-slate-100 transition-colors"
+//                                                     >
+//                                                         Dispense
+//                                                     </button>
+//                                                 </div>
+//                                             )}
+//                                         </div>
+//                                     </div>
+//                                 </>
+//                             )}
+//                         </div>
+//                     </div>
+//                 </div>
+//             </main>
+
+//             {/* Global Print Styles */}
+//             <style>{`
+//         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+//         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: white; }
+//         @media print {
+//           body * { visibility: hidden; }
+//           #prescription-paper, #prescription-paper * { visibility: visible; }
+//           #prescription-paper {
+//             position: absolute; left: 0; top: 0;
+//             width: 100%; padding: 20px !important;
+//             box-shadow: none !important; border: none !important;
+//           }
+//           .print\\:hidden { display: none !important; }
+//         }
+//       `}</style>
+//         </div>
+//     );
+// };
+
+// export default DocConsult;
+
 // consultation/doc_consult.tsx
 "use client";
 import React, { useState } from 'react';
-import { Pill, Printer, Search, Trash2, User } from 'lucide-react';
-import { DoctorProfile, MEDICINE_OPTIONS } from './doctor_registration';
+import { Pill, Printer, Search, Trash2, User, Check, ChevronsUpDown } from 'lucide-react';
+import { DoctorProfile, MEDICINE_OPTIONS, DOSAGE_UNIT_OPTIONS, DURATION_UNIT_OPTIONS, DIAGNOSIS_OPTIONS } from './doctor_registration';
 import { apiService } from '@/app/_utils/apiService';
+import { Button } from '@/components/ui/button';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+
+
 
 interface Vitals {
     temp: string;
@@ -58,9 +845,22 @@ const DocConsult: React.FC<DocConsultProps> = ({
     setEndingSession,
 }) => {
     const [manualIds, setManualIds] = useState<number[]>([]);
+
+    const splitDosage = (val: string) => {
+        const match = val?.match(/^(\d*\.?\d*)\s*(.*)$/);
+        return { num: match?.[1] ?? '', unit: match?.[2] || 'Tab' };
+    };
+    const splitDuration = (val: string) => {
+        const match = val?.match(/^(\d*)\s*(.*)$/);
+        return { num: match?.[1] ?? '', unit: match?.[2] || 'Day(s)' };
+    };
     const [searchQuery, setSearchQuery] = useState('');
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
     const [isOpenPrescriptionSend, setIsOpenPrescriptionSend] = useState(false);
+    const [diagnoses, setDiagnoses] = useState<string[]>([]);
+    const [diagnosisSearch, setDiagnosisSearch] = useState('');
+    const [diagnosisManual, setDiagnosisManual] = useState(false);
+    const [diagnosisManualValue, setDiagnosisManualValue] = useState('');
 
     const handleDispense = () => {
         // 1. Define your sample packet
@@ -277,28 +1077,58 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                                 )}
                                             </div>
 
-                                            <input
-                                                placeholder="Dosage e.g. 1 Tab, 2 Tsp"
-                                                className="p-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#0297d6] font-bold text-sm"
-                                                value={med.dosage ?? ''}
-                                                onChange={(e) => updateMedicine(med.id, 'dosage', e.target.value)}
-                                            />
-                                            <input
-                                                placeholder="Duration e.g. 5 Days, 1 Week"
-                                                className="p-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#0297d6] font-bold text-sm"
-                                                value={med.duration ?? ''}
-                                                onChange={(e) => updateMedicine(med.id, 'duration', e.target.value)}
-                                            />
-                                            <select
+                                            <div className="flex gap-1">
+                                                <input
+                                                    placeholder="Qty"
+                                                    type="number"
+                                                    min="0"
+                                                    className="w-20 p-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#0297d6] font-bold text-sm"
+                                                    value={splitDosage(med.dosage ?? '').num}
+                                                    onChange={(e) => updateMedicine(med.id, 'dosage', `${e.target.value} ${splitDosage(med.dosage ?? '').unit}`.trim())}
+                                                />
+                                                <select
+                                                    className="flex-1 p-3 bg-white border border-slate-200 rounded-xl outline-none font-semibold text-slate-600 text-sm"
+                                                    value={splitDosage(med.dosage ?? '').unit}
+                                                    onChange={(e) => updateMedicine(med.id, 'dosage', `${splitDosage(med.dosage ?? '').num} ${e.target.value}`.trim())}
+                                                >
+                                                    {DOSAGE_UNIT_OPTIONS.map(u => <option key={u}>{u}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <input
+                                                    placeholder="Days"
+                                                    type="number"
+                                                    min="0"
+                                                    className="w-20 p-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#0297d6] font-bold text-sm"
+                                                    value={splitDuration(med.duration ?? '').num}
+                                                    onChange={(e) => updateMedicine(med.id, 'duration', `${e.target.value} ${splitDuration(med.duration ?? '').unit}`.trim())}
+                                                />
+                                                <select
+                                                    className="flex-1 p-3 bg-white border border-slate-200 rounded-xl outline-none font-semibold text-slate-600 text-sm"
+                                                    value={splitDuration(med.duration ?? '').unit}
+                                                    onChange={(e) => updateMedicine(med.id, 'duration', `${splitDuration(med.duration ?? '').num} ${e.target.value}`.trim())}
+                                                >
+                                                    {DURATION_UNIT_OPTIONS.map(u => <option key={u}>{u}</option>)}
+                                                </select>
+                                            </div>
+                                            {/* <select
                                                 className="p-3 bg-white border border-slate-200 rounded-xl outline-none font-semibold text-slate-600 text-sm"
                                                 value={med.meal}
                                                 onChange={(e) => updateMedicine(med.id, 'meal', e.target.value)}
                                             >
                                                 <option>After Meal</option>
                                                 <option>Before Meal</option>
-                                            </select>
+                                            </select> */}
                                         </div>
-                                        <div className="flex gap-6 items-center pl-1">
+                                        <div className="flex gap-4 items-center pl-1 flex-wrap">
+                                            <select
+                                                className="p-2 bg-white border border-slate-200 rounded-xl outline-none font-semibold text-slate-600 text-xs"
+                                                value={med.meal}
+                                                onChange={(e) => updateMedicine(med.id, 'meal', e.target.value)}
+                                            >
+                                                <option>After Meal</option>
+                                                <option>Before Meal</option>
+                                            </select>
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Schedule</span>
                                             {['morning', 'afternoon', 'night'].map((time) => (
                                                 <label key={time} className="flex items-center gap-1.5 cursor-pointer">
@@ -322,7 +1152,63 @@ const DocConsult: React.FC<DocConsultProps> = ({
                             >
                                 + Add Medicine
                             </button>
-
+                            {/* Diagnosis Section */}
+                            <div className="mb-4">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Add Diagnosis</p>
+                                {diagnoses.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                        {diagnoses.map((d, i) => (
+                                            <span key={i} className="flex items-center gap-1.5 text-xs font-black text-[#0297d6] bg-[#0297d6]/10 px-3 py-1 rounded-lg">
+                                                {d}
+                                                <button onClick={() => setDiagnoses(diagnoses.filter((_, j) => j !== i))} className="hover:text-red-400">✕</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" className="w-full justify-between h-auto min-h-9 py-0 text-left bg-slate-50/50">
+                                            <div className="flex flex-wrap gap-1 py-1">
+                                                {diagnoses.length > 0 ? (
+                                                    diagnoses.map((d) => (
+                                                        <span key={d} className="bg-[#0297d6]/10 text-[#0297d6] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20">{d}</span>
+                                                    ))
+                                                ) : (
+                                                    <span className="text-slate-400 text-sm">Search diagnosis...</span>
+                                                )}
+                                            </div>
+                                            <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80 p-0" align="start">
+                                        <Command>
+                                            <CommandInput placeholder="Search diagnosis..." />
+                                            <CommandList>
+                                                <CommandGroup className="max-h-60 overflow-y-auto">
+                                                    {DIAGNOSIS_OPTIONS.map((option) => (
+                                                        <CommandItem
+                                                            key={option}
+                                                            onSelect={() => {
+                                                                setDiagnoses(prev =>
+                                                                    prev.includes(option)
+                                                                        ? prev.filter(d => d !== option)
+                                                                        : [...prev, option]
+                                                                );
+                                                            }}
+                                                            className="flex items-center gap-2"
+                                                        >
+                                                            <div className={`flex h-4 w-4 items-center justify-center rounded border border-primary ${diagnoses.includes(option) ? "bg-primary text-primary-foreground" : "opacity-50"}`}>
+                                                                {diagnoses.includes(option) && <Check className="h-3 w-3" />}
+                                                            </div>
+                                                            <span>{option}</span>
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
                             <textarea
                                 rows={2}
                                 value={notes}
@@ -347,7 +1233,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                             await apiService.savePrescription({
                                                 patientId: selectedPatient.id,
                                                 token: selectedPatient.token,
-                                                diagnosis: selectedPatient.symptoms,
+                                                diagnosis: diagnoses.length > 0 ? diagnoses.join(', ') : selectedPatient.symptoms,
                                                 clinicalNotes: notes,
                                                 medicines: medicines.filter(m => m.name && m.name.trim() !== '')
                                             });
@@ -411,7 +1297,9 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                             </div>
                                             <div className="flex items-end gap-2">
                                                 <span className="text-xs font-black text-slate-500 uppercase whitespace-nowrap">Diagnosis:</span>
-                                                <span className="flex-1 border-b border-slate-300 pb-0.5 font-bold text-slate-800 text-sm">{selectedPatient.symptoms}</span>
+                                                <span className="flex-1 border-b border-slate-300 pb-0.5 font-bold text-slate-800 text-sm">
+                                                    {diagnoses.length > 0 ? diagnoses.join(', ') : selectedPatient.symptoms}
+                                                </span>
                                             </div>
                                         </div>
 
