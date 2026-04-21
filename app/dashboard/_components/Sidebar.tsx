@@ -17,13 +17,13 @@ export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const router = useRouter();
-  
   const menuItems: MenuItem[] = [
     { name: "Demographic", path: "/dashboard/demographic", icon: <User size={20} /> },
     { name: "Vitals", path: "/dashboard/vitals", icon: <Activity size={20} /> },
     { name: "Consultation", path: "/dashboard/consultation", icon: <LayoutDashboard size={20} /> },
   ];
 
+  // 2. Initialize Hardware Status Listener
   useEffect(() => {
     // We use the helper to set up the window.onUsbStatus listener
     AndroidBridge.initHardwareListeners(
@@ -42,6 +42,16 @@ export default function Sidebar() {
       }
     );
   }, []);
+
+  // 3. Reconnect Trigger
+  const onReconnectPress = () => {
+    setIsConnecting(true); // Start the animation
+    const success = AndroidBridge.handleReconnect();
+    if (!success) {
+      setIsConnecting(false);
+      console.warn("Bridge not available.");
+    }
+  };
 
 
   const handleSignOut = () => {
@@ -153,18 +163,18 @@ export default function Sidebar() {
             )}
           </button>
         </div>
-        {/* ── Reconnect Button ── */}
+        {/* ── FAB Reconnect Button ── */}
         <button
-          onClick={() => {
-            console.log("Attempting to reconnect to ESP32...");
-            // Trigger your reconnection logic here
-          }}
-          className="fixed bottom-6 right-6 z-50 p-4 bg-[#0297d6] text-white rounded-full shadow-2xl hover:bg-[#0286c2] hover:scale-110 active:scale-95 transition-all duration-200 group"
-          title="Reconnect to Device"
+          onClick={onReconnectPress}
+          disabled={isConnecting}
+          className={`fixed bottom-6 right-6 z-50 p-4 bg-[#0297d6] text-white rounded-full shadow-2xl transition-all duration-200 group 
+            ${isConnecting ? 'opacity-80 cursor-wait' : 'hover:bg-[#0286c2] hover:scale-110 active:scale-95'}
+          `}
+          title="Reconnect to ESP32"
         >
           <RefreshCw
             size={28}
-            className="group-hover:rotate-180 transition-transform duration-500"
+            className={`transition-transform duration-700 ${isConnecting ? 'animate-spin' : 'group-hover:rotate-180'}`}
           />
         </button>
       </aside>
