@@ -1,8 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react';
 import {
-  LayoutDashboard, User, Activity, LogOut, ChevronRight, Menu, X, RefreshCw, Wifi,
-  Circle
+  LayoutDashboard, User, Activity, LogOut, ChevronRight, Menu, X, RefreshCw, Wifi
 } from 'lucide-react';
 import { MenuItem } from '@/app/_utils/types';
 import Image from 'next/image';
@@ -17,52 +16,33 @@ export default function Sidebar() {
   const [activeTab, setActiveTab] = useState(pathname);
   const [isOpen, setIsOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [usbStatus, setUsbStatus] = useState<string>("INITIALIZING");
   const router = useRouter();
-
+  
   const menuItems: MenuItem[] = [
     { name: "Demographic", path: "/dashboard/demographic", icon: <User size={20} /> },
     { name: "Vitals", path: "/dashboard/vitals", icon: <Activity size={20} /> },
     { name: "Consultation", path: "/dashboard/consultation", icon: <LayoutDashboard size={20} /> },
   ];
 
-
-
-  // 1. Initialize Status Listeners
   useEffect(() => {
+    // We use the helper to set up the window.onUsbStatus listener
     AndroidBridge.initHardwareListeners(
-      (data) => console.log("Serial Data:", data),
+      (data) => {
+        // This is the global data listener. 
+        // Usually, individual pages (like Vitals) handle this, 
+        // but you can log it here for debugging.
+        console.log("Sidebar global data received:", data);
+      },
       (status) => {
-        setUsbStatus(status);
-        if (["CONNECTED", "ALREADY_CONNECTED", "ERROR", "DEVICE_NOT_FOUND"].includes(status)) {
+        console.log("Hardware Status Update:", status);
+        // Stop spinning if we get a definitive result
+        if (status === "CONNECTED" || status === "ERROR" || status === "DEVICE_NOT_FOUND" || status === "ALREADY_CONNECTED") {
           setIsConnecting(false);
         }
       }
     );
   }, []);
 
-  // 2. AUTO-RETRY HEARTBEAT (Every 5 Seconds)
-  useEffect(() => {
-    const heartbeat = setInterval(() => {
-      // Logic: If we aren't currently connected, try to connect.
-      // The Kotlin code will return "ALREADY_CONNECTED" if the port is already open,
-      // so this won't reboot your ESP32 unnecessarily.
-      if (usbStatus !== "CONNECTED" && usbStatus !== "ALREADY_CONNECTED" && !isConnecting) {
-        console.log("Heartbeat: Hardware disconnected. Attempting auto-connect...");
-        AndroidBridge.connectHardware();
-      }
-    }, 5000);
-
-    return () => clearInterval(heartbeat);
-  }, [usbStatus, isConnecting]);
-
-  // 3. Manual Hard Reset
-  const handleManualReset = () => {
-    setIsConnecting(true);
-    AndroidBridge.handleReconnect(); // This one DOES disconnect/reconnect
-  };
-
-  const isHardwareLive = usbStatus === "CONNECTED" || usbStatus === "ALREADY_CONNECTED";
 
   const handleSignOut = () => {
     apiService.logout();
@@ -173,30 +153,18 @@ export default function Sidebar() {
             )}
           </button>
         </div>
-        {/* --- HARDWARE STATUS INDICATOR --- */}
-        <div className={`mt-auto mb-4 p-2 rounded-xl flex items-center gap-3 transition-colors ${isOpen ? 'bg-slate-50' : 'justify-center'}`}>
-           <Circle size={12} fill={isHardwareLive ? "#22c55e" : "#ef4444"} className={isHardwareLive ? "text-green-500" : "text-red-500 animate-pulse"} />
-           {isOpen && (
-             <div className="flex flex-col">
-               <span className="text-[10px] font-bold text-slate-400 uppercase">Hardware</span>
-               <span className={`text-xs font-bold ${isHardwareLive ? 'text-green-600' : 'text-red-600'}`}>
-                 {isHardwareLive ? "CONNECTED" : "DISCONNECTED"}
-               </span>
-             </div>
-           )}
-        </div>
-
-        {/* ── Reconnect FAB ── */}
+        {/* ── Reconnect Button ── */}
         <button
-          onClick={handleManualReset}
-          disabled={isConnecting}
-          className={`fixed bottom-6 right-6 z-50 p-4 bg-[#0297d6] text-white rounded-full shadow-2xl transition-all duration-200 group 
-            ${isConnecting ? 'opacity-80 cursor-wait' : 'hover:bg-[#0286c2] hover:scale-110 active:scale-95'}
-          `}
+          onClick={() => {
+            console.log("Attempting to reconnect to ESP32...");
+            // Trigger your reconnection logic here
+          }}
+          className="fixed bottom-6 right-6 z-50 p-4 bg-[#0297d6] text-white rounded-full shadow-2xl hover:bg-[#0286c2] hover:scale-110 active:scale-95 transition-all duration-200 group"
+          title="Reconnect to Device"
         >
           <RefreshCw
             size={28}
-            className={`transition-transform duration-700 ${isConnecting ? 'animate-spin' : 'group-hover:rotate-180'}`}
+            className="group-hover:rotate-180 transition-transform duration-500"
           />
         </button>
       </aside>
