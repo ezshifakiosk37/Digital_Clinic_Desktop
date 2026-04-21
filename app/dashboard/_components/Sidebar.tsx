@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react';
 import {
-  LayoutDashboard, User, Activity, LogOut, ChevronRight, Menu, X
+  LayoutDashboard, User, Activity, LogOut, ChevronRight, Menu, X, RefreshCw, Wifi
 } from 'lucide-react';
 import { MenuItem } from '@/app/_utils/types';
 import Image from 'next/image';
@@ -131,6 +131,20 @@ export default function Sidebar() {
             )}
           </button>
         </div>
+        {/* ── Reconnect Button ── */}
+        <button
+          onClick={() => {
+            console.log("Attempting to reconnect to ESP32...");
+            // Trigger your reconnection logic here
+          }}
+          className="fixed bottom-6 right-6 z-50 p-4 bg-[#0297d6] text-white rounded-full shadow-2xl hover:bg-[#0286c2] hover:scale-110 active:scale-95 transition-all duration-200 group"
+          title="Reconnect to Device"
+        >
+          <RefreshCw
+            size={28}
+            className="group-hover:rotate-180 transition-transform duration-500"
+          />
+        </button>
       </aside>
     </>
   );
