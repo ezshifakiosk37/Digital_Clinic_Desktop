@@ -14,7 +14,18 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState(pathname);
   const [isOpen, setIsOpen] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const router = useRouter();
+
+  // Optional: Listen for the status to stop the spinning animation
+  useEffect(() => {
+    window.onUsbStatus = (status: string) => {
+      console.log("Hardware Status:", status);
+      if (status === "CONNECTED" || status === "ERROR" || status === "DEVICE_NOT_FOUND") {
+        setIsConnecting(false);
+      }
+    };
+  }, []);
 
   const menuItems: MenuItem[] = [
     { name: "Demographic", path: "/dashboard/demographic", icon: <User size={20} /> },
