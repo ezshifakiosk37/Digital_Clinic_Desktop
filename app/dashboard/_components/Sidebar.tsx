@@ -9,6 +9,7 @@ import logo from "@/public/logo2.png"
 import logoSmall from "@/public/logosmall.png"
 import { usePathname, useRouter } from 'next/navigation';
 import { apiService } from '@/app/_utils/apiService';
+import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -16,22 +17,41 @@ export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const router = useRouter();
-
-  // Optional: Listen for the status to stop the spinning animation
-  useEffect(() => {
-    window.onUsbStatus = (status: string) => {
-      console.log("Hardware Status:", status);
-      if (status === "CONNECTED" || status === "ERROR" || status === "DEVICE_NOT_FOUND") {
-        setIsConnecting(false);
-      }
-    };
-  }, []);
-
+  
   const menuItems: MenuItem[] = [
     { name: "Demographic", path: "/dashboard/demographic", icon: <User size={20} /> },
     { name: "Vitals", path: "/dashboard/vitals", icon: <Activity size={20} /> },
     { name: "Consultation", path: "/dashboard/consultation", icon: <LayoutDashboard size={20} /> },
   ];
+
+
+  useEffect(() => {
+    // We use the helper to set up the window.onUsbStatus listener
+    AndroidBridge.initHardwareListeners(
+      (data) => {
+        // This is the global data listener. 
+        // Usually, individual pages (like Vitals) handle this, 
+        // but you can log it here for debugging.
+        console.log("Sidebar global data received:", data);
+      },
+      (status) => {
+        console.log("Hardware Status Update:", status);
+        // Stop spinning if we get a definitive result
+        if (status === "CONNECTED" || status === "ERROR" || status === "DEVICE_NOT_FOUND" || status === "ALREADY_CONNECTED") {
+          setIsConnecting(false);
+        }
+      }
+    );
+  }, []);
+
+  const onReconnectPress = () => {
+    setIsConnecting(true); // Start the animation
+    const success = AndroidBridge.handleReconnect();
+    if (!success) {
+      setIsConnecting(false);
+      console.warn("Bridge not available.");
+    }
+  };
 
   const handleSignOut = () => {
     apiService.logout();
@@ -144,16 +164,16 @@ export default function Sidebar() {
         </div>
         {/* ── Reconnect Button ── */}
         <button
-          onClick={() => {
-            console.log("Attempting to reconnect to ESP32...");
-            // Trigger your reconnection logic here
-          }}
-          className="fixed bottom-6 right-6 z-50 p-4 bg-[#0297d6] text-white rounded-full shadow-2xl hover:bg-[#0286c2] hover:scale-110 active:scale-95 transition-all duration-200 group"
-          title="Reconnect to Device"
+          onClick={onReconnectPress}
+          disabled={isConnecting}
+          className={`fixed bottom-6 right-6 z-50 p-4 bg-[#0297d6] text-white rounded-full shadow-2xl transition-all duration-200 group 
+            ${isConnecting ? 'opacity-80 cursor-wait' : 'hover:bg-[#0286c2] hover:scale-110 active:scale-95'}
+          `}
+          title="Reconnect to ESP32"
         >
           <RefreshCw
             size={28}
-            className="group-hover:rotate-180 transition-transform duration-500"
+            className={`transition-transform duration-700 ${isConnecting ? 'animate-spin' : 'group-hover:rotate-180'}`}
           />
         </button>
       </aside>
