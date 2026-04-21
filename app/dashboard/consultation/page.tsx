@@ -352,9 +352,9 @@ React.useEffect(() => {
             {doneQueue.length > 0 && (
               <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mt-6">
                 <div className="px-8 py-5 border-b flex items-center gap-3">
-                  <CheckCircle size={20} className="text-emerald-500" />
+                  <CheckCircle size={20} className="text-blue-700" />
                   <h2 className="font-bold text-xl text-slate-800">COMPLETED TODAY</h2>
-                  <span className="ml-auto bg-emerald-50 text-emerald-600 text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                  <span className="ml-auto bg-blue-200 text-blue-700 text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest">
                     {doneQueue.length} Done
                   </span>
                 </div>
@@ -375,8 +375,8 @@ React.useEffect(() => {
                         <td className="px-8 py-4 font-bold text-slate-400">#{p.token}</td>
                         <td className="px-8 py-4 text-slate-600 font-semibold">{p.firstName} {p.lastName}</td>
                         <td className="px-8 py-4 text-slate-500 text-sm">{p.symptoms || '—'}</td>
-                        <td className="px-8 py-4 text-right">
-                          <span className="bg-emerald-100 text-emerald-700 text-xs font-black px-3 py-1.5 rounded-xl uppercase tracking-widest">
+                        <td className="px-4 py-4 text-right">
+                          <span className="bg-blue-200 text-blue-700 text-xs font-black px-3 py-1.5 rounded-xl uppercase tracking-widest">
                             ✓ Done
                           </span>
                         </td>

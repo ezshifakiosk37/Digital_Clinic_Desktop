@@ -1,12 +1,27 @@
-// consultation/doc_consult.tsx
 "use client";
+// // consultation/doc_consult.tsx
 import React, { useState } from 'react';
-import { Pill, Printer, Search, Trash2, User } from 'lucide-react';
-import { DoctorProfile, MEDICINE_OPTIONS } from './doctor_registration';
+import { Pill, Printer, Search, Trash2, User, Check, ChevronsUpDown } from 'lucide-react';
+import { DoctorProfile, MEDICINE_OPTIONS, DOSAGE_UNIT_OPTIONS, DURATION_UNIT_OPTIONS, DIAGNOSIS_OPTIONS } from './doctor_registration';
 import { apiService } from '@/app/_utils/apiService';
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge';
 import { DocConsultProps } from '@/app/_utils/types';
 import { toPng } from 'html-to-image';
+import { Button } from '@/components/ui/button';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 const DocConsult: React.FC<DocConsultProps> = ({
     selectedPatient,
@@ -25,9 +40,22 @@ const DocConsult: React.FC<DocConsultProps> = ({
     setEndingSession,
 }) => {
     const [manualIds, setManualIds] = useState<number[]>([]);
+
+    const splitDosage = (val: string) => {
+        const match = val?.match(/^(\d*\.?\d*)\s*(.*)$/);
+        return { num: match?.[1] ?? '', unit: match?.[2] || 'Tab' };
+    };
+    const splitDuration = (val: string) => {
+        const match = val?.match(/^(\d*)\s*(.*)$/);
+        return { num: match?.[1] ?? '', unit: match?.[2] || 'Day(s)' };
+    };
     const [searchQuery, setSearchQuery] = useState('');
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
     const [isOpenPrescriptionSend, setIsOpenPrescriptionSend] = useState(false);
+    const [diagnoses, setDiagnoses] = useState<string[]>([]);
+    const [diagnosisSearch, setDiagnosisSearch] = useState('');
+    const [diagnosisManual, setDiagnosisManual] = useState(false);
+    const [diagnosisManualValue, setDiagnosisManualValue] = useState('');
 
     console.log(medicines)
 
@@ -273,28 +301,58 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                                 )}
                                             </div>
 
-                                            <input
-                                                placeholder="Dosage e.g. 1 Tab, 2 Tsp"
-                                                className="p-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#0297d6] font-bold text-sm"
-                                                value={med.dosage ?? ''}
-                                                onChange={(e) => updateMedicine(med.id, 'dosage', e.target.value)}
-                                            />
-                                            <input
-                                                placeholder="Duration e.g. 5 Days, 1 Week"
-                                                className="p-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#0297d6] font-bold text-sm"
-                                                value={med.duration ?? ''}
-                                                onChange={(e) => updateMedicine(med.id, 'duration', e.target.value)}
-                                            />
-                                            <select
+                                            <div className="flex gap-1">
+                                                <input
+                                                    placeholder="Qty"
+                                                    type="number"
+                                                    min="0"
+                                                    className="w-20 p-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#0297d6] font-bold text-sm"
+                                                    value={splitDosage(med.dosage ?? '').num}
+                                                    onChange={(e) => updateMedicine(med.id, 'dosage', `${e.target.value} ${splitDosage(med.dosage ?? '').unit}`.trim())}
+                                                />
+                                                <select
+                                                    className="flex-1 p-3 bg-white border border-slate-200 rounded-xl outline-none font-semibold text-slate-600 text-sm"
+                                                    value={splitDosage(med.dosage ?? '').unit}
+                                                    onChange={(e) => updateMedicine(med.id, 'dosage', `${splitDosage(med.dosage ?? '').num} ${e.target.value}`.trim())}
+                                                >
+                                                    {DOSAGE_UNIT_OPTIONS.map(u => <option key={u}>{u}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <input
+                                                    placeholder="Days"
+                                                    type="number"
+                                                    min="0"
+                                                    className="w-20 p-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#0297d6] font-bold text-sm"
+                                                    value={splitDuration(med.duration ?? '').num}
+                                                    onChange={(e) => updateMedicine(med.id, 'duration', `${e.target.value} ${splitDuration(med.duration ?? '').unit}`.trim())}
+                                                />
+                                                <select
+                                                    className="flex-1 p-3 bg-white border border-slate-200 rounded-xl outline-none font-semibold text-slate-600 text-sm"
+                                                    value={splitDuration(med.duration ?? '').unit}
+                                                    onChange={(e) => updateMedicine(med.id, 'duration', `${splitDuration(med.duration ?? '').num} ${e.target.value}`.trim())}
+                                                >
+                                                    {DURATION_UNIT_OPTIONS.map(u => <option key={u}>{u}</option>)}
+                                                </select>
+                                            </div>
+                                            {/* <select
                                                 className="p-3 bg-white border border-slate-200 rounded-xl outline-none font-semibold text-slate-600 text-sm"
                                                 value={med.meal}
                                                 onChange={(e) => updateMedicine(med.id, 'meal', e.target.value)}
                                             >
                                                 <option>After Meal</option>
                                                 <option>Before Meal</option>
-                                            </select>
+                                            </select> */}
                                         </div>
-                                        <div className="flex gap-6 items-center pl-1">
+                                        <div className="flex gap-4 items-center pl-1 flex-wrap">
+                                            <select
+                                                className="p-2 bg-white border border-slate-200 rounded-xl outline-none font-semibold text-slate-600 text-xs"
+                                                value={med.meal}
+                                                onChange={(e) => updateMedicine(med.id, 'meal', e.target.value)}
+                                            >
+                                                <option>After Meal</option>
+                                                <option>Before Meal</option>
+                                            </select>
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Schedule</span>
                                             {['morning', 'afternoon', 'night'].map((time) => (
                                                 <label key={time} className="flex items-center gap-1.5 cursor-pointer">
@@ -318,7 +376,63 @@ const DocConsult: React.FC<DocConsultProps> = ({
                             >
                                 + Add Medicine
                             </button>
-
+                            {/* Diagnosis Section */}
+                            <div className="mb-4">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Add Diagnosis</p>
+                                {diagnoses.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                        {diagnoses.map((d, i) => (
+                                            <span key={i} className="flex items-center gap-1.5 text-xs font-black text-[#0297d6] bg-[#0297d6]/10 px-3 py-1 rounded-lg">
+                                                {d}
+                                                <button onClick={() => setDiagnoses(diagnoses.filter((_, j) => j !== i))} className="hover:text-red-400">✕</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" className="w-full justify-between h-auto min-h-9 py-0 text-left bg-slate-50/50">
+                                            <div className="flex flex-wrap gap-1 py-1">
+                                                {diagnoses.length > 0 ? (
+                                                    diagnoses.map((d) => (
+                                                        <span key={d} className="bg-[#0297d6]/10 text-[#0297d6] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20">{d}</span>
+                                                    ))
+                                                ) : (
+                                                    <span className="text-slate-400 text-sm">Search diagnosis...</span>
+                                                )}
+                                            </div>
+                                            <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80 p-0" align="start">
+                                        <Command>
+                                            <CommandInput placeholder="Search diagnosis..." />
+                                            <CommandList>
+                                                <CommandGroup className="max-h-60 overflow-y-auto">
+                                                    {DIAGNOSIS_OPTIONS.map((option) => (
+                                                        <CommandItem
+                                                            key={option}
+                                                            onSelect={() => {
+                                                                setDiagnoses(prev =>
+                                                                    prev.includes(option)
+                                                                        ? prev.filter(d => d !== option)
+                                                                        : [...prev, option]
+                                                                );
+                                                            }}
+                                                            className="flex items-center gap-2"
+                                                        >
+                                                            <div className={`flex h-4 w-4 items-center justify-center rounded border border-primary ${diagnoses.includes(option) ? "bg-primary text-primary-foreground" : "opacity-50"}`}>
+                                                                {diagnoses.includes(option) && <Check className="h-3 w-3" />}
+                                                            </div>
+                                                            <span>{option}</span>
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
                             <textarea
                                 rows={2}
                                 value={notes}
@@ -336,23 +450,23 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                 </button>
                                 <button
                                     disabled={endingSession}
-                                    // onClick={async () => {
-                                    //     if (!selectedPatient) return;
-                                    //     setEndingSession(true);
-                                    //     try {
-                                    //         await apiService.savePrescription({
-                                    //             patientId: selectedPatient.id,
-                                    //             token: selectedPatient.token,
-                                    //             diagnosis: selectedPatient.symptoms,
-                                    //             clinicalNotes: notes,
-                                    //             medicines: medicines.filter(m => m.name && m.name.trim() !== '')
-                                    //         });
-                                    //         onSessionEnd(selectedPatient);
-                                    //     } catch (err: any) {
-                                    //         console.error(err);
-                                    //         setEndingSession(false);
-                                    //     }
-                                    // }}
+                                    onClick={async () => {
+                                        if (!selectedPatient) return;
+                                        setEndingSession(true);
+                                        try {
+                                            await apiService.savePrescription({
+                                                patientId: selectedPatient.id,
+                                                token: selectedPatient.token,
+                                                diagnosis: diagnoses.length > 0 ? diagnoses.join(', ') : selectedPatient.symptoms,
+                                                clinicalNotes: notes,
+                                                medicines: medicines.filter(m => m.name && m.name.trim() !== '')
+                                            });
+                                            onSessionEnd(selectedPatient);
+                                        } catch (err: any) {
+                                            console.error(err);
+                                            setEndingSession(false);
+                                        }
+                                    }}
                                     className="flex-1 bg-slate-200 disabled:opacity-60 text-slate-700 py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-slate-300 transition-all"
                                 >
                                     {endingSession ? (
@@ -407,7 +521,9 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                             </div>
                                             <div className="flex items-end gap-2">
                                                 <span className="text-xs font-black text-slate-500 uppercase whitespace-nowrap">Diagnosis:</span>
-                                                <span className="flex-1 border-b border-slate-300 pb-0.5 font-bold text-slate-800 text-sm">{selectedPatient.symptoms}</span>
+                                                <span className="flex-1 border-b border-slate-300 pb-0.5 font-bold text-slate-800 text-sm">
+                                                    {diagnoses.length > 0 ? diagnoses.join(', ') : selectedPatient.symptoms}
+                                                </span>
                                             </div>
                                         </div>
 
