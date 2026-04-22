@@ -75,36 +75,34 @@ const DocConsult: React.FC<DocConsultProps> = ({
     const handlePrescriptionPrint = async () => {
     setIsPrinting(true);
 
-    // IMPORTANT: Delay execution by 100ms. 
-    // This gives the DOM time to render the loading spinner and disable the button.
     setTimeout(async () => {
         const rxElement = document.getElementById('prescription-paper');
-        
         if (!rxElement) {
-            console.error("Element not found");
             setIsPrinting(false);
             return;
         }
 
         try {
-            // REDUCED pixelRatio: 3 is overkill for most thermal printers.
-            // Most thermal printers are 203 DPI. 1.5 or 2 is usually plenty.
             const dataUrl = await toPng(rxElement, {
+                // FORCE THE DIMENSIONS HERE
+                width: 380, 
                 backgroundColor: '#ffffff',
-                pixelRatio: 2, 
-                skipFonts: true, // Speeds up processing significantly
+                pixelRatio: 2, // 2 is the sweet spot. 3 will hang your app.
+                style: {
+                    borderRadius: '0', // Thermal paper doesn't have rounded corners
+                    border: 'none'
+                }
             });
 
             const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
             window.AndroidNative?.printImage(base64Data);
 
-        } catch (err: any) {
+        } catch (err) {
             console.error("Print Error:", err);
-            alert("Execution failed.");
         } finally {
             setIsPrinting(false);
         }
-    }, 100); 
+    }, 150);
 };
 
     const toggleManual = (id: number) => {
@@ -614,7 +612,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
                             {/* Printable Prescription */}
                             {prescriptionGenerated && (
                                 <>
-                                    <div id="prescription-paper" className="bg-white border border-slate-100 rounded-2xl p-6 mt-6 mb-4 print:shadow-none">
+                                    {/* <div id="prescription-paper" className="bg-white border border-slate-100 rounded-2xl p-6 mt-6 mb-4 print:shadow-none">
                                         <div className="flex justify-between items-start border-b-2 border-slate-100 pb-4 mb-5">
                                             <div className="flex items-center gap-3">
                                                 <img src="/logo2.png" alt="EZShifa" className="h-18 w-auto" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -720,6 +718,66 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                                 <span className="text-[8px] text-slate-400 font-bold uppercase">Doctor's Stamp</span>
                                             </div>
                                         </div>
+                                    </div> */}
+                                    <div
+                                        id="prescription-paper"
+                                        className="bg-white p-4 w-95 leading-tight text-slate-900"
+                                        style={{ fontFamily: 'monospace' }} // Monospace often prints clearer on thermal
+                                    >
+                                        {/* Header: Stacked instead of spread out */}
+                                        <div className="text-center border-b-2 border-black pb-2 mb-4">
+                                            <img src="/logo2.png" alt="EZShifa" className="h-12 mx-auto mb-2" />
+                                            <p className="text-sm font-black uppercase">Prescription</p>
+                                            <p className="text-[10px] font-bold">EZShifa Digital Health</p>
+                                        </div>
+
+                                        {/* Patient Info: Vertical Stack */}
+                                        <div className="space-y-1 text-[11px] border-b border-black pb-3 mb-3">
+                                            <div className="flex justify-between">
+                                                <span className="font-black uppercase">Name:</span>
+                                                <span className="font-bold">{selectedPatient.firstName} {selectedPatient.lastName}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="font-black uppercase">Age/Sex:</span>
+                                                <span>{selectedPatient.age}Y / {selectedPatient.gender}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="font-black uppercase">Date:</span>
+                                                <span>{new Date().toLocaleDateString()}</span>
+                                            </div>
+                                            <div className="pt-1">
+                                                <p className="font-black uppercase text-[9px]">Diagnosis:</p>
+                                                <p className="italic">{diagnoses.length > 0 ? diagnoses.join(', ') : 'N/A'}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Medicines: Simplified Table/List */}
+                                        <div className="mb-4">
+                                            <p className="text-xl font-black italic mb-2">Rx</p>
+                                            <div className="space-y-4">
+                                                {medicines.filter(m => m.name).map((m, i) => (
+                                                    <div key={i} className="border-b border-slate-100 pb-2">
+                                                        <p className="text-xs font-black uppercase">{m.name}</p>
+                                                        <div className="flex justify-between text-[10px] mt-1">
+                                                            <span>{m.dosage} ({m.duration})</span>
+                                                            <span className="font-bold">M:{m.morning} A:{m.afternoon} N:{m.night}</span>
+                                                        </div>
+                                                        <p className="text-[9px] italic text-[#0297d6]">{m.meal}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Footer: Doctor Info */}
+                                        <div className="text-right pt-4 border-t border-black">
+                                            <p className="text-[10px] font-black">{fullName}</p>
+                                            <p className="text-[9px] uppercase">{doctor.specializations[0]}</p>
+                                            <p className="text-[8px] text-slate-500">{doctor.qualifications.join(', ')}</p>
+                                        </div>
+
+                                        <div className="mt-6 text-center opacity-50">
+                                            <p className="text-[8px] uppercase">*** End of Prescription ***</p>
+                                        </div>
                                     </div>
 
                                     <div className="flex gap-3 print:hidden">
@@ -786,19 +844,34 @@ const DocConsult: React.FC<DocConsultProps> = ({
 
             {/* Global Print Styles */}
             <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: white; }
-        @media print {
-          body * { visibility: hidden; }
-          #prescription-paper, #prescription-paper * { visibility: visible; }
-          #prescription-paper {
-            position: absolute; left: 0; top: 0;
-            width: 100%; padding: 20px !important;
-            box-shadow: none !important; border: none !important;
-          }
-          .print\\:hidden { display: none !important; }
-        }
-      `}</style>
+            /* 1. Standard screen styles */
+            #prescription-paper {
+                width: 380px; /* Fixed width for 80mm Thermal Printers */
+                margin: 0 auto;
+                background: white;
+                color: black;
+                font-family: 'Plus Jakarta Sans', sans-serif;
+            }
+
+            /* 2. Remove Grays - Thermal printers only understand High Contrast */
+            #prescription-paper * {
+                color: #000000 !important;
+                border-color: #000000 !important;
+            }
+
+            /* 3. Hide from screen if you only want it for printing */
+            .hidden-print-template {
+                position: fixed;
+                left: -9999px;
+                top: 0;
+            }
+
+            @media print {
+                body * { visibility: hidden; }
+                #prescription-paper, #prescription-paper * { visibility: visible; }
+                #prescription-paper { position: absolute; left: 0; top: 0; width: 100%; }
+            }
+            `}</style>
         </div>
     );
 };
