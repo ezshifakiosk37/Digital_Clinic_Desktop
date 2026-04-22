@@ -197,6 +197,7 @@ export const LOGOUT_REASONS = [
 
 export const MEDICINE_OPTIONS: string[] = [
   // Antibiotics
+  'Other',
   'Amoxicillin', 'Augmentin', 'Azithromycin', 'Ciprofloxacin', 'Metronidazole',
   'Clarithromycin', 'Doxycycline', 'Ceftriaxone', 'Clindamycin', 'Trimethoprim',
   // Painkillers / Anti-inflammatory
@@ -250,4 +251,39 @@ export const DIAGNOSIS_OPTIONS: string[] = [
   // Other Common
   'Vitamin D Deficiency', 'Iron Deficiency Anemia', 'Dehydration',
   'Fever (Unspecified)', 'Cough (Unspecified)', 'Back Pain', 'Knee Pain',
+];
+
+export const LAB_TEST_OPTIONS: string[] = [
+  'Other',
+  // Hematology
+  'Complete Blood Count (CBC)', 'Erythrocyte Sedimentation Rate (ESR)',
+  'Peripheral Blood Smear', 'Bleeding Time / Clotting Time',
+  // Blood Chemistry
+  'Fasting Blood Sugar (FBS)', 'Random Blood Sugar (RBS)',
+  'HbA1c', 'Lipid Profile', 'Liver Function Tests (LFTs)',
+  'Kidney Function Tests (KFTs)', 'Serum Electrolytes',
+  'Serum Uric Acid', 'Serum Calcium', 'Serum Ferritin',
+  'Serum Iron / TIBC', 'Thyroid Function Tests (TFTs)',
+  'TSH', 'T3 / T4',
+  // Urine
+  'Urine Complete Examination (UCE)', 'Urine Culture & Sensitivity',
+  'Urine Microalbumin', '24-Hour Urine Protein',
+  // Stool
+  'Stool Routine Examination', 'Stool Culture', 'Occult Blood Test',
+  // Serology / Immunology
+  'Hepatitis B Surface Antigen (HBsAg)', 'Anti-HCV', 'HIV 1 & 2',
+  'Dengue NS1 Antigen', 'Dengue IgG / IgM', 'Malaria Antigen Test',
+  'Typhoid (Widal Test)', 'CRP (C-Reactive Protein)', 'ANA (Antinuclear Antibody)',
+  'Rheumatoid Factor (RF)',
+  // Microbiology
+  'Blood Culture & Sensitivity', 'Throat Swab Culture', 'Sputum Culture',
+  // Cardiac
+  'ECG', 'Troponin I / T', 'CPK-MB', 'BNP / NT-proBNP',
+  // Imaging / Radiology
+  'Chest X-Ray', 'Abdominal Ultrasound', 'KUB Ultrasound',
+  'Echocardiography', 'CT Scan (Head)', 'CT Scan (Chest)', 'CT Scan (Abdomen)',
+  'MRI Brain', 'MRI Spine', 'X-Ray (Specific Joint/Region)',
+  // Other
+  'Vitamin D (25-OH)', 'Vitamin B12', 'Folate Level',
+  'Pregnancy Test (urine hCG)', 'COVID-19 Rapid Antigen Test', 'COVID-19 PCR',
 ];

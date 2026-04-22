@@ -1,6 +1,7 @@
 //vitals page
 'use client'
 import React, { useCallback, useEffect, useState, useMemo } from 'react'
+import { COMMON_SYMPTOMS } from './vitals';
 import VitalCard from './_components/VitalCard'
 import { VitalType } from '@/app/_utils/types'
 import { Button } from '@/components/ui/button'
@@ -10,7 +11,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Search, Loader2 } from 'lucide-react'
+import { Search, Loader2, Check, ChevronsUpDown } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -19,12 +20,9 @@ import {
   DialogDescription,
   DialogOverlay
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
-const COMMON_SYMPTOMS = [
-  "Fever", "Cough", "Headache", "Shortness of Breath", "Chest Pain",
-  "Fatigue", "Body Ache", "Sore Throat", "Runny Nose", "Nausea",
-  "Vomiting", "Diarrhea", "Dizziness", "High Blood Pressure", "Low Blood Pressure"
-];
 
 const VitalsPage = () => {
   const [vitals, setVitals] = useState({
@@ -51,6 +49,8 @@ const VitalsPage = () => {
   const [showExpiredDialog, setShowExpiredDialog] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [verifyingToken, setVerifyingToken] = useState(false);
+  const [symptomOther, setSymptomOther] = useState("");
 
   // Toggle symptom selection
   const toggleSymptom = (symptom: string) => {
@@ -65,20 +65,32 @@ const VitalsPage = () => {
   };
 
   // Handle "Other" symptom
-  const addOtherSymptom = () => {
-    if (otherSymptom.trim()) {
-      setVitals(prev => ({
-        ...prev,
-        symptoms: [...(prev.symptoms || []), otherSymptom.trim()]
-      }));
-      setOtherSymptom("");
-      setShowOtherInput(false);
-    }
+  // const addOtherSymptom = () => {
+  //   if (otherSymptom.trim()) {
+  //     setVitals(prev => ({
+  //       ...prev,
+  //       symptoms: [...(prev.symptoms || []), otherSymptom.trim()]
+  //     }));
+  //     setOtherSymptom("");
+  //     setShowOtherInput(false);
+  //   }
+  // };
+
+  const handleOtherSymptomChange = (value: string) => {
+    const trimmedValue = value.trim();
+    setVitals(prev => ({
+      ...prev,
+      symptoms: [
+        ...prev.symptoms.filter(s => !s.startsWith('Other:')),
+        trimmedValue ? `Other:${trimmedValue}` : 'Other'
+      ]
+    }));
   };
 
   // Verify token and start a session
   const handleVerifyToken = async () => {
     if (!tokenNumber) return;
+    setVerifyingToken(true);
     try {
       const res = await apiService.verifyToken(parseInt(tokenNumber).toString());
       if (res.success) {
@@ -107,6 +119,8 @@ const VitalsPage = () => {
       } else {
         alert(msg || "Invalid token number");
       }
+    } finally {
+      setVerifyingToken(false);
     }
   };
 
@@ -316,9 +330,12 @@ const VitalsPage = () => {
                 />
                 <button
                   onClick={handleVerifyToken}
-                  className="bg-primary text-white px-4 py-2 rounded-lg font-semibold hover:bg-primary/90"
+                  disabled={verifyingToken}
+                  className="bg-primary text-white px-4 py-2 rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-70 flex items-center justify-center gap-2"
                 >
-                  Verify Token
+                  {verifyingToken ? (
+                    <><Loader2 className="animate-spin h-4 w-4" /> Verifying...</>
+                  ) : "Verify Token"}
                 </button>
               </div>
             </div>
@@ -386,94 +403,105 @@ const VitalsPage = () => {
               </div>
             </div>
           </div>
-          {/* Multi-Select Checkbox Dropdown for Symptoms */}
-          <div className="mt-10">
-            <h3 className="text-lg font-bold text-slate-800">Symptoms</h3>
-            <div className="flex items-center gap-3 w-full">
-              <div className="relative w-full md:w-96">
-                <button
-                  type="button"
-                  onClick={() => setShowDropdown(!showDropdown)}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-left flex items-center justify-between hover:border-[#0297d6] focus:border-[#0297d6] outline-none"
-                >
-                  <span className="text-sm text-slate-700">
-                    {vitals.symptoms.length > 0
-                      ? `${vitals.symptoms.length} selected`
-                      : "Select Symptoms"}
-                  </span>
-                  <span className="text-slate-400">▼</span>
-                </button>
+          <div className="mb-4">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Symptoms</p>
 
-                {/* Dropdown Menu */}
-                {showDropdown && (
-                  <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-80 overflow-y-auto py-2">
-                    {COMMON_SYMPTOMS.map((symptom) => (
-                      <label
-                        key={symptom}
-                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={vitals.symptoms.includes(symptom)}
-                          onChange={() => toggleSymptom(symptom)}
-                          className="w-5 h-5 accent-[#0297d6] rounded"
-                        />
-                        <span className="text-sm text-slate-700">{symptom}</span>
-                      </label>
-                    ))}
-
-                    {/* Other Option */}
-                    <div className="border-t border-slate-100 mt-2 pt-2 px-4">
-                      <label className="flex items-center gap-3 py-2.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={showOtherInput}
-                          onChange={() => setShowOtherInput(!showOtherInput)}
-                          className="w-5 h-5 accent-[#0297d6] rounded"
-                        />
-                        <span className="text-sm text-slate-700">Other</span>
-                      </label>
-
-                      {showOtherInput && (
-                        <div className="flex gap-2 mt-2 pl-8">
-                          <Input
-                            placeholder="Type custom symptom..."
-                            value={otherSymptom}
-                            onChange={(e) => setOtherSymptom(e.target.value)}
-                            className="flex-1 text-sm"
-                          />
-                          <Button onClick={addOtherSymptom} size="sm">Add</Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <Button onClick={handleAddVitals} disabled={loading} className="shrink-0 ml-auto px-8 py-5 text-base font-bold">
-                {loading ? <><Loader2 className="animate-spin mr-2 h-4 w-4" />Saving...</> : "Add Vitals"}
-              </Button>
-            </div>
-
-            {/* Selected Symptoms as Tags */}
+            {/* Display Selected Symptoms Tags */}
             {vitals.symptoms.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {vitals.symptoms.map((sym, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-[#0297d6]/10 text-[#0297d6] text-sm px-4 py-1.5 rounded-full flex items-center gap-2 border border-[#0297d6]/20"
-                  >
-                    {sym}
+              <div className="flex flex-wrap gap-2 mb-2">
+                {vitals.symptoms.filter(s => s !== 'Other').map((s, i) => (
+                  <span key={i} className="flex items-center gap-1.5 text-xs font-black text-[#0297d6] bg-[#0297d6]/10 px-3 py-1 rounded-lg">
+                    {s.startsWith('Other:') ? `Other: ${s.slice(6)}` : s}
                     <button
-                      onClick={() => toggleSymptom(sym)}
-                      className="text-[#0297d6] hover:text-red-500 font-bold text-lg leading-none"
-                    >
-                      ×
-                    </button>
-                  </div>
+                      onClick={() => {
+                        setVitals(prev => ({
+                          ...prev,
+                          symptoms: prev.symptoms.filter((_, idx) => idx !== i)
+                        }));
+                        if (s.startsWith('Other:')) setSymptomOther('');
+                      }}
+                      className="hover:text-red-400"
+                    >✕</button>
+                  </span>
                 ))}
               </div>
             )}
+
+            {/* Selection Popover */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between h-auto min-h-9 py-0 text-left bg-slate-50/50">
+                  <div className="flex flex-wrap gap-1 py-1">
+                    {vitals.symptoms.length > 0 ? (
+                      vitals.symptoms.map((s) => (
+                        <span key={s} className="bg-[#0297d6]/10 text-[#0297d6] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20">{s.startsWith('Other:') ? 'Other' : s}</span>
+                      ))
+                    ) : (
+                      <span className="text-slate-400 text-sm">Search symptoms...</span>
+                    )}
+                  </div>
+                  <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search symptom..." />
+                  <CommandList>
+                    <CommandGroup className="max-h-60 overflow-y-auto">
+                      {COMMON_SYMPTOMS.map((option) => (
+                        <CommandItem
+                          key={option}
+                          onSelect={() => {
+                            setVitals(prev => ({
+                              ...prev,
+                              symptoms: prev.symptoms.includes(option)
+                                ? prev.symptoms.filter(s => s !== option)
+                                : [...prev.symptoms, option]
+                            }));
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <div className={`flex h-4 w-4 items-center justify-center rounded border border-primary ${vitals.symptoms.includes(option) ? "bg-primary text-primary-foreground" : "opacity-50"}`}>
+                            {vitals.symptoms.includes(option) && <Check className="h-3 w-3" />}
+                          </div>
+                          <span>{option}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+
+            {/* "Other" Input Field (only shows if 'Other' is selected or a custom Other string exists) */}
+            {(vitals.symptoms.includes('Other') || vitals.symptoms.some(s => s.startsWith('Other:'))) && (
+              <div className="flex gap-2 mt-2">
+                <input
+                  autoFocus
+                  placeholder="Specify other symptom..."
+                  className="flex-1 p-3 bg-white border-2 border-[#0297d6] rounded-xl outline-none font-bold text-sm"
+                  value={symptomOther}
+                  onChange={(e) => {
+                    setSymptomOther(e.target.value);
+                    handleOtherSymptomChange(e.target.value);
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    setVitals(prev => ({
+                      ...prev,
+                      symptoms: prev.symptoms.filter(s => s !== 'Other' && !s.startsWith('Other:'))
+                    }));
+                    setSymptomOther('');
+                  }}
+                  className="px-3 text-slate-400 hover:text-red-400 bg-white border border-slate-200 rounded-xl text-xs font-black"
+                >✕</button>
+              </div>
+            )}
           </div>
+          <Button onClick={handleAddVitals} disabled={loading} className="shrink-0 ml-auto px-8 py-5 text-base font-bold">
+            {loading ? <><Loader2 className="animate-spin mr-2 h-4 w-4" />Saving...</> : "Add Vitals"}
+          </Button>
         </section>
       </div>
       <div className="mt-8 md:mt-12">
@@ -556,7 +584,7 @@ const VitalsPage = () => {
           </div>
         )}
       </div>
-    </div>
+    </div >
   )
 }
 
