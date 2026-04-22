@@ -2,7 +2,7 @@
 "use client";
 // // consultation/doc_consult.tsx
 import React, { useState } from 'react';
-import { Pill, Printer, Search, Trash2, User, Check, ChevronsUpDown } from 'lucide-react';
+import { Pill, Printer, Search, Trash2, User, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { DoctorProfile, MEDICINE_OPTIONS, DOSAGE_UNIT_OPTIONS, DURATION_UNIT_OPTIONS, DIAGNOSIS_OPTIONS, LAB_TEST_OPTIONS } from './doctor_registration';
 import { apiService } from '@/app/_utils/apiService';
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge';
@@ -57,6 +57,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
     const [labTest, setlabTest] = useState<string[]>([]);
     const [diagnosisOther, setDiagnosisOther] = useState('');
     const [labTestOther, setLabTestOther] = useState('');
+    const [isPrinting, setIsPrinting] = useState(false);
 
     console.log(medicines)
 
@@ -72,49 +73,51 @@ const DocConsult: React.FC<DocConsultProps> = ({
 
 
     const handlePrescriptionPrint = async () => {
-        console.log("Print process started...");
-        const rxElement = document.getElementById('prescription-paper');
+    // 1. Enter Loading State
+    setIsPrinting(true);
+    
+    const rxElement = document.getElementById('prescription-paper');
+    if (!rxElement) {
+        console.error("Critical Error: 'prescription-paper' div not found.");
+        setIsPrinting(false);
+        return;
+    }
 
-        if (!rxElement) {
-            console.error("Critical Error: 'prescription-paper' div not found in DOM.");
-            return;
-        }
+    try {
+        // 2. Generate the Image
+        const dataUrl = await toPng(rxElement, {
+            backgroundColor: '#ffffff',
+            pixelRatio: 3, 
+            cacheBust: true,
+        });
 
-        try {
-            // 1. Generate the Image
-            // Use toPng or toJpeg. Thermal printers are B&W, so quality matters.
-            const dataUrl = await toPng(rxElement, {
-                backgroundColor: '#ffffff',
-                pixelRatio: 3, // Increased for sharper text on small thermal labels
-                cacheBust: true,
-            });
+        const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
+        const bridge = window.AndroidNative;
 
-            const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
-
-            // 2. Logic Check: Are we on Android or Windows?
-            const bridge = window.AndroidNative;
-
-            if (bridge) {
-                // CASE: Android App
-                if (typeof bridge.printImage === 'function') {
-                    console.log("Sending image to Android Bridge...");
-                    bridge.printImage(base64Data);
-                } else {
-                    // If you haven't added printImage to Java yet, 
-                    // fall back to sending raw text so it does SOMETHING.
-                    console.warn("printImage not found, trying printReceipt as fallback.");
-                    bridge.printReceipt("PRECH-IMAGE-DATA-INCOMING: " + base64Data.substring(0, 20));
-                }
+        if (bridge) {
+            // CASE: Android App
+            if (typeof bridge.printImage === 'function') {
+                // We just fire the command. 
+                // Native side handles its own success/fail toasts now.
+                bridge.printImage(base64Data);
             } else {
-                // CASE: Browser / Laptop
-                console.log("No Bridge. Using System Print.");
-                window.print();
+                // Fallback for legacy bridge versions
+                bridge.printReceipt("PRECH-IMAGE-DATA-INCOMING: " + base64Data.substring(0, 20));
             }
-        } catch (err: any) {
-            console.error("Prescription Print Failure:", err);
-            alert("Print Error: " + err.message);
+        } else {
+            // CASE: Browser / Laptop
+            window.print();
         }
-    };
+
+    } catch (err: any) {
+        console.error("Prescription Print Failure:", err);
+        // Standard alert fallback since bridge toast is gone
+        alert("Print Error: " + err.message);
+    } finally {
+        // 3. Always release the button
+        setIsPrinting(false);
+    }
+};
 
     const toggleManual = (id: number) => {
         setManualIds(prev =>
@@ -667,7 +670,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                             <div className="flex items-end gap-2">
                                                 <span className="text-xs font-black text-slate-500 uppercase whitespace-nowrap">Lab Tests:</span>
                                                 <span className="flex-1 border-b border-slate-300 pb-0.5 font-bold text-slate-800 text-sm">
-                                                    {labTest.length > 0 ? labTest.join(', ') :  "No Test required"}
+                                                    {labTest.length > 0 ? labTest.join(', ') : "No Test required"}
                                                 </span>
                                             </div>
                                         </div>
@@ -734,9 +737,24 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                     <div className="flex gap-3 print:hidden">
                                         <button
                                             onClick={handlePrescriptionPrint}
-                                            className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-[#0297d6] transition-all"
+                                            disabled={isPrinting}
+                                            className={`flex-1 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all
+                                            ${isPrinting
+                                                    ? "bg-slate-400 cursor-not-allowed"
+                                                    : "bg-slate-900 hover:bg-[#0297d6] active:scale-95"
+                                                }`}
                                         >
-                                            <Printer size={16} /> Print Rx
+                                            {isPrinting ? (
+                                                <>
+                                                    <Loader2 size={16} className="animate-spin" />
+                                                    Processing...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Printer size={16} />
+                                                    Print Rx
+                                                </>
+                                            )}
                                         </button>
                                         <div className="relative flex-1">
                                             {/* Trigger Button */}
