@@ -72,39 +72,54 @@ const DocConsult: React.FC<DocConsultProps> = ({
     };
 
 
-    const handlePrescriptionPrint = async () => {
+    const handlePrescriptionPrint = () => {
+        // 1. Immediately show loading state
         setIsPrinting(true);
 
-        // IMPORTANT: Delay execution by 100ms. 
-        // This gives the DOM time to render the loading spinner and disable the button.
-        setTimeout(async () => {
-            const rxElement = document.getElementById('prescription-paper');
+        try {
+            // 2. Map your current state to the JSON format the Kotlin Bridge expects
+            const printPayload = {
+                clinicName: "EZShifa Digital Health",
+                date: new Date().toLocaleDateString(),
+                token: selectedPatient?.token || "N/A",
+                patient: {
+                    name: `${selectedPatient?.firstName} ${selectedPatient?.lastName}`,
+                    ageSex: `${selectedPatient?.age}Y / ${selectedPatient?.gender}`,
+                    weight: selectedPatient?.vitals?.weight || "N/A"
+                },
+                diagnosis: diagnoses.length > 0 ? diagnoses.join(', ') : (selectedPatient?.symptoms || "N/A"),
+                medicines: medicines
+                    .filter(m => m.name) // Don't send empty medicine rows
+                    .map(m => ({
+                        name: m.name,
+                        dosage: m.dosage || "",
+                        duration: m.duration || "",
+                        schedule: `${m.morning ? 1 : 0}-${m.afternoon ? 1 : 0}-${m.night ? 1 : 0}`,
+                        meal: m.meal || ""
+                    })),
+                doctor: {
+                    name: fullName,
+                    specialization: doctor?.specializations?.[0] || "Medical Officer",
+                    qualifications: doctor?.qualifications?.join(', ') || ""
+                }
+            };
 
-            if (!rxElement) {
-                console.error("Element not found");
-                setIsPrinting(false);
-                return;
+            // 3. Use the Bridge (Logical Fallback included)
+            // This calls the printRawJSON function in Kotlin
+            const success = AndroidBridge.printThermal(printPayload);
+
+            if (!success) {
+                console.error("Print command failed to send to bridge.");
             }
 
-            try {
-                // REDUCED pixelRatio: 3 is overkill for most thermal printers.
-                // Most thermal printers are 203 DPI. 1.5 or 2 is usually plenty.
-                const dataUrl = await toPng(rxElement, {
-                    backgroundColor: '#ffffff',
-                    pixelRatio: 2,
-                    skipFonts: true, // Speeds up processing significantly
-                });
-
-                const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
-                window.AndroidNative?.printImage(base64Data);
-
-            } catch (err: any) {
-                console.error("Print Error:", err);
-                alert("Execution failed.");
-            } finally {
-                setIsPrinting(false);
-            }
-        }, 100);
+        } catch (err) {
+            console.error("Data mapping error:", err);
+            alert("Could not prepare prescription data.");
+        } finally {
+            // 4. Reset loading state
+            // We don't need setTimeout anymore because there is no heavy CPU work.
+            setIsPrinting(false);
+        }
     };
 
     const toggleManual = (id: number) => {
