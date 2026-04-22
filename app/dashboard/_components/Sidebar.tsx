@@ -23,32 +23,36 @@ export default function Sidebar() {
     { name: "Consultation", path: "/dashboard/consultation", icon: <LayoutDashboard size={20} /> },
   ];
 
-  // 2. Initialize Hardware Status Listener
+  // 2. Updated Hardware Status Listener
   useEffect(() => {
-    // We use the helper to set up the window.onUsbStatus listener
     AndroidBridge.initHardwareListeners(
       (data) => {
-        // This is the global data listener. 
-        // Usually, individual pages (like Vitals) handle this, 
-        // but you can log it here for debugging.
         console.log("Sidebar global data received:", data);
       },
       (status) => {
         console.log("Hardware Status Update:", status);
-        // Stop spinning if we get a definitive result
+
         if (status === "CONNECTED" || status === "ERROR" || status === "DEVICE_NOT_FOUND" || status === "ALREADY_CONNECTED") {
           setIsConnecting(false);
+        }
+
+        // Manual Toast for specific errors
+        if (status === "DEVICE_NOT_FOUND") {
+          AndroidBridge.showToast("No device found. Check USB cable.");
         }
       }
     );
   }, []);
 
-  // 3. Reconnect Trigger
+  // 3. Updated Reconnect Trigger
   const onReconnectPress = () => {
-    setIsConnecting(true); // Start the animation
+    setIsConnecting(true);
     const success = AndroidBridge.handleReconnect();
+
     if (!success) {
       setIsConnecting(false);
+      // Use the toast to tell the user the bridge is missing
+      AndroidBridge.showToast("Android Bridge not found.");
       console.warn("Bridge not available.");
     }
   };

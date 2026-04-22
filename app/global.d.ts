@@ -9,6 +9,11 @@ declare global {
       connectUsb: () => void;
       disconnectUsb: () => void;
 
+      /** * NEW: Triggers the native Android Toast UI.
+       * Logic: "Hardware connected successfully"
+       */
+      showToast: (message: string) => void;
+
       /** * Print raw text or ESC/POS commands. 
        * Use this for simple text or when you've pre-formatted the string.
        */

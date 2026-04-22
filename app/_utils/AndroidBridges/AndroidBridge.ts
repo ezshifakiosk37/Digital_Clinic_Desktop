@@ -148,7 +148,23 @@ export const AndroidBridge = {
       window.print();
       return true;
     }
-  }
+  },
+
+  showToast: (message: string) => {
+    // Safety check for Server Side Rendering (SSR)
+    if (typeof window === "undefined") return false;
+
+    const bridge = window.AndroidNative;
+
+    if (bridge?.showToast) {
+      bridge.showToast(message);
+      return true;
+    } else {
+      // Fallback for debugging on Desktop browsers
+      console.log("Native Toast Fallback:", message);
+      return false;
+    }
+  },
 
 
 };
