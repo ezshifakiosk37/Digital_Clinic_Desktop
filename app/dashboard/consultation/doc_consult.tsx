@@ -73,50 +73,38 @@ const DocConsult: React.FC<DocConsultProps> = ({
 
 
     const handlePrescriptionPrint = async () => {
-    // 1. Enter Loading State
     setIsPrinting(true);
-    
-    const rxElement = document.getElementById('prescription-paper');
-    if (!rxElement) {
-        console.error("Critical Error: 'prescription-paper' div not found.");
-        setIsPrinting(false);
-        return;
-    }
 
-    try {
-        // 2. Generate the Image
-        const dataUrl = await toPng(rxElement, {
-            backgroundColor: '#ffffff',
-            pixelRatio: 3, 
-            cacheBust: true,
-        });
-
-        const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
-        const bridge = window.AndroidNative;
-
-        if (bridge) {
-            // CASE: Android App
-            if (typeof bridge.printImage === 'function') {
-                // We just fire the command. 
-                // Native side handles its own success/fail toasts now.
-                bridge.printImage(base64Data);
-            } else {
-                // Fallback for legacy bridge versions
-                bridge.printReceipt("PRECH-IMAGE-DATA-INCOMING: " + base64Data.substring(0, 20));
-            }
-        } else {
-            // CASE: Browser / Laptop
-            window.print();
+    // IMPORTANT: Delay execution by 100ms. 
+    // This gives the DOM time to render the loading spinner and disable the button.
+    setTimeout(async () => {
+        const rxElement = document.getElementById('prescription-paper');
+        
+        if (!rxElement) {
+            console.error("Element not found");
+            setIsPrinting(false);
+            return;
         }
 
-    } catch (err: any) {
-        console.error("Prescription Print Failure:", err);
-        // Standard alert fallback since bridge toast is gone
-        alert("Print Error: " + err.message);
-    } finally {
-        // 3. Always release the button
-        setIsPrinting(false);
-    }
+        try {
+            // REDUCED pixelRatio: 3 is overkill for most thermal printers.
+            // Most thermal printers are 203 DPI. 1.5 or 2 is usually plenty.
+            const dataUrl = await toPng(rxElement, {
+                backgroundColor: '#ffffff',
+                pixelRatio: 2, 
+                skipFonts: true, // Speeds up processing significantly
+            });
+
+            const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
+            window.AndroidNative?.printImage(base64Data);
+
+        } catch (err: any) {
+            console.error("Print Error:", err);
+            alert("Execution failed.");
+        } finally {
+            setIsPrinting(false);
+        }
+    }, 100); 
 };
 
     const toggleManual = (id: number) => {
