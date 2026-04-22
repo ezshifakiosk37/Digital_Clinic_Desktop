@@ -14,6 +14,8 @@ declare global {
        */
       printReceipt: (text: string) => void;
 
+
+      printRawJSON: (jsonString: string) => void;
       /** * NEW: Send a Base64 encoded PNG/JPG.
        * This is the ONLY way to make your Tailwind layout look correct 
        * on the thermal printer.

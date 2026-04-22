@@ -148,7 +148,32 @@ export const AndroidBridge = {
       window.print();
       return true;
     }
-  }
+  },
+  /**
+   * Data-driven Printing: Sends raw data to Kotlin for high-speed thermal printing.
+   * Fallback: Triggers standard window.print() if not on Android.
+   */
+  printThermal: (data: any) => {
+    if (typeof window === "undefined") return false;
+    const bridge = window.AndroidNative;
+
+    if (bridge && typeof bridge.printRawJSON === 'function') {
+      try {
+        // Convert the JS object to a string for the Bridge
+        const payload = JSON.stringify(data);
+        bridge.printRawJSON(payload);
+        return true;
+      } catch (err) {
+        console.error("JSON Stringify Error for Print:", err);
+        return false;
+      }
+    } else {
+      // FALLBACK: If no bridge or old bridge version, use system print
+      console.warn("Native printRawJSON not found. Falling back to system print.");
+      window.print();
+      return true;
+    }
+  },
 
 
 };
