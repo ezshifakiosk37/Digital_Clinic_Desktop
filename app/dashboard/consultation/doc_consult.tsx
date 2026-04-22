@@ -73,37 +73,39 @@ const DocConsult: React.FC<DocConsultProps> = ({
 
 
     const handlePrescriptionPrint = async () => {
-    setIsPrinting(true);
+        setIsPrinting(true);
 
-    setTimeout(async () => {
-        const rxElement = document.getElementById('prescription-paper');
-        if (!rxElement) {
-            setIsPrinting(false);
-            return;
-        }
+        // IMPORTANT: Delay execution by 100ms. 
+        // This gives the DOM time to render the loading spinner and disable the button.
+        setTimeout(async () => {
+            const rxElement = document.getElementById('prescription-paper');
 
-        try {
-            const dataUrl = await toPng(rxElement, {
-                // FORCE THE DIMENSIONS HERE
-                width: 380, 
-                backgroundColor: '#ffffff',
-                pixelRatio: 2, // 2 is the sweet spot. 3 will hang your app.
-                style: {
-                    borderRadius: '0', // Thermal paper doesn't have rounded corners
-                    border: 'none'
-                }
-            });
+            if (!rxElement) {
+                console.error("Element not found");
+                setIsPrinting(false);
+                return;
+            }
 
-            const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
-            window.AndroidNative?.printImage(base64Data);
+            try {
+                // REDUCED pixelRatio: 3 is overkill for most thermal printers.
+                // Most thermal printers are 203 DPI. 1.5 or 2 is usually plenty.
+                const dataUrl = await toPng(rxElement, {
+                    backgroundColor: '#ffffff',
+                    pixelRatio: 2,
+                    skipFonts: true, // Speeds up processing significantly
+                });
 
-        } catch (err) {
-            console.error("Print Error:", err);
-        } finally {
-            setIsPrinting(false);
-        }
-    }, 150);
-};
+                const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
+                window.AndroidNative?.printImage(base64Data);
+
+            } catch (err: any) {
+                console.error("Print Error:", err);
+                alert("Execution failed.");
+            } finally {
+                setIsPrinting(false);
+            }
+        }, 100);
+    };
 
     const toggleManual = (id: number) => {
         setManualIds(prev =>
@@ -844,34 +846,19 @@ const DocConsult: React.FC<DocConsultProps> = ({
 
             {/* Global Print Styles */}
             <style>{`
-            /* 1. Standard screen styles */
-            #prescription-paper {
-                width: 380px; /* Fixed width for 80mm Thermal Printers */
-                margin: 0 auto;
-                background: white;
-                color: black;
-                font-family: 'Plus Jakarta Sans', sans-serif;
-            }
-
-            /* 2. Remove Grays - Thermal printers only understand High Contrast */
-            #prescription-paper * {
-                color: #000000 !important;
-                border-color: #000000 !important;
-            }
-
-            /* 3. Hide from screen if you only want it for printing */
-            .hidden-print-template {
-                position: fixed;
-                left: -9999px;
-                top: 0;
-            }
-
-            @media print {
-                body * { visibility: hidden; }
-                #prescription-paper, #prescription-paper * { visibility: visible; }
-                #prescription-paper { position: absolute; left: 0; top: 0; width: 100%; }
-            }
-            `}</style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: white; }
+        @media print {
+          body * { visibility: hidden; }
+          #prescription-paper, #prescription-paper * { visibility: visible; }
+          #prescription-paper {
+            position: absolute; left: 0; top: 0;
+            width: 100%; padding: 20px !important;
+            box-shadow: none !important; border: none !important;
+          }
+          .print\\:hidden { display: none !important; }
+        }
+      `}</style>
         </div>
     );
 };
