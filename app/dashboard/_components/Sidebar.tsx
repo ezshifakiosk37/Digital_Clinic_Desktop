@@ -35,8 +35,10 @@ export default function Sidebar() {
       },
       (status) => {
         console.log("Hardware Status Update:", status);
-        // Stop spinning if we get a definitive result
-        if (status === "CONNECTED" || status === "ERROR" || status === "DEVICE_NOT_FOUND" || status === "ALREADY_CONNECTED") {
+        // ADDED "PERMISSION_REQUESTED" and "OPEN_FAILED" to the list
+        const finalStatuses = ["CONNECTED", "ERROR", "DEVICE_NOT_FOUND", "ALREADY_CONNECTED", "PERMISSION_REQUESTED", "OPEN_FAILED"];
+
+        if (finalStatuses.includes(status)) {
           setIsConnecting(false);
         }
       }
