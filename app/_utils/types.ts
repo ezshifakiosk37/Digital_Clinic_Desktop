@@ -1,4 +1,5 @@
 //app/_utils/types.ts
+import { DoctorProfile } from "../dashboard/consultation/doctor_registration";
 import { demographic } from "./data/demographicData";
 
 export type DemographicField = {
@@ -52,4 +53,63 @@ export interface AIInsight {
   summary: string;
   recommendations: string[];
   status: 'Normal' | 'Alert' | 'Warning';
+}
+
+export interface Vitals {
+    temp: string;
+    bp: string;
+    pulse: string;
+    weight: string;
+}
+
+export interface VitalsDataForHardware {
+  Spo2?: string;
+  PulseRate?: string;
+  Temperature?: string;
+  Weight?: string;
+  BP?: {
+    value1: string; // Systolic
+    value2: string; // Diastolic
+  };
+}
+
+export interface Patient {
+    id: number;
+    token: string;
+    firstName: string;
+    lastName: string;
+    age: number;
+    gender: string;
+    symptoms: string;
+    medicalHistory: string;
+    vitals: Vitals;
+}
+
+interface Medicine {
+  id: number;
+  name: string;
+  dosage: string;
+  duration: string;
+  [key: string]: any; // Using a union for stricter checks
+  morning: boolean;
+  afternoon: boolean;
+  night: boolean;
+}
+
+
+export interface DocConsultProps {
+    selectedPatient: Patient;
+    setSelectedPatient: (p: Patient | null) => void;
+    medicines: Medicine[];
+    setMedicines: React.Dispatch<React.SetStateAction<any[]>>;
+    notes: string;
+    setNotes: (n: string) => void;
+    prescriptionGenerated: boolean;
+    setPrescriptionGenerated: (v: boolean) => void;
+    doctor: DoctorProfile;
+    updateMedicine: (id: number, field: string, value: any) => void;
+    fullName: string;
+    onSessionEnd: (patient: any) => void;
+    endingSession: boolean;
+    setEndingSession: (v: boolean) => void;
 }

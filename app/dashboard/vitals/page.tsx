@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge'
 
 
 const VitalsPage = () => {
@@ -51,6 +52,63 @@ const VitalsPage = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [verifyingToken, setVerifyingToken] = useState(false);
   const [symptomOther, setSymptomOther] = useState("");
+
+  useEffect(() => {
+    AndroidBridge.initVitalsListener((newVitals) => {
+      setVitals(prev => {
+        // Create a copy of the previous state
+        const updated = { ...prev, ...newVitals };
+
+        // LOGIC: If the incoming data contains BP, we must merge it 
+        // specifically to ensure the nested object structure is preserved
+        if (newVitals.BP) {
+          updated.BP = {
+            ...prev.BP,
+            ...newVitals.BP
+          };
+        }
+
+        return updated;
+      });
+    });
+
+    return () => { window.onSerialData = () => { }; };
+  }, []);
+
+  const handleUpdate = (type: keyof typeof vitals, val: string) => {
+    setVitals(prev => ({ ...prev, [type]: val }));
+  };
+
+  const handleBPUpdate = (field: 'value1' | 'value2', val: string) => {
+    setVitals(prev => ({ ...prev, BP: { ...prev.BP, [field]: val } }));
+  };
+
+  const handleAddVitals = async () => {
+    const patientId = localStorage.getItem("localClinic_entryId");
+    if (!patientId) {
+      alert("No active patient session.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await apiService.saveVitals(patientId, vitals);
+      if (result.success) {
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000);
+        // Reset and go back to token dialog for next patient
+        setVitals({ BP: { value1: '120', value2: '80' }, PulseRate: "90", Temperature: '37', Spo2: '93', Height: "5.6", Weight: "65", symptoms: [] });
+        setTokenNumber("");
+        setSessionPhone("");
+        setOpenTokenDialog(true);
+        setOtherSymptom("");
+        setShowOtherInput(false);
+      }
+    } catch (error: any) {
+      alert(`Failed: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Toggle symptom selection
   const toggleSymptom = (symptom: string) => {
@@ -148,40 +206,6 @@ const VitalsPage = () => {
     }
   };
 
-  const handleUpdate = (type: keyof typeof vitals, val: string) => {
-    setVitals(prev => ({ ...prev, [type]: val }));
-  };
-
-  const handleBPUpdate = (field: 'value1' | 'value2', val: string) => {
-    setVitals(prev => ({ ...prev, BP: { ...prev.BP, [field]: val } }));
-  };
-
-  const handleAddVitals = async () => {
-    const patientId = localStorage.getItem("localClinic_entryId");
-    if (!patientId) {
-      alert("No active patient session.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const result = await apiService.saveVitals(patientId, vitals);
-      if (result.success) {
-        setShowSuccessToast(true);
-        setTimeout(() => setShowSuccessToast(false), 3000);
-        // Reset and go back to token dialog for next patient
-        setVitals({ BP: { value1: '120', value2: '80' }, PulseRate: "90", Temperature: '37', Spo2: '93', Height: "5.6", Weight: "65", symptoms: [] });
-        setTokenNumber("");
-        setSessionPhone("");
-        setOpenTokenDialog(true);
-        setOtherSymptom("");
-        setShowOtherInput(false);
-      }
-    } catch (error: any) {
-      alert(`Failed: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const exportToExcel = () => {
     if (!history.length) return;

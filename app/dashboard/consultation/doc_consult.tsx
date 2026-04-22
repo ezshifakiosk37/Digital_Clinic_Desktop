@@ -1,9 +1,13 @@
 // consultation/doc_consult.tsx
 "use client";
+// // consultation/doc_consult.tsx
 import React, { useState } from 'react';
 import { Pill, Printer, Search, Trash2, User, Check, ChevronsUpDown } from 'lucide-react';
 import { DoctorProfile, MEDICINE_OPTIONS, DOSAGE_UNIT_OPTIONS, DURATION_UNIT_OPTIONS, DIAGNOSIS_OPTIONS, LAB_TEST_OPTIONS } from './doctor_registration';
 import { apiService } from '@/app/_utils/apiService';
+import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge';
+import { DocConsultProps } from '@/app/_utils/types';
+import { toPng } from 'html-to-image';
 import { Button } from '@/components/ui/button';
 import {
     Command,
@@ -19,44 +23,6 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
-
-
-
-interface Vitals {
-    temp: string;
-    bp: string;
-    pulse: string;
-    weight: string;
-}
-
-interface Patient {
-    id: number;
-    token: string;
-    firstName: string;
-    lastName: string;
-    age: number;
-    gender: string;
-    symptoms: string;
-    medicalHistory: string;
-    vitals: Vitals;
-}
-
-interface DocConsultProps {
-    selectedPatient: Patient;
-    setSelectedPatient: (p: Patient | null) => void;
-    medicines: any[];
-    setMedicines: React.Dispatch<React.SetStateAction<any[]>>;
-    notes: string;
-    setNotes: (n: string) => void;
-    prescriptionGenerated: boolean;
-    setPrescriptionGenerated: (v: boolean) => void;
-    doctor: DoctorProfile;
-    updateMedicine: (id: number, field: string, value: any) => void;
-    fullName: string;
-    onSessionEnd: (patient: any) => void;
-    endingSession: boolean;
-    setEndingSession: (v: boolean) => void;
-}
 
 const DocConsult: React.FC<DocConsultProps> = ({
     selectedPatient,
@@ -92,32 +58,61 @@ const DocConsult: React.FC<DocConsultProps> = ({
     const [diagnosisOther, setDiagnosisOther] = useState('');
     const [labTestOther, setLabTestOther] = useState('');
 
+    console.log(medicines)
+
     const handleDispense = () => {
-        // 1. Define your sample packet
-        const medicinePacket = {
-            action: "dispense",
-            row: 2,
-            col: 4,
-            quantity: 6,
-            timestamp: new Date().toISOString()
-        };
+        // Logic is now a one-liner. 
+        // If it returns false, you can trigger your UI feedback/toast.
+        const success = AndroidBridge.dispenseMedicine(2, 4, 6);
 
-        // 2. Check if we are running inside your Android App
-        if (window.AndroidNative && typeof window.AndroidNative.sendMedicinePacket === "function") {
-            try {
-                // We MUST stringify the JSON because the Bridge expects a String
-                const jsonString = JSON.stringify(medicinePacket);
-
-                window.AndroidNative.sendMedicinePacket(jsonString);
-
-                console.log("Packet sent to ESP32:", medicinePacket);
-            } catch (error) {
-                console.error("Failed to send packet through bridge:", error);
-            }
-        } else {
-            // 3. Fallback for testing in a normal browser
-            console.warn("Android Bridge not detected. Are you running in the app?");
+        if (!success) {
             alert("Dispense triggered (Simulated: No Hardware Connected)");
+        }
+    };
+
+
+    const handlePrescriptionPrint = async () => {
+        console.log("Print process started...");
+        const rxElement = document.getElementById('prescription-paper');
+
+        if (!rxElement) {
+            console.error("Critical Error: 'prescription-paper' div not found in DOM.");
+            return;
+        }
+
+        try {
+            // 1. Generate the Image
+            // Use toPng or toJpeg. Thermal printers are B&W, so quality matters.
+            const dataUrl = await toPng(rxElement, {
+                backgroundColor: '#ffffff',
+                pixelRatio: 3, // Increased for sharper text on small thermal labels
+                cacheBust: true,
+            });
+
+            const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
+
+            // 2. Logic Check: Are we on Android or Windows?
+            const bridge = window.AndroidNative;
+
+            if (bridge) {
+                // CASE: Android App
+                if (typeof bridge.printImage === 'function') {
+                    console.log("Sending image to Android Bridge...");
+                    bridge.printImage(base64Data);
+                } else {
+                    // If you haven't added printImage to Java yet, 
+                    // fall back to sending raw text so it does SOMETHING.
+                    console.warn("printImage not found, trying printReceipt as fallback.");
+                    bridge.printReceipt("PRECH-IMAGE-DATA-INCOMING: " + base64Data.substring(0, 20));
+                }
+            } else {
+                // CASE: Browser / Laptop
+                console.log("No Bridge. Using System Print.");
+                window.print();
+            }
+        } catch (err: any) {
+            console.error("Prescription Print Failure:", err);
+            alert("Print Error: " + err.message);
         }
     };
 
@@ -738,7 +733,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
 
                                     <div className="flex gap-3 print:hidden">
                                         <button
-                                            onClick={() => window.print()}
+                                            onClick={handlePrescriptionPrint}
                                             className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-[#0297d6] transition-all"
                                         >
                                             <Printer size={16} /> Print Rx

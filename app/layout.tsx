@@ -19,7 +19,7 @@ const quicksand = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Digital Clinic",
+  title: "EZBifurcation",
   description: "A complete digitized clinic structure",
 };
 
