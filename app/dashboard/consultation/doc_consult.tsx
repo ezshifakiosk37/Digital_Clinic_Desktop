@@ -1,26 +1,27 @@
+// consultation/doc_consult.tsx
 "use client";
 // // consultation/doc_consult.tsx
 import React, { useState } from 'react';
 import { Pill, Printer, Search, Trash2, User, Check, ChevronsUpDown } from 'lucide-react';
-import { DoctorProfile, MEDICINE_OPTIONS, DOSAGE_UNIT_OPTIONS, DURATION_UNIT_OPTIONS, DIAGNOSIS_OPTIONS } from './doctor_registration';
+import { DoctorProfile, MEDICINE_OPTIONS, DOSAGE_UNIT_OPTIONS, DURATION_UNIT_OPTIONS, DIAGNOSIS_OPTIONS, LAB_TEST_OPTIONS } from './doctor_registration';
 import { apiService } from '@/app/_utils/apiService';
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge';
 import { DocConsultProps } from '@/app/_utils/types';
 import { toPng } from 'html-to-image';
 import { Button } from '@/components/ui/button';
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
 } from "@/components/ui/command"
 
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
 } from "@/components/ui/popover"
 
 const DocConsult: React.FC<DocConsultProps> = ({
@@ -53,9 +54,9 @@ const DocConsult: React.FC<DocConsultProps> = ({
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
     const [isOpenPrescriptionSend, setIsOpenPrescriptionSend] = useState(false);
     const [diagnoses, setDiagnoses] = useState<string[]>([]);
-    const [diagnosisSearch, setDiagnosisSearch] = useState('');
-    const [diagnosisManual, setDiagnosisManual] = useState(false);
-    const [diagnosisManualValue, setDiagnosisManualValue] = useState('');
+    const [labTest, setlabTest] = useState<string[]>([]);
+    const [diagnosisOther, setDiagnosisOther] = useState('');
+    const [labTestOther, setLabTestOther] = useState('');
 
     console.log(medicines)
 
@@ -119,6 +120,17 @@ const DocConsult: React.FC<DocConsultProps> = ({
         setManualIds(prev =>
             prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
         );
+    };
+
+    const handleOtherInput = (
+        value: string,
+        setter: React.Dispatch<React.SetStateAction<string[]>>
+    ) => {
+        if (!value.trim()) return;
+        setter(prev => {
+            const filtered = prev.filter(i => !i.startsWith('Other:'));
+            return [...filtered, `Other:${value.trim()}`];
+        });
     };
 
     return (
@@ -320,7 +332,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                             </div>
                                             <div className="flex gap-1">
                                                 <input
-                                                    placeholder="Days"
+                                                    placeholder="Qty"
                                                     type="number"
                                                     min="0"
                                                     className="w-20 p-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#0297d6] font-bold text-sm"
@@ -381,10 +393,14 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Add Diagnosis</p>
                                 {diagnoses.length > 0 && (
                                     <div className="flex flex-wrap gap-2 mb-2">
-                                        {diagnoses.map((d, i) => (
+                                        {diagnoses.filter(d => d !== 'Other').map((d, i) => (
                                             <span key={i} className="flex items-center gap-1.5 text-xs font-black text-[#0297d6] bg-[#0297d6]/10 px-3 py-1 rounded-lg">
-                                                {d}
-                                                <button onClick={() => setDiagnoses(diagnoses.filter((_, j) => j !== i))} className="hover:text-red-400">✕</button>
+                                                {d.startsWith('Other:') ? `Other: ${d.slice(6)}` : d}
+                                                <button onClick={() => {
+                                                    const val = diagnoses.filter(d => d !== 'Other')[i];
+                                                    setDiagnoses(diagnoses.filter((_, j) => diagnoses.filter(d => d !== 'Other')[i] !== diagnoses[j]));
+                                                    if (val?.startsWith('Other:')) setDiagnosisOther('');
+                                                }} className="hover:text-red-400">✕</button>
                                             </span>
                                         ))}
                                     </div>
@@ -427,11 +443,133 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                                             <span>{option}</span>
                                                         </CommandItem>
                                                     ))}
+                                                    <CommandItem
+                                                        onSelect={() => {
+                                                            const hasOther = diagnoses.includes('Other') || diagnoses.some(d => d.startsWith('Other:'));
+                                                            if (hasOther) {
+                                                                setDiagnoses(prev => prev.filter(d => d !== 'Other' && !d.startsWith('Other:')));
+                                                                setDiagnosisOther('');
+                                                            } else {
+                                                                setDiagnoses(prev => [...prev, 'Other']);
+                                                                setDiagnosisOther('');
+                                                            }
+                                                        }}
+                                                        className="flex items-center gap-2 border-t border-slate-100 mt-1 pt-1"
+                                                    >
+                                                        <div className={`flex h-4 w-4 items-center justify-center rounded border border-primary ${diagnoses.includes('Other') || diagnoses.some(d => d.startsWith('Other:')) ? 'bg-primary text-primary-foreground' : 'opacity-50'}`}>
+                                                            {(diagnoses.includes('Other') || diagnoses.some(d => d.startsWith('Other:'))) && <Check className="h-3 w-3" />}
+                                                        </div>
+                                                        <span className="font-black text-[#0297d6]">✏️ Other (type manually)</span>
+                                                    </CommandItem>
                                                 </CommandGroup>
                                             </CommandList>
                                         </Command>
                                     </PopoverContent>
                                 </Popover>
+                                {(diagnoses.includes('Other') || diagnoses.some(d => d.startsWith('Other:'))) && (
+                                    <div className="flex gap-2 mt-2">
+                                        <input
+                                            autoFocus
+                                            placeholder="Specify other diagnosis..."
+                                            className="flex-1 p-3 bg-white border-2 border-[#0297d6] rounded-xl outline-none font-bold text-sm"
+                                            value={diagnosisOther}
+                                            onChange={(e) => {
+                                                setDiagnosisOther(e.target.value);
+                                                handleOtherInput(e.target.value, setDiagnoses);
+                                            }}
+                                        />
+                                        <button
+                                            onClick={() => {
+                                                setDiagnoses(prev => prev.filter(d => d !== 'Other' && !d.startsWith('Other:')));
+                                                setDiagnosisOther('');
+                                            }}
+                                            className="px-3 text-slate-400 hover:text-red-400 bg-white border border-slate-200 rounded-xl text-xs font-black"
+                                        >✕</button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Lab Tests Section */}
+                            <div className="mb-4">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Lab Tests</p>
+                                {labTest.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                        {labTest.filter(t => t !== 'Other').map((t, i) => (
+                                            <span key={i} className="flex items-center gap-1.5 text-xs font-black text-[#0297d6] bg-[#0297d6]/10 px-3 py-1 rounded-lg">
+                                                {t.startsWith('Other:') ? `Other: ${t.slice(6)}` : t}
+                                                <button onClick={() => {
+                                                    const val = labTest.filter(t => t !== 'Other')[i];
+                                                    setlabTest(labTest.filter((_, j) => labTest.filter(t => t !== 'Other')[i] !== labTest[j]));
+                                                    if (val?.startsWith('Other:')) setLabTestOther('');
+                                                }} className="hover:text-red-400">✕</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" className="w-full justify-between h-auto min-h-9 py-0 text-left bg-slate-50/50">
+                                            <div className="flex flex-wrap gap-1 py-1">
+                                                {labTest.length > 0 ? (
+                                                    labTest.map((t) => (
+                                                        <span key={t} className="bg-[#0297d6]/10 text-[#0297d6] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20">{t}</span>
+                                                    ))
+                                                ) : (
+                                                    <span className="text-slate-400 text-sm">Search lab tests...</span>
+                                                )}
+                                            </div>
+                                            <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80 p-0" align="start">
+                                        <Command>
+                                            <CommandInput placeholder="Search lab test..." />
+                                            <CommandList>
+                                                <CommandGroup className="max-h-60 overflow-y-auto">
+                                                    {LAB_TEST_OPTIONS.map((option) => (
+                                                        <CommandItem
+                                                            key={option}
+                                                            onSelect={() => {
+                                                                setlabTest(prev =>
+                                                                    prev.includes(option)
+                                                                        ? prev.filter(t => t !== option)
+                                                                        : [...prev, option]
+                                                                );
+                                                            }}
+                                                            className="flex items-center gap-2"
+                                                        >
+                                                            <div className={`flex h-4 w-4 items-center justify-center rounded border border-primary ${labTest.includes(option) ? "bg-primary text-primary-foreground" : "opacity-50"}`}>
+                                                                {labTest.includes(option) && <Check className="h-3 w-3" />}
+                                                            </div>
+                                                            <span>{option}</span>
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                {(labTest.includes('Other') || labTest.some(t => t.startsWith('Other:'))) && (
+                                    <div className="flex gap-2 mt-2">
+                                        <input
+                                            autoFocus
+                                            placeholder="Specify other lab test..."
+                                            className="flex-1 p-3 bg-white border-2 border-[#0297d6] rounded-xl outline-none font-bold text-sm"
+                                            value={labTestOther}
+                                            onChange={(e) => {
+                                                setLabTestOther(e.target.value);
+                                                handleOtherInput(e.target.value, setlabTest);
+                                            }}
+                                        />
+                                        <button
+                                            onClick={() => {
+                                                setlabTest(prev => prev.filter(t => t !== 'Other' && !t.startsWith('Other:')));
+                                                setLabTestOther('');
+                                            }}
+                                            className="px-3 text-slate-400 hover:text-red-400 bg-white border border-slate-200 rounded-xl text-xs font-black"
+                                        >✕</button>
+                                    </div>
+                                )}
                             </div>
                             <textarea
                                 rows={2}
@@ -458,6 +596,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                                 patientId: selectedPatient.id,
                                                 token: selectedPatient.token,
                                                 diagnosis: diagnoses.length > 0 ? diagnoses.join(', ') : selectedPatient.symptoms,
+                                                labTest: labTest.length > 0 ? labTest.join(', ') : null,
                                                 clinicalNotes: notes,
                                                 medicines: medicines.filter(m => m.name && m.name.trim() !== '')
                                             });
@@ -523,6 +662,12 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                                 <span className="text-xs font-black text-slate-500 uppercase whitespace-nowrap">Diagnosis:</span>
                                                 <span className="flex-1 border-b border-slate-300 pb-0.5 font-bold text-slate-800 text-sm">
                                                     {diagnoses.length > 0 ? diagnoses.join(', ') : selectedPatient.symptoms}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-end gap-2">
+                                                <span className="text-xs font-black text-slate-500 uppercase whitespace-nowrap">Lab Tests:</span>
+                                                <span className="flex-1 border-b border-slate-300 pb-0.5 font-bold text-slate-800 text-sm">
+                                                    {labTest.length > 0 ? labTest.join(', ') :  "No Test required"}
                                                 </span>
                                             </div>
                                         </div>
