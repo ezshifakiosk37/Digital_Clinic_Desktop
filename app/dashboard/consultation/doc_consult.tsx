@@ -73,53 +73,49 @@ const DocConsult: React.FC<DocConsultProps> = ({
 
 
     const handlePrescriptionPrint = () => {
-        // 1. Immediately show loading state
+        // 1. Trigger loading state immediately
         setIsPrinting(true);
 
-        try {
-            // 2. Map your current state to the JSON format the Kotlin Bridge expects
-            const printPayload = {
-                clinicName: "EZShifa Digital Health",
-                date: new Date().toLocaleDateString(),
-                token: selectedPatient?.token || "N/A",
-                patient: {
-                    name: `${selectedPatient?.firstName} ${selectedPatient?.lastName}`,
-                    ageSex: `${selectedPatient?.age}Y / ${selectedPatient?.gender}`,
-                    weight: selectedPatient?.vitals?.weight || "N/A"
-                },
-                diagnosis: diagnoses.length > 0 ? diagnoses.join(', ') : (selectedPatient?.symptoms || "N/A"),
-                medicines: medicines
-                    .filter(m => m.name) // Don't send empty medicine rows
-                    .map(m => ({
-                        name: m.name,
-                        dosage: m.dosage || "",
-                        duration: m.duration || "",
-                        schedule: `${m.morning ? 1 : 0}-${m.afternoon ? 1 : 0}-${m.night ? 1 : 0}`,
-                        meal: m.meal || ""
-                    })),
-                doctor: {
-                    name: fullName,
-                    specialization: doctor?.specializations?.[0] || "Medical Officer",
-                    qualifications: doctor?.qualifications?.join(', ') || ""
-                }
-            };
+        // 2. Wrap the logic in a small timeout (300ms is the "sweet spot")
+        // This allows the browser to actually render the Loader2 component.
+        setTimeout(() => {
+            try {
+                const printPayload = {
+                    clinicName: "EZShifa Digital Health",
+                    date: new Date().toLocaleDateString(),
+                    token: selectedPatient?.token || "N/A",
+                    patient: {
+                        name: `${selectedPatient?.firstName} ${selectedPatient?.lastName}`,
+                        ageSex: `${selectedPatient?.age}Y / ${selectedPatient?.gender}`,
+                        weight: selectedPatient?.vitals?.weight || "N/A"
+                    },
+                    diagnosis: diagnoses.length > 0 ? diagnoses.join(', ') : (selectedPatient?.symptoms || "N/A"),
+                    medicines: medicines
+                        .filter(m => m.name)
+                        .map(m => ({
+                            name: m.name,
+                            dosage: m.dosage || "",
+                            duration: m.duration || "",
+                            schedule: `${m.morning ? 1 : 0}-${m.afternoon ? 1 : 0}-${m.night ? 1 : 0}`,
+                            meal: m.meal || ""
+                        })),
+                    doctor: {
+                        name: fullName,
+                        specialization: doctor?.specializations?.[0] || "Medical Officer",
+                        qualifications: doctor?.qualifications?.join(', ') || ""
+                    }
+                };
 
-            // 3. Use the Bridge (Logical Fallback included)
-            // This calls the printRawJSON function in Kotlin
-            const success = AndroidBridge.printThermal(printPayload);
+                // Send to Kotlin
+                AndroidBridge.printThermal(printPayload);
 
-            if (!success) {
-                console.error("Print command failed to send to bridge.");
+            } catch (err) {
+                console.error("Data mapping error:", err);
+            } finally {
+                // 3. Stop loading after the "fake" work is done
+                setIsPrinting(false);
             }
-
-        } catch (err) {
-            console.error("Data mapping error:", err);
-            alert("Could not prepare prescription data.");
-        } finally {
-            // 4. Reset loading state
-            // We don't need setTimeout anymore because there is no heavy CPU work.
-            setIsPrinting(false);
-        }
+        }, 300);
     };
 
     const toggleManual = (id: number) => {
