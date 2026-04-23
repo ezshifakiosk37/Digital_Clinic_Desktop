@@ -17,6 +17,12 @@ export default function VideoCallModal({ callState, onClose, isDoctor = false }:
   useEffect(() => {
     if (!callState.roomUrl || !containerRef.current) return;
 
+    // Destroy any existing Daily.co instance before creating new one
+    const existing = DailyIframe.getCallInstance();
+    if (existing) {
+      existing.destroy();
+    }
+
     const call = DailyIframe.createFrame(containerRef.current, {
       showLeaveButton: true,
       showFullscreenButton: true,
@@ -53,10 +59,9 @@ export default function VideoCallModal({ callState, onClose, isDoctor = false }:
       <div className="bg-white rounded-2xl w-[90vw] h-[85vh] flex flex-col shadow-2xl overflow-hidden">
         <div className="flex items-center justify-between px-6 py-3 border-b bg-slate-50">
           <div className="flex items-center gap-3">
-            <span className={`w-2.5 h-2.5 rounded-full ${
-              status === "connected" ? "bg-green-500 animate-pulse" :
-              status === "connecting" ? "bg-yellow-500 animate-pulse" : "bg-red-500"
-            }`} />
+            <span className={`w-2.5 h-2.5 rounded-full ${status === "connected" ? "bg-green-500 animate-pulse" :
+                status === "connecting" ? "bg-yellow-500 animate-pulse" : "bg-red-500"
+              }`} />
             <span className="font-bold text-slate-800 text-sm">
               {isDoctor ? "Patient Consultation" : "Doctor Consultation"}
             </span>
