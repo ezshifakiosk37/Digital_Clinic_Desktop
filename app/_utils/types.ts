@@ -113,3 +113,18 @@ export interface DocConsultProps {
     endingSession: boolean;
     setEndingSession: (v: boolean) => void;
 }
+
+// video calling
+
+export interface VideoRoom {
+  roomUrl: string;
+  roomName: string;
+}
+
+export interface CallState {
+  status: "idle" | "waiting" | "active" | "ended";
+  roomUrl?: string;
+  roomName?: string;
+  token?: string;
+  vitalsId?: string;
+}

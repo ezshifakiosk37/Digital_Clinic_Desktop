@@ -210,6 +210,54 @@ getDoctor: () => {
         });
         return handleResponse(response);
     },
+
+};
+
+// ── VIDEO CALLING ──
+export const createVideoRoom = async (vitalsId: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/video/create-room`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+    body: JSON.stringify({ vitalsId }),
+  });
+  return response.json();
+};
+
+export const createVideoToken = async (roomName: string, isDoctor: boolean) => {
+  const response = await fetch(`${API_BASE_URL}/api/video/create-token`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem(isDoctor ? "doc_token" : "token")}`,
+    },
+    body: JSON.stringify({ roomName, isDoctor }),
+  });
+  return response.json();
+};
+
+export const checkPendingCall = async () => {
+  const response = await fetch(`${API_BASE_URL}/api/video/pending-call`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("doc_token")}`,
+    },
+  });
+  return response.json();
+};
+
+export const updateCallStatus = async (vitalsId: string, status: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/video/call-status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("doc_token")}`,
+    },
+    body: JSON.stringify({ vitalsId, status }),
+  });
+  return response.json();
 };
 
 

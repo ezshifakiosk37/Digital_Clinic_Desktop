@@ -23,6 +23,9 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge'
+import OnlineConsultButton from './_components/OnlineConsultButton'
+import VideoCallModal from './_components/VideoCallModal'
+import { CallState } from '@/app/_utils/types'
 
 
 const VitalsPage = () => {
@@ -52,6 +55,10 @@ const VitalsPage = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [verifyingToken, setVerifyingToken] = useState(false);
   const [symptomOther, setSymptomOther] = useState("");
+  const [vitalsSubmitted, setVitalsSubmitted] = useState(false);
+  const [callState, setCallState] = useState<CallState | null>(null);
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [currentVitalsId, setCurrentVitalsId] = useState<string>("");
 
   useEffect(() => {
     AndroidBridge.initVitalsListener((newVitals) => {
@@ -95,14 +102,21 @@ const VitalsPage = () => {
       if (result.success) {
         setShowSuccessToast(true);
         setTimeout(() => setShowSuccessToast(false), 3000);
-        // Reset and go back to token dialog for next patient
-        setVitals({ BP: { value1: '120', value2: '80' }, PulseRate: "90", Temperature: '37', Spo2: '93', Height: "5.6", Weight: "65", symptoms: [] });
-        setTokenNumber("");
-        setSessionPhone("");
-        setOpenTokenDialog(true);
-        setOtherSymptom("");
-        setShowOtherInput(false);
+        setVitalsSubmitted(true);
+        if (result.vitalsId) setCurrentVitalsId(result.vitalsId);
       }
+      // const result = await apiService.saveVitals(patientId, vitals);
+      // if (result.success) {
+      //   setShowSuccessToast(true);
+      //   setTimeout(() => setShowSuccessToast(false), 3000);
+      //   // Reset and go back to token dialog for next patient
+      //   setVitals({ BP: { value1: '120', value2: '80' }, PulseRate: "90", Temperature: '37', Spo2: '93', Height: "5.6", Weight: "65", symptoms: [] });
+      //   setTokenNumber("");
+      //   setSessionPhone("");
+      //   setOpenTokenDialog(true);
+      //   setOtherSymptom("");
+      //   setShowOtherInput(false);
+      // }
     } catch (error: any) {
       alert(`Failed: ${error.message}`);
     } finally {
@@ -523,9 +537,40 @@ const VitalsPage = () => {
               </div>
             )}
           </div>
-          <Button onClick={handleAddVitals} disabled={loading} className="shrink-0 ml-auto px-8 py-5 text-base font-bold">
-            {loading ? <><Loader2 className="animate-spin mr-2 h-4 w-4" />Saving...</> : "Add Vitals"}
-          </Button>
+          <div className="flex items-center gap-4 justify-end mt-2">
+            <Button onClick={handleAddVitals} disabled={loading || vitalsSubmitted} className="shrink-0 px-8 py-5 text-base font-bold">
+              {loading ? <><Loader2 className="animate-spin mr-2 h-4 w-4" />Saving...</> : vitalsSubmitted ? "✓ Vitals Saved" : "Add Vitals"}
+            </Button>
+
+            <OnlineConsultButton
+              vitalsId={currentVitalsId}
+              vitalsSubmitted={vitalsSubmitted}
+              onCallReady={(state) => {
+                setCallState(state);
+                setShowVideoCall(true);
+              }}
+            />
+          </div>
+
+          {showVideoCall && callState && (
+            <VideoCallModal
+              callState={callState}
+              onClose={() => {
+                setShowVideoCall(false);
+                setCallState(null);
+                // Reset for next patient after call ends
+                setVitalsSubmitted(false);
+                setCurrentVitalsId("");
+                setVitals({ BP: { value1: '120', value2: '80' }, PulseRate: "90", Temperature: '37', Spo2: '93', Height: "5.6", Weight: "65", symptoms: [] });
+                setTokenNumber("");
+                setSessionPhone("");
+                setOpenTokenDialog(true);
+                setOtherSymptom("");
+                setShowOtherInput(false);
+              }}
+              isDoctor={false}
+            />
+          )}
         </section>
       </div>
       <div className="mt-8 md:mt-12">

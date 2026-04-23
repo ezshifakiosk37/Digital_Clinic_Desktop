@@ -1,12 +1,14 @@
 // consultation/doc_consult.tsx
 "use client";
 // // consultation/doc_consult.tsx
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { Pill, Printer, Search, Trash2, User, Check, ChevronsUpDown } from 'lucide-react';
 import { DoctorProfile, MEDICINE_OPTIONS, DOSAGE_UNIT_OPTIONS, DURATION_UNIT_OPTIONS, DIAGNOSIS_OPTIONS, LAB_TEST_OPTIONS } from './doctor_registration';
 import { apiService } from '@/app/_utils/apiService';
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge';
-import { DocConsultProps } from '@/app/_utils/types';
+import { DocConsultProps,CallState } from '@/app/_utils/types';
+import { checkPendingCall, createVideoToken, updateCallStatus } from '@/app/_utils/apiService';
+import VideoCallModal from '../vitals/_components/VideoCallModal';
 import { toPng } from 'html-to-image';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,6 +43,27 @@ const DocConsult: React.FC<DocConsultProps> = ({
     setEndingSession,
 }) => {
     const [manualIds, setManualIds] = useState<number[]>([]);
+
+    // const [manualIds, setManualIds] = useState<number[]>([]);
+    const [incomingCall, setIncomingCall] = useState<{ vitalsId: string; roomName: string; roomUrl: string; patientName: string } | null>(null);
+    const [callState, setCallState] = useState<CallState | null>(null);
+    const [showVideoCall, setShowVideoCall] = useState(false);
+
+    useEffect(() => {
+      const poll = setInterval(async () => {
+        if (showVideoCall) return;
+        try {
+          const data = await checkPendingCall();
+          if (data.pendingCall) {
+            setIncomingCall(data.pendingCall);
+            new Audio("/ring.mp3").play().catch(() => {});
+          }
+        } catch (err) {
+          console.error("Poll error:", err);
+        }
+      }, 5000);
+      return () => clearInterval(poll);
+    }, [showVideoCall]);
 
     const splitDosage = (val: string) => {
         const match = val?.match(/^(\d*\.?\d*)\s*(.*)$/);
@@ -139,12 +162,62 @@ const DocConsult: React.FC<DocConsultProps> = ({
                 {/* ── PATIENT DETAIL ── */}
                 <div className="lg:mt-2 lg:mx-4 lg:pb-8">
                     {/* Back Button */}
-                    <button
+<button
                         onClick={() => setSelectedPatient(null)}
                         className="mb-6 bg-[#0297d6] text-white py-3 px-6 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-[#0288c2] transition-all"
                     >
                         ← Back to Queue
                     </button>
+
+                    {/* Incoming Call Notification */}
+                    {incomingCall && (
+                      <div className="fixed top-6 right-6 bg-white border-2 border-green-500 rounded-2xl p-5 shadow-2xl z-40">
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className="w-3 h-3 bg-green-500 rounded-full animate-ping" />
+                          <p className="font-black text-slate-800 text-sm">📞 Incoming Video Call</p>
+                        </div>
+                        <p className="text-sm text-slate-500 mb-4">
+                          <span className="font-bold text-slate-700">{incomingCall.patientName}</span> wants to consult
+                        </p>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={async () => {
+                              const tokenData = await createVideoToken(incomingCall.roomName, true);
+                              setCallState({
+                                status: "active",
+                                roomName: incomingCall.roomName,
+                                roomUrl: incomingCall.roomUrl,
+                                token: tokenData.token,
+                                vitalsId: incomingCall.vitalsId,
+                              });
+                              setShowVideoCall(true);
+                              setIncomingCall(null);
+                            }}
+                            className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase"
+                          >
+                            ✅ Accept
+                          </button>
+                          <button
+                            onClick={async () => {
+                              await updateCallStatus(incomingCall.vitalsId, "ended");
+                              setIncomingCall(null);
+                            }}
+                            className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase"
+                          >
+                            ❌ Decline
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Video Call Modal */}
+                    {showVideoCall && callState && (
+                      <VideoCallModal
+                        callState={callState}
+                        onClose={() => { setShowVideoCall(false); setCallState(null); }}
+                        isDoctor={true}
+                      />
+                    )}
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
                         {/* LEFT PANEL - Patient Info + Vitals */}
