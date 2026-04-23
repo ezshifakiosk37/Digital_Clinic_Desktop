@@ -1,8 +1,8 @@
 // consultation/page.tsx
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, CheckCircle, Clock, Search, X } from 'lucide-react';
-import { apiService } from '@/app/_utils/apiService';
+import { apiService, checkPendingCall, createVideoToken, updateCallStatus } from '@/app/_utils/apiService';
 
 import Navbar from './components/Navbar';
 import DocConsult from './doc_consult';
@@ -10,6 +10,8 @@ import DocProfile from './docProfile';
 import DocLogout from './docLogout';
 import DocSignin from './docSignin';
 import DocSignup from './docSignup';
+import { CallState } from '@/app/_utils/types';
+import VideoCallModal from '../vitals/_components/VideoCallModal';
 
 import { DoctorProfile } from './doctor_registration';
 
@@ -53,7 +55,9 @@ const EZShifaPortal = () => {
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [doneQueue, setDoneQueue] = useState<any[]>([]);
   const [endingSession, setEndingSession] = useState(false);
-
+  const [incomingCall, setIncomingCall] = useState<{ vitalsId: string; roomName: string; roomUrl: string; patientName: string } | null>(null);
+  const [videoCallState, setVideoCallState] = useState<CallState | null>(null);
+  const [showVideoCall, setShowVideoCall] = useState(false);
 
   const updateMedicine = (id: number, field: string, value: any) => {
     setMedicines(prev =>
@@ -76,8 +80,27 @@ const EZShifaPortal = () => {
     city: '',
     photo: '',
   });
-  
-React.useEffect(() => {
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const poll = setInterval(async () => {
+      if (showVideoCall) return;
+      try {
+        const data = await checkPendingCall();
+        if (data.pendingCall) {
+          setIncomingCall(data.pendingCall);
+          new Audio("/ring.mp3").play().catch(() => { });
+        }
+      } catch (err) {
+        console.error("Poll error:", err);
+      }
+    }, 5000);
+
+    return () => clearInterval(poll);
+  }, [isLoggedIn, showVideoCall]);
+
+  React.useEffect(() => {
     const token = localStorage.getItem('doc_token');
     if (token) {
       setIsLoggedIn(true);
@@ -420,6 +443,56 @@ React.useEffect(() => {
           />
         )}
       </main>
+      {/* Incoming Call Notification */}
+      {incomingCall && (
+        <div className="fixed top-6 right-6 bg-white border-2 border-green-500 rounded-2xl p-5 shadow-2xl z-50">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="w-3 h-3 bg-green-500 rounded-full animate-ping" />
+            <p className="font-black text-slate-800 text-sm">📞 Incoming Video Call</p>
+          </div>
+          <p className="text-sm text-slate-500 mb-4">
+            <span className="font-bold text-slate-700">{incomingCall.patientName}</span> wants to consult
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={async () => {
+                localStorage.removeItem("pendingVideoCall");
+                const tokenData = await createVideoToken(incomingCall.roomName, true);
+                setVideoCallState({
+                  status: "active",
+                  roomName: incomingCall.roomName,
+                  roomUrl: incomingCall.roomUrl,
+                  token: tokenData.token,
+                  vitalsId: incomingCall.vitalsId,
+                });
+                setShowVideoCall(true);
+                setIncomingCall(null);
+              }}
+              className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase"
+            >
+              ✅ Accept
+            </button>
+            <button
+              onClick={async () => {
+                await updateCallStatus(incomingCall.vitalsId, "ended");
+                setIncomingCall(null);
+              }}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase"
+            >
+              ❌ Decline
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Video Call Modal */}
+      {showVideoCall && videoCallState && (
+        <VideoCallModal
+          callState={videoCallState}
+          onClose={() => { setShowVideoCall(false); setVideoCallState(null); }}
+          isDoctor={true}
+        />
+      )}
 
       {/* Logout Modal - Full props */}
       <DocLogout

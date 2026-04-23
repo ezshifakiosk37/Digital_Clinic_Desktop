@@ -12,12 +12,19 @@ interface Props {
 export default function OnlineConsultButton({ vitalsId, vitalsSubmitted, onCallReady }: Props) {
   const [loading, setLoading] = useState(false);
 
-  const handleStartConsult = async () => {
-    if (!vitalsId) return;
+const handleStartConsult = async () => {
+    console.log("Button clicked, vitalsId:", vitalsId);
+    if (!vitalsId) {
+      alert("No vitalsId — vitals not saved yet");
+      return;
+    }
     setLoading(true);
     try {
+      console.log("Creating room...");
       const room = await createVideoRoom(vitalsId);
+      console.log("Room response:", room);
       const tokenData = await createVideoToken(room.roomName, false);
+      console.log("Token response:", tokenData);
       onCallReady({
         status: "waiting",
         roomUrl: room.roomUrl,
