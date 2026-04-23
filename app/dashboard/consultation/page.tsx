@@ -55,7 +55,7 @@ const EZShifaPortal = () => {
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [doneQueue, setDoneQueue] = useState<any[]>([]);
   const [endingSession, setEndingSession] = useState(false);
-  const [incomingCall, setIncomingCall] = useState<{ vitalsId: string; roomName: string; roomUrl: string; patientName: string } | null>(null);
+  const [incomingCall, setIncomingCall] = useState<{ vitalsId: string; roomName: string; roomUrl: string; patientName: string; patientToken: string } | null>(null);
   const [videoCallState, setVideoCallState] = useState<CallState | null>(null);
   const [showVideoCall, setShowVideoCall] = useState(false);
 
@@ -450,8 +450,11 @@ const EZShifaPortal = () => {
             <span className="w-3 h-3 bg-green-500 rounded-full animate-ping" />
             <p className="font-black text-slate-800 text-sm">📞 Incoming Video Call</p>
           </div>
-          <p className="text-sm text-slate-500 mb-4">
-            <span className="font-bold text-slate-700">{incomingCall.patientName}</span> wants to consult
+          <p className="text-sm text-slate-500 mb-1">
+            <span className="font-bold text-slate-700">{incomingCall.patientName}</span>
+          </p>
+          <p className="text-xs text-slate-400 mb-4">
+            Token: <span className="font-black text-[#0297d6]">#{incomingCall.patientToken}</span>
           </p>
           <div className="flex gap-3">
             <button

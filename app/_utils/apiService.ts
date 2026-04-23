@@ -1,5 +1,6 @@
 // app/_utils/apiService.ts
 const API_BASE_URL = "https://bifurcation-clinic-api.vercel.app";
+export const LIVEKIT_URL = "wss://ezshifameet-pxqld5yv.livekit.cloud"; // Live kit URL for video calling
 
 const handleResponse = async (response: Response) => {
     const data = await response.json();

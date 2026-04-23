@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { createVideoRoom, createVideoToken } from "@/app/_utils/apiService";
+import { createVideoRoom } from "@/app/_utils/apiService";
 import { CallState } from "@/app/_utils/types";
 
 interface Props {
@@ -12,24 +12,22 @@ interface Props {
 export default function OnlineConsultButton({ vitalsId, vitalsSubmitted, onCallReady }: Props) {
   const [loading, setLoading] = useState(false);
 
-const handleStartConsult = async () => {
-    console.log("Button clicked, vitalsId:", vitalsId);
+  const handleStartConsult = async () => {
     if (!vitalsId) {
       alert("No vitalsId — vitals not saved yet");
       return;
     }
     setLoading(true);
     try {
-      console.log("Creating room...");
-      const room = await createVideoRoom(vitalsId);
-      console.log("Room response:", room);
-      const tokenData = await createVideoToken(room.roomName, false);
-      console.log("Token response:", tokenData);
+      // LiveKit: create-room returns token directly for patient
+      const data = await createVideoRoom(vitalsId);
+      console.log("LiveKit room response:", data);
+
       onCallReady({
         status: "waiting",
-        roomUrl: room.roomUrl,
-        roomName: room.roomName,
-        token: tokenData.token,
+        roomUrl: data.roomName,
+        roomName: data.roomName,
+        token: data.token, // patient token from backend
         vitalsId,
       });
     } catch (err) {

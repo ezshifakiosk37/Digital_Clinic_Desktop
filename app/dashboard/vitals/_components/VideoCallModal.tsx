@@ -1,7 +1,13 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import DailyIframe from "@daily-co/daily-js";
+import { useEffect, useState } from "react";
+import {
+  LiveKitRoom,
+  VideoConference,
+  RoomAudioRenderer,
+} from "@livekit/components-react";
+import "@livekit/components-styles";
 import { updateCallStatus } from "@/app/_utils/apiService";
+import { LIVEKIT_URL } from "@/app/_utils/apiService";
 import { CallState } from "@/app/_utils/types";
 
 interface Props {
@@ -11,70 +17,59 @@ interface Props {
 }
 
 export default function VideoCallModal({ callState, onClose, isDoctor = false }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"connecting" | "connected" | "ended">("connecting");
 
-  useEffect(() => {
-    if (!callState.roomUrl || !containerRef.current) return;
-
-    // Destroy any existing Daily.co instance before creating new one
-    const existing = DailyIframe.getCallInstance();
-    if (existing) {
-      existing.destroy();
+  const handleDisconnect = async () => {
+    setStatus("ended");
+    if (callState.vitalsId) {
+      await updateCallStatus(callState.vitalsId, "ended");
     }
+    onClose();
+  };
 
-    const call = DailyIframe.createFrame(containerRef.current, {
-      showLeaveButton: true,
-      showFullscreenButton: true,
-      iframeStyle: {
-        width: "100%",
-        height: "100%",
-        border: "none",
-        borderRadius: "12px",
-      },
-    });
-
-    call.join({ url: callState.roomUrl, token: callState.token });
-
-    call.on("joined-meeting", async () => {
-      setStatus("connected");
-      if (callState.vitalsId) {
-        await updateCallStatus(callState.vitalsId, "active");
-      }
-    });
-
-    call.on("left-meeting", async () => {
-      setStatus("ended");
-      if (callState.vitalsId) {
-        await updateCallStatus(callState.vitalsId, "ended");
-      }
-      onClose();
-    });
-
-    return () => { call.destroy(); };
-  }, []);
+  if (!callState.token || !callState.roomName) return null;
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl w-[90vw] h-[85vh] flex flex-col shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-3 border-b bg-slate-50">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-3 border-b bg-slate-50 shrink-0">
           <div className="flex items-center gap-3">
-            <span className={`w-2.5 h-2.5 rounded-full ${status === "connected" ? "bg-green-500 animate-pulse" :
-                status === "connecting" ? "bg-yellow-500 animate-pulse" : "bg-red-500"
-              }`} />
+            <span className={`w-2.5 h-2.5 rounded-full ${
+              status === "connected" ? "bg-green-500 animate-pulse" :
+              status === "connecting" ? "bg-yellow-500 animate-pulse" : "bg-red-500"
+            }`} />
             <span className="font-bold text-slate-800 text-sm">
               {isDoctor ? "Patient Consultation" : "Doctor Consultation"}
             </span>
             <span className="text-xs text-slate-400 capitalize">{status}</span>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleDisconnect}
             className="text-slate-400 hover:text-red-500 font-bold text-sm transition-colors px-3 py-1 rounded-lg hover:bg-red-50"
           >
             ✕ End Call
           </button>
         </div>
-        <div ref={containerRef} className="flex-1" />
+
+        {/* LiveKit Room */}
+        <div className="flex-1 overflow-hidden">
+          <LiveKitRoom
+            token={callState.token}
+            serverUrl={LIVEKIT_URL}
+            connect={true}
+            video={true}
+            audio={true}
+            onConnected={() => setStatus("connected")}
+            onDisconnected={handleDisconnect}
+            style={{ height: "100%" }}
+          >
+            <VideoConference />
+            <RoomAudioRenderer />
+          </LiveKitRoom>
+        </div>
+
       </div>
     </div>
   );
