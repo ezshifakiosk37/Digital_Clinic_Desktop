@@ -7,7 +7,7 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // Logic: Check the "ID badge" (token)
+    // Logic: Check the ID badge (token)
     const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
 
     if (token) {
