@@ -59,6 +59,8 @@ export default function Sidebar() {
   const handleSignOut = () => {
     apiService.logout();
     localStorage.removeItem('localClinic_entryId');
+    localStorage.removeItem('doctor');
+    localStorage.removeItem('doc_token');
     router.push("/sign-in");
   };
 

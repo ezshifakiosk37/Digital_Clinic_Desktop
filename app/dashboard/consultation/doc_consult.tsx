@@ -54,6 +54,17 @@ const DocConsult: React.FC<DocConsultProps> = ({
         if (!success) alert("Dispense triggered (Simulated: No Hardware Connected)");
     };
 
+    const handlePrint = () => {
+        if (!(window as any).AndroidNative) {
+            console.warn("No Android Bridge found. Using system print.");
+            window.print();
+            setIsPrinting(false);
+            return;
+        } else {
+            setIsPrinterModalOpen(true)
+        }
+    }
+
     // ─── executePrint: sends full payload including vitals, labTests, notes ───
     const executePrint = useCallback(() => {
         setIsPrinting(true);
@@ -561,7 +572,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
 
                                     {/* ACTION BUTTONS */}
                                     <div className="flex gap-3 print:hidden mt-4">
-                                        <button onClick={() => setIsPrinterModalOpen(true)} disabled={isPrinting}
+                                        <button onClick={handlePrint} disabled={isPrinting}
                                             className={`flex-1 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all ${isPrinting ? "bg-slate-400 cursor-not-allowed" : "bg-slate-900 hover:bg-[#0297d6] active:scale-95"}`}>
                                             {isPrinting ? (<><Loader2 size={16} className="animate-spin" />Processing...</>) : (<><Printer size={16} />Print Rx</>)}
                                         </button>
