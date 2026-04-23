@@ -113,3 +113,20 @@ export interface DocConsultProps {
     endingSession: boolean;
     setEndingSession: (v: boolean) => void;
 }
+
+export interface BluetoothPrinter {
+    name: string;
+    address: string;
+}
+
+export type PrinterModalStep = 'list' | 'connecting' | 'ready' | 'printing';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BluetoothPrinterModal
+// ─────────────────────────────────────────────────────────────────────────────
+export interface BluetoothPrinterModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onPrint: () => void;        // called after printer is selected & connected
+    isPrinting: boolean;
+}
