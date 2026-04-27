@@ -75,6 +75,23 @@ const VitalsPage = () => {
     return () => { window.onSerialData = () => { }; };
   }, []);
 
+  const handleWeightCalibration = () => {
+    // 1. Log for debugging
+    console.log("Initiating weight calibration...");
+
+    // 2. Call the bridge
+    const success = AndroidBridge.calibrateWeight();
+
+    // 3. Handle feedback
+    if (success) {
+      // You could trigger a toast notification here
+      console.log("Calibration command 'c' sent to ESP32.");
+    } else {
+      // Alert the user that the hardware isn't responding
+      alert("Calibration failed. Please check hardware connection.");
+    }
+  };
+
   const handleUpdate = (type: keyof typeof vitals, val: string) => {
     setVitals(prev => ({ ...prev, [type]: val }));
   };
@@ -278,6 +295,7 @@ const VitalsPage = () => {
     doc.save(`History_${historySearchPhone}.pdf`);
   };
 
+
   const bmi = useMemo(() => {
     const weight = parseFloat(vitals.Weight);
     const feet = parseFloat(vitals.Height?.split('.')[0] || '0');
@@ -379,7 +397,12 @@ const VitalsPage = () => {
             <VitalCard type={VitalType.BLOOD_PRESSURE} onChange1={(val) => handleBPUpdate('value1', val)} onChange2={(val) => handleBPUpdate('value2', val)} isDualValue value1={vitals.BP.value1} value2={vitals.BP.value2} />
             <VitalCard type={VitalType.TEMPERATURE} onChange={(val) => handleUpdate('Temperature', val)} value={vitals.Temperature} />
             <VitalCard type={VitalType.BLOOD_OXYGEN} onChange={(val) => handleUpdate('Spo2', val)} value={vitals.Spo2} />
-            <VitalCard type={VitalType.WEIGHT} onChange={(val) => handleUpdate('Weight', val)} value={vitals.Weight} />
+            <VitalCard
+              type={VitalType.WEIGHT}
+              onChange={(val) => handleUpdate('Weight', val)}
+              value={vitals.Weight}
+              onCalibrate={handleWeightCalibration} // Separated function reference
+            />
             <VitalCard
               type={VitalType.HEIGHT}
               customContent={
