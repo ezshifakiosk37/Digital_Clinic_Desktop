@@ -76,30 +76,29 @@ const VitalsPage = () => {
   }, []);
 
   const handleWeightCalibration = async () => {
-    console.log("Initiating weight calibration sequence...");
+    // Logic: Get the value currently typed in the input
+    const currentWeight = vitals.Weight || "0";
+
+    if (parseFloat(currentWeight) <= 0) {
+      alert("Please enter a known weight value (e.g., 5.0) before calibrating.");
+      return;
+    }
+
+    console.log(`Starting calibration with ${currentWeight}kg...`);
 
     try {
-      const success = await AndroidBridge.calibrateWeight();
+      const success = await AndroidBridge.calibrateWeight(currentWeight);
 
       if (success) {
-        console.log("Calibration successful. Forcing UI reset...");
-
-        // LOGIC: We use a double-approach here.
-        // 1. Immediate reset
-        handleUpdate('Weight', '0');
-
-        // 2. Delayed reset to "catch" any late-arriving serial data 
-        // that might try to overwrite our zero.
+        console.log("Calibration successful.");
+        // Logic: After sending the weight to ESP32, we can reset UI to 0
+        // or keep it to show what was calibrated.
         setTimeout(() => {
           handleUpdate('Weight', '0');
-          console.log("Weight UI confirmed at 0.00");
         }, 500);
-
-      } else {
-        alert("Hardware connection failed.");
       }
     } catch (error) {
-      console.error("Calibration error:", error);
+      console.error(error);
     }
   };
 

@@ -179,30 +179,31 @@ export const AndroidBridge = {
   /**
    * Triggers weight calibration by sending 'c' to the hardware.
    */
-  calibrateWeight: async () => {
+  calibrateWeight: async (knownWeightValue: string) => {
     const bridge = window.AndroidNative;
 
     if (bridge && typeof bridge.sendWeightCalibrationCommand === 'function') {
       try {
-        // 1. STOP/CANCEL existing session
-        // We send 'x' first. If a session is active, it cancels it. 
-        // If no session is active, the ESP32 will just ignore it.
+        // Step 1: Force cancel any previous session
         bridge.sendWeightCalibrationCommand("x");
-        console.log("Sent 'x' to cancel any active session.");
-        
-        // short gap to let the ESP32 reset its state
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(r => setTimeout(r, 200));
 
-        // 2. START new session
+        // Step 2: Start Calibration
         bridge.sendWeightCalibrationCommand("c");
-        console.log("Sent 'c' to start calibration.");
+        await new Promise(r => setTimeout(r, 600)); // Increased delay for ESP32 menu print
 
-        // 3. WAIT for menu transition
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // 4. TARE
+        // Step 3: Send 'a' to Tare
         bridge.sendWeightCalibrationCommand("a");
-        console.log("Sent 'a' to tare.");
+        console.log("Tare command sent. Waiting for ESP32 to stabilize...");
+        
+        // Step 4: Wait for "Tare complete" and the "Send known weight" prompt
+        // This needs a longer delay (at least 1-2 seconds) because 
+        // the HX711 sensor needs time to sample and zero out.
+        await new Promise(r => setTimeout(r, 2000));
+
+        // Step 5: Send the manual weight value from the UI
+        console.log(`Sending known weight: ${knownWeightValue}`);
+        bridge.sendWeightCalibrationCommand(knownWeightValue);
 
         return true;
       } catch (err) {
