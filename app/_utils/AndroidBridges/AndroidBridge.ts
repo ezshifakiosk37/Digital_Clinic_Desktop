@@ -184,26 +184,32 @@ export const AndroidBridge = {
 
     if (bridge && typeof bridge.sendWeightCalibrationCommand === 'function') {
       try {
-        // 1. Send 'c' to tell the ESP32 to enter calibration mode
-        bridge.sendWeightCalibrationCommand("c");
-        console.log("Sent 'c' to enter calibration menu.");
+        // 1. STOP/CANCEL existing session
+        // We send 'x' first. If a session is active, it cancels it. 
+        // If no session is active, the ESP32 will just ignore it.
+        bridge.sendWeightCalibrationCommand("x");
+        console.log("Sent 'x' to cancel any active session.");
+        
+        // short gap to let the ESP32 reset its state
+        await new Promise(resolve => setTimeout(resolve, 200));
 
-        // 2. Force a 500ms delay. 
-        // This gives the ESP32 time to print its menu to the serial buffer 
-        // and transition its internal state machine without dropping the next character.
+        // 2. START new session
+        bridge.sendWeightCalibrationCommand("c");
+        console.log("Sent 'c' to start calibration.");
+
+        // 3. WAIT for menu transition
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // 3. Send 'a' to actually tare the scale
+        // 4. TARE
         bridge.sendWeightCalibrationCommand("a");
-        console.log("Sent 'a' to execute tare.");
+        console.log("Sent 'a' to tare.");
 
         return true;
       } catch (err) {
-        console.error("Bridge call failed during calibration sequence:", err);
+        console.error("Calibration sequence failed:", err);
         return false;
       }
     }
-    console.error("Native method 'sendWeightCalibrationCommand' not found.");
     return false;
   },
 
