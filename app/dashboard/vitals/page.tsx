@@ -414,7 +414,6 @@ const VitalsPage = () => {
               isOpen={isCalibrateModalOpen}
               onClose={() => setIsCalibrateModalOpen(false)}
               onConfirm={handleFinalizeCalibration}
-              currentRawWeight={vitals.Weight} // Passing live data as prop
               knownWeightValue={manualWeightInput}
               setKnownWeightValue={setManualWeightInput}
             />
