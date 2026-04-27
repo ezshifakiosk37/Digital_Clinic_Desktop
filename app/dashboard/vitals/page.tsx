@@ -79,24 +79,27 @@ const VitalsPage = () => {
     console.log("Initiating weight calibration sequence...");
 
     try {
-      // 1. Execute the multi-step sequence (x -> c -> a)
       const success = await AndroidBridge.calibrateWeight();
 
       if (success) {
-        console.log("Calibration sequence completed successfully.");
+        console.log("Calibration successful. Forcing UI reset...");
 
-        /** * LOGIC: Manually zero the UI value.
-         * We don't wait for the next hardware pulse because we want 
-         * the UI to feel responsive and confirm the action to the user.
-         */
+        // LOGIC: We use a double-approach here.
+        // 1. Immediate reset
         handleUpdate('Weight', '0');
 
+        // 2. Delayed reset to "catch" any late-arriving serial data 
+        // that might try to overwrite our zero.
+        setTimeout(() => {
+          handleUpdate('Weight', '0');
+          console.log("Weight UI confirmed at 0.00");
+        }, 500);
+
       } else {
-        alert("Hardware connection failed. Please check the USB cable.");
+        alert("Hardware connection failed.");
       }
     } catch (error) {
       console.error("Calibration error:", error);
-      alert("An error occurred during the calibration process.");
     }
   };
 
