@@ -78,19 +78,25 @@ const VitalsPage = () => {
   const handleWeightCalibration = async () => {
     console.log("Initiating weight calibration sequence...");
 
-    // Since calibrateWeight now handles the 'c' -> wait -> 'a' sequence internally,
-    // we just call it once and wait for the result.
     try {
+      // 1. Execute the multi-step sequence (x -> c -> a)
       const success = await AndroidBridge.calibrateWeight();
 
-      if (!success) {
-        alert("Hardware connection failed or bridge method missing.");
-      } else {
+      if (success) {
         console.log("Calibration sequence completed successfully.");
+
+        /** * LOGIC: Manually zero the UI value.
+         * We don't wait for the next hardware pulse because we want 
+         * the UI to feel responsive and confirm the action to the user.
+         */
+        handleUpdate('Weight', '0');
+
+      } else {
+        alert("Hardware connection failed. Please check the USB cable.");
       }
     } catch (error) {
       console.error("Calibration error:", error);
-      alert("An unexpected error occurred during calibration.");
+      alert("An error occurred during the calibration process.");
     }
   };
 
