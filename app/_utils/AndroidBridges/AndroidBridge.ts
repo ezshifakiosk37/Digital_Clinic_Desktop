@@ -179,17 +179,27 @@ export const AndroidBridge = {
   /**
    * Triggers weight calibration by sending 'c' to the hardware.
    */
-  calibrateWeight: () => {
+  calibrateWeight: async () => {
     const bridge = window.AndroidNative;
 
     if (bridge && typeof bridge.sendWeightCalibrationCommand === 'function') {
       try {
-        // Hardcode "c" here so the UI doesn't have to worry about the specific protocol character
+        // 1. Send 'c' to tell the ESP32 to enter calibration mode
         bridge.sendWeightCalibrationCommand("c");
-        console.log("Weight calibration command sent.");
+        console.log("Sent 'c' to enter calibration menu.");
+
+        // 2. Force a 500ms delay. 
+        // This gives the ESP32 time to print its menu to the serial buffer 
+        // and transition its internal state machine without dropping the next character.
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // 3. Send 'a' to actually tare the scale
+        bridge.sendWeightCalibrationCommand("a");
+        console.log("Sent 'a' to execute tare.");
+
         return true;
       } catch (err) {
-        console.error("Bridge call failed:", err);
+        console.error("Bridge call failed during calibration sequence:", err);
         return false;
       }
     }

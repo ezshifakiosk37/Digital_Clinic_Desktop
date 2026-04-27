@@ -75,20 +75,22 @@ const VitalsPage = () => {
     return () => { window.onSerialData = () => { }; };
   }, []);
 
-  const handleWeightCalibration = () => {
-    // 1. Log for debugging
-    console.log("Initiating weight calibration...");
+  const handleWeightCalibration = async () => {
+    console.log("Initiating weight calibration sequence...");
 
-    // 2. Call the bridge
-    const success = AndroidBridge.calibrateWeight();
+    // Since calibrateWeight now handles the 'c' -> wait -> 'a' sequence internally,
+    // we just call it once and wait for the result.
+    try {
+      const success = await AndroidBridge.calibrateWeight();
 
-    // 3. Handle feedback
-    if (success) {
-      // You could trigger a toast notification here
-      console.log("Calibration command 'c' sent to ESP32.");
-    } else {
-      // Alert the user that the hardware isn't responding
-      alert("Calibration failed. Please check hardware connection.");
+      if (!success) {
+        alert("Hardware connection failed or bridge method missing.");
+      } else {
+        console.log("Calibration sequence completed successfully.");
+      }
+    } catch (error) {
+      console.error("Calibration error:", error);
+      alert("An unexpected error occurred during calibration.");
     }
   };
 
