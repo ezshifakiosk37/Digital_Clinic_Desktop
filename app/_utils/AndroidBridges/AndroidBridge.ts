@@ -11,7 +11,7 @@ export const AndroidBridge = {
     if (!bridge) return false;
 
     console.log("Initiating Hardware Reset...");
-    
+
     // 1. Tell Android to release the USB port
     if (bridge.disconnectUsb) {
       bridge.disconnectUsb();
@@ -59,14 +59,14 @@ export const AndroidBridge = {
         if (match) {
           if (parser.transform) {
             // FIXED: Changed from onUpdate to onDataUpdate
-            onDataUpdate(parser.transform(match)); 
+            onDataUpdate(parser.transform(match));
           } else if (parser.keys) {
             const result: any = {};
             parser.keys.forEach((key, index) => {
               result[key] = match[index + 1];
             });
             // FIXED: Changed from onUpdate to onDataUpdate
-            onDataUpdate(result); 
+            onDataUpdate(result);
           }
           break;
         }
@@ -173,6 +173,28 @@ export const AndroidBridge = {
       window.print();
       return true;
     }
+  },
+  // ... add this inside the AndroidBridge object in your bridge file
+
+  /**
+   * Triggers weight calibration by sending 'c' to the hardware.
+   */
+  calibrateWeight: () => {
+    const bridge = window.AndroidNative;
+
+    if (bridge && typeof bridge.sendWeightCalibrationCommand === 'function') {
+      try {
+        // Hardcode "c" here so the UI doesn't have to worry about the specific protocol character
+        bridge.sendWeightCalibrationCommand("c");
+        console.log("Weight calibration command sent.");
+        return true;
+      } catch (err) {
+        console.error("Bridge call failed:", err);
+        return false;
+      }
+    }
+    console.error("Native method 'sendWeightCalibrationCommand' not found.");
+    return false;
   },
 
 

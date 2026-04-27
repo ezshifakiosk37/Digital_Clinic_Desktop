@@ -3,6 +3,9 @@ export { };
 declare global {
   interface Window {
     AndroidNative?: {
+      /** * Sends the specific 'c' character to calibrate the scale.
+       */
+      sendWeightCalibrationCommand: (command: string) => void;
       /** Existing IoT/Hardware methods */
       sendMedicinePacket: (jsonString: string) => void;
 
