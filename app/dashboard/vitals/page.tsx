@@ -98,6 +98,18 @@ const VitalsPage = () => {
     }
   };
 
+  // Logic: Stops the calibration form esp32
+  const handleCancelCalibration = () => {
+  // 1. Tell the hardware to stop waiting
+  AndroidBridge.cancelCalibration();
+
+  // 2. Close the UI
+  setIsCalibrateModalOpen(false);
+
+  // 3. Reset local input
+  setManualWeightInput("");
+};
+
   const handleUpdate = (type: keyof typeof vitals, val: string) => {
     setVitals(prev => ({ ...prev, [type]: val }));
   };
@@ -412,7 +424,7 @@ const VitalsPage = () => {
             {/* The Separated Modal */}
             <WeightCalibrationModal
               isOpen={isCalibrateModalOpen}
-              onClose={() => setIsCalibrateModalOpen(false)}
+              onClose={handleCancelCalibration}
               onConfirm={handleFinalizeCalibration}
               knownWeightValue={manualWeightInput}
               setKnownWeightValue={setManualWeightInput}

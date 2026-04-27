@@ -201,6 +201,18 @@ export const AndroidBridge = {
       return true;
     }
     return false;
+  },
+  /**
+   * Immediately aborts any active hardware calibration session.
+   */
+  cancelCalibration: () => {
+    const bridge = window.AndroidNative;
+    if (bridge?.sendWeightCalibrationCommand) {
+      bridge.sendWeightCalibrationCommand("x");
+      console.log("Sent 'x' to hardware: Calibration Aborted.");
+      return true;
+    }
+    return false;
   }
 
 
