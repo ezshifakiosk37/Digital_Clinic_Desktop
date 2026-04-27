@@ -1,6 +1,7 @@
 import React from 'react';
 import { VitalType } from '../../../_utils/types';
 import { VITAL_CONFIGS } from '../../../_utils/data/constants';
+import { Button } from '@/components/ui/button';
 
 interface VitalCardProps {
   type: VitalType;
@@ -10,6 +11,7 @@ interface VitalCardProps {
   onChange?: (value: string) => void;
   onChange1?: (value1: string) => void;
   onChange2?: (value2: string) => void;
+  onCalibrate?: () => void;
   isEditable?: boolean;
   timestamp?: string | number | Date;
   isDualValue?: boolean;
@@ -24,6 +26,7 @@ const VitalCard: React.FC<VitalCardProps> = ({
   onChange,
   onChange1,
   onChange2,
+  onCalibrate,
   customContent,
   isEditable = true,
   timestamp,
@@ -35,6 +38,12 @@ const VitalCard: React.FC<VitalCardProps> = ({
     <div className="bg-white p-3 md:p-5 rounded-2xl shadow-lg shadow-black/10 border border-slate-100 flex flex-col items-start hover:border-primary/20 transition-all group w-full">
       <div className="flex justify-between items-center w-full mb-2">
         <h3 className="text-primary tracking-wider text-sm font-semibold mb-1 uppercase">{type}</h3>
+        {/* Conditional Calibration Button */}
+        {/* {type === VitalType.WEIGHT && (
+          <Button onClick={onCalibrate} >
+            Calibrate
+          </Button>
+        )} */}
         <div className="p-3 rounded-xl bg-slate-100 group-hover:bg-primary/10 transition-colors">
           {config.icon("w-6 h-6 text-primary")}
         </div>
@@ -61,13 +70,21 @@ const VitalCard: React.FC<VitalCardProps> = ({
               />
             </div>
           ) : (
-            <input
-              type="text"
-              value={value ?? ''}
-              placeholder="--"
-              onChange={(e) => onChange?.(e.target.value)}
-              className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-[50%] rounded px-1 transition-all"
-            />
+            <div className='flex items-center space-x-4'>
+              <input
+                type="text"
+                value={value ?? ''}
+                placeholder="--"
+                onChange={(e) => onChange?.(e.target.value)}
+                className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-[50%] rounded px-1 transition-all"
+              />
+              {type === VitalType.WEIGHT && (
+                <Button onClick={onCalibrate} >
+                  Calibrate
+                </Button>
+              )}
+            </div>
+
           )
         ) : (
           <span className="text-xl font-bold text-secondary">{value || '--'}</span>
