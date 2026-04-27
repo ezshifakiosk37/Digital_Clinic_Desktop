@@ -177,42 +177,31 @@ export const AndroidBridge = {
   // ... add this inside the AndroidBridge object in your bridge file
 
   /**
-   * Triggers weight calibration by sending 'c' to the hardware.
+   * Part 1: Prepares the hardware (Cancel -> Calibration Mode -> Tare)
    */
-  calibrateWeight: async (knownWeightValue: string) => {
+  startCalibrationSequence: async () => {
     const bridge = window.AndroidNative;
-
-    if (bridge && typeof bridge.sendWeightCalibrationCommand === 'function') {
-      try {
-        // Step 1: Force cancel any previous session
-        bridge.sendWeightCalibrationCommand("x");
-        await new Promise(r => setTimeout(r, 200));
-
-        // Step 2: Start Calibration
-        bridge.sendWeightCalibrationCommand("c");
-        await new Promise(r => setTimeout(r, 600)); // Increased delay for ESP32 menu print
-
-        // Step 3: Send 'a' to Tare
-        bridge.sendWeightCalibrationCommand("a");
-        console.log("Tare command sent. Waiting for ESP32 to stabilize...");
-        
-        // Step 4: Wait for "Tare complete" and the "Send known weight" prompt
-        // This needs a longer delay (at least 1-2 seconds) because 
-        // the HX711 sensor needs time to sample and zero out.
-        await new Promise(r => setTimeout(r, 2000));
-
-        // Step 5: Send the manual weight value from the UI
-        console.log(`Sending known weight: ${knownWeightValue}`);
-        bridge.sendWeightCalibrationCommand(knownWeightValue);
-
-        return true;
-      } catch (err) {
-        console.error("Calibration sequence failed:", err);
-        return false;
-      }
+    if (bridge?.sendWeightCalibrationCommand) {
+      bridge.sendWeightCalibrationCommand("x"); // Clear old
+      await new Promise(r => setTimeout(r, 200));
+      bridge.sendWeightCalibrationCommand("c"); // Start Calib
+      await new Promise(r => setTimeout(r, 500));
+      bridge.sendWeightCalibrationCommand("a"); // Tare
+      return true;
     }
     return false;
   },
+  /**
+   * Part 2: Sends the numerical value the user typed in the popup
+   */
+  sendFinalCalibrationWeight: (weight: string) => {
+    const bridge = window.AndroidNative;
+    if (bridge?.sendWeightCalibrationCommand) {
+      bridge.sendWeightCalibrationCommand(weight);
+      return true;
+    }
+    return false;
+  }
 
 
 };

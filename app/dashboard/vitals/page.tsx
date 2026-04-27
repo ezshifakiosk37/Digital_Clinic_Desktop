@@ -23,6 +23,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge'
+import WeightCalibrationModal from './_components/WeightCalibrationModel';
 
 
 const VitalsPage = () => {
@@ -52,6 +53,8 @@ const VitalsPage = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [verifyingToken, setVerifyingToken] = useState(false);
   const [symptomOther, setSymptomOther] = useState("");
+  const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
+  const [manualWeightInput, setManualWeightInput] = useState("");
 
   useEffect(() => {
     AndroidBridge.initVitalsListener((newVitals) => {
@@ -75,30 +78,23 @@ const VitalsPage = () => {
     return () => { window.onSerialData = () => { }; };
   }, []);
 
-  const handleWeightCalibration = async () => {
-    // Logic: Get the value currently typed in the input
-    const currentWeight = vitals.Weight || "0";
-
-    if (parseFloat(currentWeight) <= 0) {
-      alert("Please enter a known weight value (e.g., 5.0) before calibrating.");
-      return;
+  // Logic: Initial Trigger (x -> c -> a)
+  const handleStartCalibration = async () => {
+    const success = await AndroidBridge.startCalibrationSequence();
+    if (success) {
+      setIsCalibrateModalOpen(true);
     }
+  };
 
-    console.log(`Starting calibration with ${currentWeight}kg...`);
-
-    try {
-      const success = await AndroidBridge.calibrateWeight(currentWeight);
-
-      if (success) {
-        console.log("Calibration successful.");
-        // Logic: After sending the weight to ESP32, we can reset UI to 0
-        // or keep it to show what was calibrated.
-        setTimeout(() => {
-          handleUpdate('Weight', '0');
-        }, 500);
-      }
-    } catch (error) {
-      console.error(error);
+  // Logic: Final Trigger (Send the number)
+  const handleFinalizeCalibration = () => {
+    if (!manualWeightInput) return alert("Enter weight first");
+    
+    const success = AndroidBridge.sendFinalCalibrationWeight(manualWeightInput);
+    if (success) {
+      setIsCalibrateModalOpen(false);
+      setManualWeightInput("");
+      handleUpdate('Weight', '0'); // Reset UI
     }
   };
 
@@ -411,7 +407,16 @@ const VitalsPage = () => {
               type={VitalType.WEIGHT}
               onChange={(val) => handleUpdate('Weight', val)}
               value={vitals.Weight}
-              onCalibrate={handleWeightCalibration} // Separated function reference
+              onCalibrate={handleStartCalibration} // Separated function reference
+            />
+            {/* The Separated Modal */}
+            <WeightCalibrationModal
+              isOpen={isCalibrateModalOpen}
+              onClose={() => setIsCalibrateModalOpen(false)}
+              onConfirm={handleFinalizeCalibration}
+              currentRawWeight={vitals.Weight} // Passing live data as prop
+              knownWeightValue={manualWeightInput}
+              setKnownWeightValue={setManualWeightInput}
             />
             <VitalCard
               type={VitalType.HEIGHT}
