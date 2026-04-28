@@ -35,7 +35,7 @@ const TokenDialog = ({
           {/* Close Button */}
           <button 
             onClick={onClose}
-            className="absolute top-4 right-4 p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+            className="absolute top-4 cursor-pointer right-4 p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
             aria-label="Close dialog"
           >
             <X size={20} />

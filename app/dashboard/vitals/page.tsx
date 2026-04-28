@@ -392,6 +392,7 @@ const VitalsPage = () => {
               <h2 className="text-xl md:text-3xl font-extrabold text-slate-900">Patient Vitals</h2>
               {sessionPhone && <p className="text-blue-600 text-sm font-medium">Active Session: {sessionPhone}</p>}
             </div>
+            <Button onClick={() => setOpenTokenDialog(true)}>Add Token</Button>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
