@@ -371,8 +371,6 @@ const VitalsPage = () => {
       <div className="relative">
         {openTokenDialog && (
           <>
-            {/* Overlay — only covers vitals section */}
-            <div className="absolute inset-0 bg-black/05 backdrop-blur-sm z-10 rounded-xl" />
 
             {/* Token card — centered over vitals */}
             <TokenDialog
@@ -557,9 +555,14 @@ const VitalsPage = () => {
               </div>
             )}
           </div>
-          <Button onClick={handleAddVitals} disabled={loading} className="shrink-0 ml-auto px-8 py-5 text-base font-bold">
-            {loading ? <><Loader2 className="animate-spin mr-2 h-4 w-4" />Saving...</> : "Add Vitals"}
-          </Button>
+          <div className='flex justify-between w-full'>
+            <div>
+              <Button onClick={handleAddVitals} disabled={loading} className="shrink-0 ml-auto px-8 py-5 text-base font-bold">
+                {loading ? <><Loader2 className="animate-spin mr-2 h-4 w-4" />Saving...</> : "Add Vitals"}
+              </Button>
+            </div>
+            <Button>Online Consult</Button>
+          </div>
         </section>
       </div>
       <div className="mt-8 md:mt-12">
