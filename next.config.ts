@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* Logic: Mandatory for Electron. 
      This generates the 'out' folder containing static HTML/CSS/JS. */
-  output: 'export',
+//   output: 'export',
 
   /* Logic: Fixes the "White Screen" or 404 issue on refresh.
      Ensures that /dashboard becomes /dashboard/index.html so Electron can find it. */

@@ -25,6 +25,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge'
 import WeightCalibrationModal from './_components/WeightCalibrationModel';
 import TokenDialog from './_components/TokenDialog';
+import { useRouter } from 'next/navigation';
+import { VideoConsultModel } from './_components/VideoConsultModel';
 
 
 const VitalsPage = () => {
@@ -56,6 +58,10 @@ const VitalsPage = () => {
   const [symptomOther, setSymptomOther] = useState("");
   const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
   const [manualWeightInput, setManualWeightInput] = useState("");
+  const [vitalsId, setVitalsId] = useState<string>("")
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+
+  const router = useRouter()
 
   useEffect(() => {
     AndroidBridge.initVitalsListener((newVitals) => {
@@ -78,6 +84,18 @@ const VitalsPage = () => {
 
     return () => { window.onSerialData = () => { }; };
   }, []);
+
+  const handleOnlineConsult = async () => {
+    if (!vitalsId) {
+      alert("Please save vitals first to initiate a consult.");
+      return;
+    }
+
+    // Logic: Navigate to your Video Call route 
+    // (e.g., /video-call/[vitalsId])
+    // Your Android WebView will then load this Next.js page.
+    router.push(`/video-call/${vitalsId}`);
+  };
 
   // Logic: Initial Trigger (x -> c -> a)
   const handleStartCalibration = async () => {
@@ -128,16 +146,20 @@ const VitalsPage = () => {
     setLoading(true);
     try {
       const result = await apiService.saveVitals(patientId, vitals);
+
       if (result.success) {
+        // Capture the ID of the vitals record just created
+        const newVitalsId = result.data.id;
+        setVitalsId(newVitalsId);
+
         setShowSuccessToast(true);
         setTimeout(() => setShowSuccessToast(false), 3000);
-        // Reset and go back to token dialog for next patient
-        setVitals({ BP: { value1: '120', value2: '80' }, PulseRate: "90", Temperature: '37', Spo2: '93', Height: "5.6", Weight: "65", symptoms: [] });
-        setTokenNumber("");
-        setSessionPhone("");
-        setOpenTokenDialog(true);
-        setOtherSymptom("");
-        setShowOtherInput(false);
+
+        // DO NOT reset everything immediately if you want to stay on the page for the call
+        // Instead, trigger the Video Consult Modal
+        setIsVideoModalOpen(true);
+
+        // Optional: Move your reset logic to AFTER the call or when the modal closes
       }
     } catch (error: any) {
       alert(`Failed: ${error.message}`);
@@ -561,7 +583,13 @@ const VitalsPage = () => {
                 {loading ? <><Loader2 className="animate-spin mr-2 h-4 w-4" />Saving...</> : "Add Vitals"}
               </Button>
             </div>
-            <Button>Online Consult</Button>
+            {/* The Video Modal */}
+            <Button onClick={() => setIsVideoModalOpen(true)}>Online Consult</Button>
+            <VideoConsultModel
+              isOpen={isVideoModalOpen}
+              onClose={() => setIsVideoModalOpen(false)}
+              vitalsId={vitalsId}
+            />
           </div>
         </section>
       </div>
