@@ -68,7 +68,7 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
   }, [vitalsId]);
 
   return (
-    <div className="relative h-screen w-screen bg-slate-950 overflow-hidden flex flex-col items-center justify-center">
+    <div className="relative h-screen w-full bg-slate-950 overflow-hidden flex flex-col items-center justify-center">
       {loading && (
         <div className="z-50 flex flex-col items-center gap-4">
           <Loader2 className="h-12 w-12 text-blue-500 animate-spin" />
