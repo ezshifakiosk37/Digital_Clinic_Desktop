@@ -79,7 +79,7 @@ const VitalCard: React.FC<VitalCardProps> = ({
                 className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-[50%] rounded px-1 transition-all"
               />
               {type === VitalType.WEIGHT && (
-                <Button onClick={onCalibrate} >
+                <Button className='px-4 py-2 text-sm' onClick={onCalibrate} >
                   Calibrate
                 </Button>
               )}
