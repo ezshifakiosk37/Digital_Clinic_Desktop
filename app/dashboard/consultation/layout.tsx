@@ -36,7 +36,7 @@ export default function ConsultationLayout({ children }: { children: React.React
           }
 
           // 4. Send to Express
-          const response = await fetch(`${apiUrl}/notifications/save-doctor-token`, {
+          const response = await fetch(`${apiUrl}/api/notifications/save-doctor-token`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
