@@ -19,7 +19,7 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
   useEffect(() => {
     const initCall = async () => {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const baseUrl = "https://bifurcation-clinic-api.vercel.app";
         const tokenResponse = await fetch(`${baseUrl}/api/agoravideo/token/${vitalsId}`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
