@@ -24,6 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge'
 import WeightCalibrationModal from './_components/WeightCalibrationModel';
+import TokenDialog from './_components/TokenDialog';
 
 
 const VitalsPage = () => {
@@ -89,7 +90,7 @@ const VitalsPage = () => {
   // Logic: Final Trigger (Send the number)
   const handleFinalizeCalibration = () => {
     if (!manualWeightInput) return alert("Enter weight first");
-    
+
     const success = AndroidBridge.sendFinalCalibrationWeight(manualWeightInput);
     if (success) {
       setIsCalibrateModalOpen(false);
@@ -100,15 +101,15 @@ const VitalsPage = () => {
 
   // Logic: Stops the calibration form esp32
   const handleCancelCalibration = () => {
-  // 1. Tell the hardware to stop waiting
-  AndroidBridge.cancelCalibration();
+    // 1. Tell the hardware to stop waiting
+    AndroidBridge.cancelCalibration();
 
-  // 2. Close the UI
-  setIsCalibrateModalOpen(false);
+    // 2. Close the UI
+    setIsCalibrateModalOpen(false);
 
-  // 3. Reset local input
-  setManualWeightInput("");
-};
+    // 3. Reset local input
+    setManualWeightInput("");
+  };
 
   const handleUpdate = (type: keyof typeof vitals, val: string) => {
     setVitals(prev => ({ ...prev, [type]: val }));
@@ -374,31 +375,14 @@ const VitalsPage = () => {
             <div className="absolute inset-0 bg-black/05 backdrop-blur-sm z-10 rounded-xl" />
 
             {/* Token card — centered over vitals */}
-            <div className="absolute inset-0 z-50 flex items-center justify-center px-4">
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
-                <div>
-                  <h2 className="text-lg font-bold text-slate-800">Enter Token Number</h2>
-                  <p className="text-sm text-slate-500 mt-1">Verify the patient token from the reception.</p>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Enter Token"
-                  value={tokenNumber}
-                  onChange={(e) => setTokenNumber(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleVerifyToken()}
-                  className="w-full border border-slate-300 rounded-lg px-4 py-2 text-center text-xl font-semibold focus:ring-2 focus:ring-primary outline-none"
-                />
-                <button
-                  onClick={handleVerifyToken}
-                  disabled={verifyingToken}
-                  className="bg-primary text-white px-4 py-2 rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-70 flex items-center justify-center gap-2"
-                >
-                  {verifyingToken ? (
-                    <><Loader2 className="animate-spin h-4 w-4" /> Verifying...</>
-                  ) : "Verify Token"}
-                </button>
-              </div>
-            </div>
+            <TokenDialog
+              isOpen={openTokenDialog}
+              tokenNumber={tokenNumber}
+              onClose={() => setOpenTokenDialog(false)}
+              setTokenNumber={setTokenNumber}
+              onVerify={handleVerifyToken}
+              isVerifying={verifyingToken}
+            />
           </>
         )}
 
