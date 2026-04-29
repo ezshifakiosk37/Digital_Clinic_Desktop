@@ -31,6 +31,8 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
         const userObj = JSON.parse(userString);
         const storedKioskId = userObj.id; // Extract the 'id' field
 
+        console.log("user id: " + storedKioskId)
+
         if (!storedKioskId) {
           setError("Kiosk ID missing in user profile.");
           return;
@@ -63,31 +65,35 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
     }
   }, [isOpen]);
 
-  const handleStartConsult = async () => {
-    console.log("VitalsID" + vitalsId)
-    console.log("doctorId" + doctorId)
-    if (!vitalsId || !doctorId) return;
+  // VideoConsultModel.tsx
+const handleStartConsult = async () => {
+  if (!vitalsId || !doctorId) return;
+  setIsConnecting(true);
 
-    setIsConnecting(true);
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/alert-doctor`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        // patientName is now removed from the payload
-        body: JSON.stringify({ doctorId, vitalsId })
-      });
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/alert-doctor`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ doctorId, vitalsId })
+    });
 
-      if (!response.ok) throw new Error("Failed to alert doctor");
+    // ✅ Read the body BEFORE checking ok, so you see the real error
+    const data = await response.json();
 
-      window.location.href = `/dashboard/video-call/${vitalsId}`;
-    } catch (err: any) {
-      setIsConnecting(false);
-      alert(err.message);
+    if (!response.ok) {
+      console.error("Alert doctor failed:", data); // Shows the real reason
+      throw new Error(data.error || "Failed to alert doctor");
     }
-  };
+
+    window.location.href = `/dashboard/video-call/${vitalsId}`;
+  } catch (err: any) {
+    setIsConnecting(false);
+    alert(err.message);
+  }
+};
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
