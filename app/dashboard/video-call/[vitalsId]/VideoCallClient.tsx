@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react';
-import AgoraRTC, { 
-  ILocalVideoTrack, 
-  ILocalAudioTrack, 
-  IAgoraRTCClient 
+import AgoraRTC, {
+  ILocalVideoTrack,
+  ILocalAudioTrack,
+  IAgoraRTCClient
 } from "agora-rtc-sdk-ng";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Loader2, CameraOff, AlertCircle } from "lucide-react";
@@ -38,7 +38,10 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
         const data = await tokenResponse.json();
         if (!data.success) throw new Error(data.error || "Token fetch failed");
 
-        client.current = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+        client.current = AgoraRTC.createClient({
+          mode: "rtc",
+          codec: "vp8",
+        });
 
         client.current.on("user-published", async (user, mediaType) => {
           await client.current!.subscribe(user, mediaType);
@@ -72,9 +75,9 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
           console.warn("Camera/mic failed, trying audio only:", deviceErr.code);
 
           // PERMISSION_DENIED — user blocked the browser prompt
-          if (deviceErr.code === 'PERMISSION_DENIED' || 
-              deviceErr.message?.includes('Permission denied') ||
-              deviceErr.message?.includes('NotAllowedError')) {
+          if (deviceErr.code === 'PERMISSION_DENIED' ||
+            deviceErr.message?.includes('Permission denied') ||
+            deviceErr.message?.includes('NotAllowedError')) {
             setPermissionDenied(true);
             setHasCamera(false);
             // Still join the channel so the other person can see the user
@@ -85,8 +88,8 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
           }
 
           // DEVICE_NOT_FOUND — no camera, try audio only
-          if (deviceErr.code === 'DEVICE_NOT_FOUND' || 
-              deviceErr.message?.includes('NotFoundError')) {
+          if (deviceErr.code === 'DEVICE_NOT_FOUND' ||
+            deviceErr.message?.includes('NotFoundError')) {
             try {
               const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
               localAudioTrack.current = audioTrack;

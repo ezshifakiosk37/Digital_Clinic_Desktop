@@ -213,7 +213,43 @@ export const AndroidBridge = {
       return true;
     }
     return false;
-  }
+  },
+  // ─────────────────────────────────────────────────────────────────────────
+  // FIREBASE / NOTIFICATION BRIDGES
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Triggers the native Android request for the FCM token.
+   * You must call initFcmListener first to catch the response.
+   */
+  requestNativeFcmToken: () => {
+    const bridge = window.AndroidNative;
+    if (bridge?.requestFcmToken) {
+      bridge.requestFcmToken();
+      return true;
+    }
+    return false;
+  },
+
+  /**
+   * Sets up the global listener to receive the token from Android.
+   * @param onTokenReceived Callback function that takes the token string.
+   */
+  initFcmListener: (onTokenReceived: (token: string) => void) => {
+    window.onFcmTokenReceived = (jsonString: string) => {
+      try {
+        const data = JSON.parse(jsonString);
+        if (data.token) {
+          console.log("Native FCM Token Received:", data.token);
+          onTokenReceived(data.token);
+        } else if (data.error) {
+          console.error("FCM Bridge Error:", data.error);
+        }
+      } catch (err) {
+        console.error("Failed to parse FCM response:", err);
+      }
+    };
+  },
 
 
 };
