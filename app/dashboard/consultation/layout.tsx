@@ -91,7 +91,7 @@ export default function ConsultationLayout({ children }: { children: React.React
               vitalsId,
               title: payload.notification?.title,
               body: callerName,
-              callUrl: `/doctor/dashboard/call/${vitalsId}`
+              callUrl: `/dashboard/video-call/${vitalsId}`
             }
           }));
         });
