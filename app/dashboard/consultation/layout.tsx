@@ -4,26 +4,32 @@ import { useEffect } from 'react';
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { firebaseApp } from "../../../lib/firebaseClient";
 import IncomingCallModal from './components/IncomingCallModel';
-import { AndroidBridge } from '../../_utils/AndroidBridges/AndroidBridge'; // Adjust path to your bridge file
+import { AndroidBridge } from '../../_utils/AndroidBridges/AndroidBridge';
 
 export default function ConsultationLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    // --- 1. LOGIN CHECK (GUARD CLAUSE) ---
+    const jwt = localStorage.getItem('doc_token')
+    
+    if (!jwt) {
+      console.log("🚪 No doctor session found. Skipping FCM registration.");
+      return; // Stop everything if the doctor isn't logged in
+    }
+
     // Helper to save token to your existing backend
     const saveTokenToBackend = async (token: string) => {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const jwt = localStorage.getItem('doc_token') || localStorage.getItem('token');
-
-      if (!apiUrl || !jwt) return;
+      if (!apiUrl) return;
 
       try {
         const response = await fetch(`${apiUrl}/api/notifications/save-doctor-token`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${jwt}`
+            'Authorization': `Bearer ${jwt}` // We already know jwt exists here
           },
           body: JSON.stringify({ token })
         });
@@ -34,14 +40,9 @@ export default function ConsultationLayout({ children }: { children: React.React
       }
     };
 
-    // --- BRANCH LOGIC ---
+    // --- 2. BRANCH LOGIC (Only runs if logged in) ---
     
     if (window.AndroidNative) {
-      /**
-       * CASE 1: RUNNING IN ANDROID WEBVIEW
-       * We use the native bridge for FCM because Service Workers/Web Push 
-       * are unreliable or unsupported in WebViews.
-       */
       console.log("📱 Running in Android App: Using Native FCM Bridge");
 
       AndroidBridge.initFcmListener((token) => {
@@ -52,10 +53,6 @@ export default function ConsultationLayout({ children }: { children: React.React
       AndroidBridge.requestNativeFcmToken();
 
     } else if ("Notification" in window) {
-      /**
-       * CASE 2: RUNNING IN WEB BROWSER (PC/Laptop)
-       * Use the standard Firebase Web SDK logic.
-       */
       const syncWebNotificationToken = async () => {
         try {
           const permission = await Notification.requestPermission();
@@ -96,7 +93,7 @@ export default function ConsultationLayout({ children }: { children: React.React
 
       syncWebNotificationToken();
     }
-  }, []);
+  }, []); // Runs on mount
 
   return (
     <section className="min-h-screen bg-gray-50">
