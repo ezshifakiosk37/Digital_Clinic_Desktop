@@ -251,5 +251,27 @@ export const AndroidBridge = {
     };
   },
 
-
-};
+  /**
+   * Triggers the native Android code to delete the FCM token
+   * and unregister the device from Firebase.
+   */
+  unregisterNativeFcm: () => { // FIXED: Changed '=' to ':' for object property
+    if (typeof window !== 'undefined' && window.AndroidNative) {
+      if (typeof window.AndroidNative.unregisterFcmDevice === 'function') {
+        try {
+          window.AndroidNative.unregisterFcmDevice();
+          console.log("📱 Native: Unregistering FCM Device...");
+          return true;
+        } catch (error) {
+          console.error("📱 Native Error: Failed to call unregisterFcmDevice", error);
+          return false;
+        }
+      } else {
+        console.warn("📱 Native Warning: unregisterFcmDevice not implemented in Android code.");
+      }
+    } else {
+      console.log("🌐 Web: Not running in Android App, skipping native unregistration.");
+    }
+    return false;
+  },
+}; // End of AndroidBridge object

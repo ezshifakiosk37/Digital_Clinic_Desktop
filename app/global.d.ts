@@ -8,6 +8,11 @@ declare global {
        */
       requestFcmToken: () => void;
 
+      /** * NEW: Deletes the current FCM token and unregisters the device.
+       * Useful for security during Doctor Logout.
+       */
+      unregisterFcmDevice: () => void; // <--- ADD THIS LINE
+
       /** Sends the specific 'c' character to calibrate the scale. */
       sendWeightCalibrationCommand: (command: string) => void;
       
@@ -31,6 +36,9 @@ declare global {
      * Format: '{"token": "xyz...", "error": null}' 
      */
     onFcmTokenReceived?: (jsonString: string) => void;
+
+    /** Optional: Receives status after unregistration attempt */
+    onFcmUnregistered?: (jsonString: string) => void;
 
     /** NEW: Notify JS if the print job finished or failed */
     onPrintResult?: (success: boolean, message: string) => void;

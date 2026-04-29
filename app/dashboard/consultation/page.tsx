@@ -207,35 +207,52 @@ React.useEffect(() => {
 
     setLogoutLoading(true);
 
-    try {
-      await fetch(`${API_BASE_URL}/api/doctors/logout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('doc_token')}`,
-        },
-        body: JSON.stringify({ reason: selectedLogoutReason }),
-      });
-
-      localStorage.removeItem('doc_token');
-      localStorage.removeItem('doctor');
-
-      setShowLogoutModal(false);
-      setIsLoggedIn(false);
-      setActivePage('login');
-      setSelectedLogoutReason('');
-      setSelectedPatient(null);
-    } catch (err) {
-      console.error("Logout error:", err);
-      localStorage.removeItem('doc_token');
-      localStorage.removeItem('doctor');
-      setShowLogoutModal(false);
-      setIsLoggedIn(false);
-      setActivePage('login');
-    } finally {
-      setLogoutLoading(false);
+    // 1. Tell the Android App to unregister FCM and delete the token
+    if (window.AndroidNative && typeof window.AndroidNative.unregisterFcmDevice === 'function') {
+        try {
+            window.AndroidNative.unregisterFcmDevice();
+            console.log("Native FCM unregistration triggered");
+        } catch (bridgeErr) {
+            console.error("Failed to call Android Bridge:", bridgeErr);
+        }
     }
-  };
+
+    try {
+        // 2. Inform your backend about the logout
+        await fetch(`${API_BASE_URL}/api/doctors/logout`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('doc_token')}`,
+            },
+            body: JSON.stringify({ 
+                reason: selectedLogoutReason,
+                // Optional: if your backend needs to know which token to remove
+                // fcmToken: currentToken 
+            }),
+        });
+
+        // 3. Clean up local state
+        localStorage.removeItem('doc_token');
+        localStorage.removeItem('doctor');
+
+        setShowLogoutModal(false);
+        setIsLoggedIn(false);
+        setActivePage('login');
+        setSelectedLogoutReason('');
+        setSelectedPatient(null);
+    } catch (err) {
+        console.error("Logout error:", err);
+        // Fallback cleanup even if the network request fails
+        localStorage.removeItem('doc_token');
+        localStorage.removeItem('doctor');
+        setShowLogoutModal(false);
+        setIsLoggedIn(false);
+        setActivePage('login');
+    } finally {
+        setLogoutLoading(false);
+    }
+};
 
   const cancelLogout = () => {
     setShowLogoutModal(false);
