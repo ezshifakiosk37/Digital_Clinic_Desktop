@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { firebaseApp } from "../../../lib/firebaseClient";
+import IncomingCallModal from './components/IncomingCallModel';
 
 export default function ConsultationLayout({ children }: { children: React.ReactNode }) {
 
@@ -74,9 +75,25 @@ export default function ConsultationLayout({ children }: { children: React.React
         // 6. Foreground message listener
         onMessage(messaging, (payload) => {
           console.log("Foreground call received:", payload);
-          const audio = new Audio('/sounds/incoming-call.mp3');
-          audio.play().catch(e => console.log("Audio blocked:", e));
-          alert(`${payload.notification?.title}\n${payload.notification?.body}`);
+
+          const vitalsId = payload.data?.vitalsId;
+          const callerName = payload.notification?.body;
+
+          if (!vitalsId) return;
+
+          // Play sound (needs user interaction first — move audio to after user clicks accept)
+          // Don't autoplay here, it will be blocked
+
+          // Show a proper incoming call UI instead of alert()
+          // Option 1: use a custom event to trigger a modal in your UI
+          window.dispatchEvent(new CustomEvent('incoming-call', {
+            detail: {
+              vitalsId,
+              title: payload.notification?.title,
+              body: callerName,
+              callUrl: `/doctor/dashboard/call/${vitalsId}`
+            }
+          }));
         });
 
       } catch (err) {
@@ -87,5 +104,10 @@ export default function ConsultationLayout({ children }: { children: React.React
     syncNotificationToken();
   }, []);
 
-  return <section className="min-h-screen bg-gray-50">{children}</section>;
+  return (
+  <section className="min-h-screen bg-gray-50">
+    <IncomingCallModal />
+    {children}
+  </section>
+  )
 }
