@@ -128,7 +128,7 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
     localVideoTrack.current?.close();
     client.current?.leave();
     const isDoctor = !!localStorage.getItem('doc_token');
-    window.location.href = isDoctor ? '/dashboard/consultation' : '/dashboard';
+    window.location.href = isDoctor ? '/dashboard/consultation' : '/dashboard/vitals';
   };
 
   if (error) {
