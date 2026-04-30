@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Phone, PhoneOff } from 'lucide-react';
-import { AndroidBridge } from '../../../_utils/AndroidBridges/AndroidBridge'; 
+import { AndroidBridge } from '../../../_utils/AndroidBridges/AndroidBridge';
 
 interface CallPayload {
   vitalsId: string;
@@ -24,15 +24,15 @@ export default function IncomingCallModal() {
     const checkCallStatus = async () => {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/call-status/${call.vitalsId}`, {
-          headers: { 
-            'Authorization': `Bearer ${localStorage.getItem('token')}` 
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
         const data = await res.json();
 
         // If the patient cancelled, the status will likely be 'idle' or 'declined'
         // Adjust these strings based on what your backend returns
-        if (data.status === 'ended') {
+        if (data.status === 'declined_by_patient') {
           console.log("Call was cancelled by patient. Closing modal.");
           stopAllAudio();
           setCall(null);
@@ -77,7 +77,7 @@ export default function IncomingCallModal() {
   const stopAllAudio = () => {
     // Stop Native
     AndroidBridge.stopRingtone();
-    
+
     // Stop Web Fallback
     if (webAudio) {
       webAudio.pause();
@@ -93,7 +93,7 @@ export default function IncomingCallModal() {
       // 1. Tell the DB the doctor has accepted
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/accept-call`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}` // Ensure doctor is auth'd
         },
@@ -119,14 +119,16 @@ export default function IncomingCallModal() {
     if (!call?.vitalsId) return;
 
     try {
-      // Tell the DB to reset the status so the patient knows the doctor declined
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/end-call`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({ vitalsId: call.vitalsId })
+        body: JSON.stringify({
+          vitalsId: call.vitalsId,
+          reason: 'declined_by_doctor' // Identify the doctor as the one declining
+        })
       });
     } catch (err) {
       console.error("Failed to decline call:", err);

@@ -73,22 +73,30 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
         });
         const data = await res.json();
 
-        // CASE 1: DOCTOR ACCEPTED
+        // CASE 1: SUCCESS - DOCTOR JOINED
         if (data.status === 'accepted') {
           if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
           window.location.href = `/dashboard/video-call/${vid}`;
           return;
         }
 
-        // CASE 2: DOCTOR DECLINED (Backend already updated to 'ended' or 'idle')
-        else if (data.status === 'ended' || data.status === 'declined') {
+        // CASE 2: DOCTOR DECLINED
+        // Check for the specific identification status from the doctor
+        else if (data.status === 'declined_by_doctor') {
           if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
 
-          // DO NOT call handleCancel() here. 
-          // Just clean up the local UI.
           setIsWaitingForDoctor(false);
           setIsConnecting(false);
-          alert("Doctor declined the call.");
+          alert("The doctor is currently busy and declined the call.");
+          onClose();
+          return;
+        }
+
+        // CASE 3: SYNC CHECK (If call was canceled elsewhere)
+        else if (data.status === 'declined_by_patient') {
+          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+          setIsWaitingForDoctor(false);
+          setIsConnecting(false);
           onClose();
           return;
         }
@@ -96,13 +104,14 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
         console.error("Polling error:", err);
       }
 
-      // CASE 3: PATIENT TIMEOUT (Patient is initiating the stop)
+      // CASE 4: PATIENT TIMEOUT
       const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
       if (elapsedSeconds >= 20) {
-        // Use handleCancel() here because we need to tell the backend/doctor 
-        // that we are giving up.
-        handleCancel();
-        alert("Doctor did not respond in time.");
+        // We call handleCancel with the specific "timeout" reason 
+        // to tell the backend to close the doctor's modal.
+        handleCancel("doctor_not_responding");
+
+        alert("Doctor did not respond in time. Please try again later.");
         return;
       }
     }, 2000);
@@ -136,9 +145,8 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
   };
 
   // Inside VideoConsultModel
-  const handleCancel = async () => {
-    if (isWaitingForDoctor && vitalsId) {
-      // Tell backend to reset status so doctor doesn't see a "ghost" call
+  const handleCancel = async (reason: string) => {
+    if (vitalsId) {
       try {
         await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/end-call`, {
           method: 'POST',
@@ -146,14 +154,22 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           },
-          body: JSON.stringify({ vitalsId })
+          body: JSON.stringify({
+            vitalsId,
+            reason: "declined_by_patient" // Send the reason to the backend
+          })
         });
-      } catch (e) { console.error("Cancel failed", e); }
+      } catch (e) {
+        console.error("Cleanup request failed", e);
+      }
     }
 
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    setIsWaitingForDoctor(false);
+    setIsConnecting(false);
     onClose();
   };
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -211,7 +227,7 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
               <Button
                 variant="ghost"
                 className="flex-1 text-slate-500 font-semibold h-12"
-                onClick={handleCancel} // Use the new handler
+                onClick={() => handleCancel('declined_by_patient')} // Use the new handler
                 disabled={isConnecting && !isWaitingForDoctor && !error}
               >
                 {isWaitingForDoctor ? "Cancel Request" : "Skip for now"}
