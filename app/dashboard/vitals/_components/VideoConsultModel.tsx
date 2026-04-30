@@ -239,12 +239,17 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
 
   const startPollingStatus = (vid: string) => {
     setIsWaitingForDoctor(true);
-    const startTime = Date.now(); 
+    const startTime = Date.now();
 
     pollIntervalRef.current = setInterval(async () => {
       // 1. TRY TO GET THE STATUS FIRST
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/call-status/${vid}`);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/call-status/${vid}`, {
+          headers: {
+            // ADD THIS HEADER:
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
         const data = await res.json();
 
         if (data.status === 'accepted') {
@@ -269,11 +274,11 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         setIsWaitingForDoctor(false);
         setIsConnecting(false);
-        
+
         alert("Doctor did not respond in time. Please try again or wait a moment.");
-        onClose(); 
+        onClose();
       }
-    }, 2000); 
+    }, 2000);
   };
 
   const handleStartConsult = async () => {
