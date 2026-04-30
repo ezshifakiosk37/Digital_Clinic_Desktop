@@ -109,7 +109,7 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
       if (elapsedSeconds >= 20) {
         // We call handleCancel with the specific "timeout" reason 
         // to tell the backend to close the doctor's modal.
-        await handleCancel("doctor_not_responding");
+        handleCancel("doctor_not_responding");
 
         alert("Doctor did not respond in time. Please try again later.");
         return;
