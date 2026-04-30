@@ -67,22 +67,25 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
     const startTime = Date.now();
 
     pollIntervalRef.current = setInterval(async () => {
-      // 1. TRY TO GET THE STATUS FIRST
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/call-status/${vid}`, {
-          headers: {
-            // ADD THIS HEADER:
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
         const data = await res.json();
 
+        // CASE 1: DOCTOR ACCEPTED
         if (data.status === 'accepted') {
           if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
           window.location.href = `/dashboard/video-call/${vid}`;
-          return; // Exit early since we succeeded
-        } else if (data.status === 'declined') {
+          return;
+        }
+
+        // CASE 2: DOCTOR DECLINED (Backend already updated to 'ended' or 'idle')
+        else if (data.status === 'ended' || data.status === 'declined') {
           if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+
+          // DO NOT call handleCancel() here. 
+          // Just clean up the local UI.
           setIsWaitingForDoctor(false);
           setIsConnecting(false);
           alert("Doctor declined the call.");
@@ -93,14 +96,12 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
         console.error("Polling error:", err);
       }
 
-      // 2. CHECK TIMEOUT AFTER THE ATTEMPT
+      // CASE 3: PATIENT TIMEOUT (Patient is initiating the stop)
       const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
       if (elapsedSeconds >= 20) {
-        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-
-        // Trigger the cleanup so the doctor's modal closes
+        // Use handleCancel() here because we need to tell the backend/doctor 
+        // that we are giving up.
         handleCancel();
-
         alert("Doctor did not respond in time.");
         return;
       }
@@ -141,10 +142,10 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
       try {
         await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/end-call`, {
           method: 'POST',
-           headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
           body: JSON.stringify({ vitalsId })
         });
       } catch (e) { console.error("Cancel failed", e); }
