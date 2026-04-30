@@ -22,7 +22,7 @@ export default function IncomingCallModal() {
 
       // Audio must be created after user interaction — the layout has been
       // interacted with by the time a call comes in, so this should work
-      const ring = new Audio('/sounds/incoming-call1.mp3');
+      const ring = new Audio('/sounds/incoming-call1.MP3');
       ring.loop = true;
       ring.play().catch(console.error);
       setAudio(ring);
