@@ -36,6 +36,10 @@ export default function IncomingCallModal() {
           console.log("Call was cancelled by patient. Closing modal.");
           stopAllAudio();
           setCall(null);
+        } else if (data.status === "doctor_not_responding") {
+          console.log("Doctor is not responding");
+          stopAllAudio();
+          setCall(null);
         }
       } catch (err) {
         console.error("Polling sync error:", err);
