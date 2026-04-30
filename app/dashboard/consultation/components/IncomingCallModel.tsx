@@ -29,13 +29,13 @@ export default function IncomingCallModal() {
           }
         });
         const data = await res.json();
-        console.log(data)
 
         // If the patient cancelled, the status will likely be 'idle' or 'declined'
         // Adjust these strings based on what your backend returns
         if (data.status === 'ended') {
           console.log("Call was cancelled by patient. Closing modal.");
-          handleDecline()
+          stopAllAudio();
+          setCall(null);
         }
       } catch (err) {
         console.error("Polling sync error:", err);
