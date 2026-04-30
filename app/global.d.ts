@@ -3,6 +3,12 @@ export { };
 declare global {
   interface Window {
     AndroidNative?: {
+      /** 
+       * NEW: Controls native ringtone playback for incoming calls.
+       * Bypasses WebView autoplay restrictions.
+       */
+      playIncomingCallSound: () => void;
+      stopIncomingCallSound: () => void;
       /** * NEW: Triggers the native Android request for the FCM token.
        * The result is sent back via window.onFcmTokenReceived.
        */

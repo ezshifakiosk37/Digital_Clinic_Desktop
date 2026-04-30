@@ -274,4 +274,24 @@ export const AndroidBridge = {
     }
     return false;
   },
+
+  // Ringtone for incoming call
+  playRingtone: () => {
+    const bridge = window.AndroidNative;
+    if (bridge?.playIncomingCallSound) {
+      bridge.playIncomingCallSound();
+      return true;
+    }
+    console.warn("Native bridge not found: playRingtone failed");
+    return false;
+  },
+
+  stopRingtone: () => {
+    const bridge = window.AndroidNative;
+    if (bridge?.stopIncomingCallSound) {
+      bridge.stopIncomingCallSound();
+      return true;
+    }
+    return false;
+  }
 }; // End of AndroidBridge object
