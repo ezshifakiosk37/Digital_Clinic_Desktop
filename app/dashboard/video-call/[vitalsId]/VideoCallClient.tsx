@@ -43,10 +43,28 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
           codec: "vp8",
         });
 
+        // 1. JOIN THE CHANNEL FIRST (Only call this once!)
+        await client.current.join(
+          process.env.NEXT_PUBLIC_AGORA_APP_ID!,
+          vitalsId,
+          data.token,
+          data.uid
+        );
+
+        // 2. NOW SET UP LISTENERS
         client.current.on("user-published", async (user, mediaType) => {
-          await client.current!.subscribe(user, mediaType);
-          if (mediaType === "video") user.videoTrack?.play(remoteRef.current!);
-          if (mediaType === "audio") user.audioTrack?.play();
+          try {
+            // Wrapped in try/catch to prevent race condition crashes
+            await client.current!.subscribe(user, mediaType);
+            if (mediaType === "video" && remoteRef.current) {
+                user.videoTrack?.play(remoteRef.current);
+            }
+            if (mediaType === "audio") {
+                user.audioTrack?.play();
+            }
+          } catch (subErr) {
+            console.error("Subscription failed:", subErr);
+          }
         });
 
         client.current.on("user-unpublished", (user, mediaType) => {
@@ -55,19 +73,17 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
           }
         });
 
-        await client.current.join(
-          process.env.NEXT_PUBLIC_AGORA_APP_ID!,
-          vitalsId,
-          data.token,
-          data.uid
-        );
-
+        // 3. PUBLISH YOUR OWN TRACKS
         // Try camera + mic first
         try {
           const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
           localAudioTrack.current = audioTrack;
           localVideoTrack.current = videoTrack;
-          videoTrack.play(localRef.current!);
+          
+          if (localRef.current) {
+              videoTrack.play(localRef.current);
+          }
+          
           await client.current.publish([audioTrack, videoTrack]);
           setHasCamera(true);
 
