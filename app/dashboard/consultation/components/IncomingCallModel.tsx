@@ -27,7 +27,7 @@ export default function IncomingCallModal() {
       // 2. Fallback to Web Audio only if Native failed/not found
       if (!wasNativeTriggered) {
         console.log("Native bridge not found. Falling back to Web Audio.");
-        const ring = new Audio('/sounds/incoming-call1.mp3');
+        const ring = new Audio('/sounds/iphone_ringtone.mp3');
         ring.loop = true;
         ring.play().catch((err) => console.warn("Web Audio Playback failed:", err));
         setWebAudio(ring);
