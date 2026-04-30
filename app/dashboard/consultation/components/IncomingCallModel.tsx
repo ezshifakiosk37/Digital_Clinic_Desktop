@@ -32,10 +32,9 @@ export default function IncomingCallModal() {
 
         // If the patient cancelled, the status will likely be 'idle' or 'declined'
         // Adjust these strings based on what your backend returns
-        if (data.status === 'idle' || data.status === 'declined' || data.status === 'cancelled') {
+        if (data.status === 'ended') {
           console.log("Call was cancelled by patient. Closing modal.");
-          stopAllAudio();
-          setCall(null);
+          handleDecline()
         }
       } catch (err) {
         console.error("Polling sync error:", err);
