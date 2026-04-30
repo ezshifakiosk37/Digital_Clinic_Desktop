@@ -141,7 +141,10 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
       try {
         await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/end-call`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+           headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
           body: JSON.stringify({ vitalsId })
         });
       } catch (e) { console.error("Cancel failed", e); }
