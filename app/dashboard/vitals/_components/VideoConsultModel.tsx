@@ -156,7 +156,7 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
           },
           body: JSON.stringify({
             vitalsId,
-            reason: "declined_by_patient" // Send the reason to the backend
+            reason: reason // Send the reason to the backend
           })
         });
       } catch (e) {
