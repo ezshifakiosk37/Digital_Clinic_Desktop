@@ -8,6 +8,7 @@ import AgoraRTC, {
 } from "agora-rtc-sdk-ng";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Loader2, CameraOff, AlertCircle } from "lucide-react";
+import { apiService } from '@/app/_utils/apiService';
 
 export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
   const [joined, setJoined] = useState(false);
@@ -19,31 +20,28 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
   const [permissionDenied, setPermissionDenied] = useState(false);
 
   const client = useRef<IAgoraRTCClient | null>(null);
+  const initialized = useRef(false);  // ← NEVER reset this in cleanup
   const localAudioTrack = useRef<ILocalAudioTrack | null>(null);
   const localVideoTrack = useRef<ILocalVideoTrack | null>(null);
   const remoteRef = useRef<HTMLDivElement>(null);
   const localRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Guard prevents StrictMode double-run AND Suspense reconnect re-runs.
+    // Do NOT reset this in the cleanup — that's what was breaking it.
+    if (initialized.current) return;
+    initialized.current = true;
+
     const initCall = async () => {
       try {
         const authToken = localStorage.getItem('doc_token') || localStorage.getItem('token');
         if (!authToken) throw new Error("No auth token found. Please log in again.");
 
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://bifurcation-clinic-api.vercel.app";
-        const tokenResponse = await fetch(`${baseUrl}/api/agoravideo/token/${vitalsId}`, {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-
-        const data = await tokenResponse.json();
+        const data = await apiService.getAgoraToken(vitalsId);
         if (!data.success) throw new Error(data.error || "Token fetch failed");
 
-        client.current = AgoraRTC.createClient({
-          mode: "rtc",
-          codec: "vp8",
-        });
+        client.current = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-        // 1. JOIN THE CHANNEL FIRST (Only call this once!)
         await client.current.join(
           process.env.NEXT_PUBLIC_AGORA_APP_ID!,
           vitalsId,
@@ -51,16 +49,14 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
           data.uid
         );
 
-        // 2. NOW SET UP LISTENERS
         client.current.on("user-published", async (user, mediaType) => {
           try {
-            // Wrapped in try/catch to prevent race condition crashes
             await client.current!.subscribe(user, mediaType);
             if (mediaType === "video" && remoteRef.current) {
-                user.videoTrack?.play(remoteRef.current);
+              user.videoTrack?.play(remoteRef.current);
             }
             if (mediaType === "audio") {
-                user.audioTrack?.play();
+              user.audioTrack?.play();
             }
           } catch (subErr) {
             console.error("Subscription failed:", subErr);
@@ -73,48 +69,44 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
           }
         });
 
-        // 3. PUBLISH YOUR OWN TRACKS
-        // Try camera + mic first
         try {
           const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
           localAudioTrack.current = audioTrack;
           localVideoTrack.current = videoTrack;
-          
+
           if (localRef.current) {
-              videoTrack.play(localRef.current);
+            videoTrack.play(localRef.current);
           }
-          
+
           await client.current.publish([audioTrack, videoTrack]);
           setHasCamera(true);
 
         } catch (deviceErr: any) {
-          console.warn("Camera/mic failed, trying audio only:", deviceErr.code);
+          console.warn("Camera/mic failed:", deviceErr.code);
 
-          // PERMISSION_DENIED — user blocked the browser prompt
-          if (deviceErr.code === 'PERMISSION_DENIED' ||
+          if (
+            deviceErr.code === 'PERMISSION_DENIED' ||
             deviceErr.message?.includes('Permission denied') ||
-            deviceErr.message?.includes('NotAllowedError')) {
+            deviceErr.message?.includes('NotAllowedError')
+          ) {
             setPermissionDenied(true);
             setHasCamera(false);
-            // Still join the channel so the other person can see the user
-            // Just without publishing any tracks
             setJoined(true);
             setLoading(false);
             return;
           }
 
-          // DEVICE_NOT_FOUND — no camera, try audio only
-          if (deviceErr.code === 'DEVICE_NOT_FOUND' ||
-            deviceErr.message?.includes('NotFoundError')) {
+          if (
+            deviceErr.code === 'DEVICE_NOT_FOUND' ||
+            deviceErr.message?.includes('NotFoundError')
+          ) {
             try {
               const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
               localAudioTrack.current = audioTrack;
               await client.current!.publish([audioTrack]);
               setHasCamera(false);
-              console.warn("No camera found — joined with audio only");
-            } catch (audioErr: any) {
-              // No mic either — join as listener only
-              console.warn("No audio device either — joined as listener");
+            } catch {
+              console.warn("No audio device — joined as listener");
               setHasCamera(false);
             }
           }
@@ -132,11 +124,17 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
     initCall();
 
     return () => {
+      // Clean up tracks and leave — but DO NOT reset initialized.current.
+      // Resetting it here was the root cause: StrictMode cleanup + remount
+      // would flip it back to false and let the effect run twice.
       localAudioTrack.current?.stop();
       localAudioTrack.current?.close();
+      localAudioTrack.current = null;
       localVideoTrack.current?.stop();
       localVideoTrack.current?.close();
+      localVideoTrack.current = null;
       client.current?.leave();
+      client.current = null;
     };
   }, [vitalsId]);
 

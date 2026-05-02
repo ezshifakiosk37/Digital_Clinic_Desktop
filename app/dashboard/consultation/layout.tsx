@@ -5,6 +5,7 @@ import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { firebaseApp } from "../../../lib/firebaseClient";
 import IncomingCallModal from './components/IncomingCallModel';
 import { AndroidBridge } from '../../_utils/AndroidBridges/AndroidBridge';
+import { apiService } from '@/app/_utils/apiService';
 
 export default function ConsultationLayout({ children }: { children: React.ReactNode }) {
 
@@ -13,35 +14,27 @@ export default function ConsultationLayout({ children }: { children: React.React
 
     // --- 1. LOGIN CHECK (GUARD CLAUSE) ---
     const jwt = localStorage.getItem('doc_token')
-    
+
     if (!jwt) {
       console.log("🚪 No doctor session found. Skipping FCM registration.");
       return; // Stop everything if the doctor isn't logged in
     }
 
-    // Helper to save token to your existing backend
+    // ✅ USE apiService instead of raw fetch
     const saveTokenToBackend = async (token: string) => {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) return;
-
       try {
-        const response = await fetch(`${apiUrl}/api/notifications/save-doctor-token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${jwt}` // We already know jwt exists here
-          },
-          body: JSON.stringify({ token })
-        });
-        const data = await response.json();
-        if (data.success) console.log("✅ Device registered successfully.");
-      } catch (err) {
-        console.error("❌ Failed to save token to backend:", err);
+        const res = await apiService.saveDoctorFcmToken(token);
+
+        if (res.success) {
+          console.log("✅ Device registered successfully.");
+        }
+      } catch (err: any) {
+        console.error("❌ Failed to save token to backend:", err.message || err);
       }
     };
 
     // --- 2. BRANCH LOGIC (Only runs if logged in) ---
-    
+
     if (window.AndroidNative) {
       console.log("📱 Running in Android App: Using Native FCM Bridge");
 

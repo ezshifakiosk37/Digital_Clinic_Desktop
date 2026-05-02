@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Phone, PhoneOff } from 'lucide-react';
 import { AndroidBridge } from '../../../_utils/AndroidBridges/AndroidBridge';
+import { apiService } from '@/app/_utils/apiService';
 
 interface CallPayload {
   vitalsId: string;
@@ -23,26 +24,24 @@ export default function IncomingCallModal() {
 
     const checkCallStatus = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/call-status/${call.vitalsId}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        const data = await res.json();
+        const data = await apiService.getCallStatus(call.vitalsId);
+        if (!data.success) throw new Error("Call Status failed!");
 
-        // If the patient cancelled, the status will likely be 'idle' or 'declined'
-        // Adjust these strings based on what your backend returns
-        if (data.status === 'declined_by_patient') {
+        const status = data?.status;
+
+        if (status === 'declined_by_patient') {
           console.log("Call was cancelled by patient. Closing modal.");
           stopAllAudio();
           setCall(null);
-        } else if (data.status === "doctor_not_responding") {
+        }
+        else if (status === 'doctor_not_responding') {
           console.log("Doctor is not responding");
           stopAllAudio();
           setCall(null);
         }
-      } catch (err) {
-        console.error("Polling sync error:", err);
+
+      } catch (err: any) {
+        console.error("Polling sync error:", err.message || err);
       }
     };
 
@@ -94,28 +93,22 @@ export default function IncomingCallModal() {
     if (!call?.vitalsId) return;
 
     try {
-      // 1. Tell the DB the doctor has accepted
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/accept-call`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}` // Ensure doctor is auth'd
-        },
-        body: JSON.stringify({ vitalsId: call.vitalsId })
-      });
+      const res = await apiService.acceptCall(call.vitalsId);
+      if (!res.success) throw new Error("Accept failed");
 
-      // 2. Clean up audio and UI
       stopAllAudio();
 
-      // 3. Navigate to the video room
       if (call.callUrl) {
         window.location.href = call.callUrl;
       }
+
       setCall(null);
-    } catch (err) {
-      console.error("Failed to accept call:", err);
-      // Even if API fails, stop the noise
+    } catch (err: any) {
+      console.error("Failed to accept call:", err.message || err);
+
+      // Still clean up — don’t leave UI hanging
       stopAllAudio();
+      setCall(null);
     }
   };
 
@@ -123,19 +116,12 @@ export default function IncomingCallModal() {
     if (!call?.vitalsId) return;
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/end-call`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          vitalsId: call.vitalsId,
-          reason: 'declined_by_doctor' // Identify the doctor as the one declining
-        })
-      });
-    } catch (err) {
-      console.error("Failed to decline call:", err);
+
+      const res = await apiService.endCall(call.vitalsId, 'declined_by_doctor');
+      if (!res.success) throw new Error("Decline failed!");
+
+    } catch (err: any) {
+      console.error("Failed to decline call:", err.message || err);
     }
 
     stopAllAudio();

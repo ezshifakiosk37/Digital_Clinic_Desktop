@@ -82,6 +82,7 @@ export interface Patient {
     gender: string;
     symptoms: string;
     medicalHistory: string;
+    phoneNumber?: string;
     vitals: Vitals;
 }
 
@@ -129,4 +130,46 @@ export interface BluetoothPrinterModalProps {
     onClose: () => void;
     onPrint: () => void;        // called after printer is selected & connected
     isPrinting: boolean;
+}
+
+// ─────────────────────────────────────────────
+// PRESCRIPTION API TYPES
+// ─────────────────────────────────────────────
+
+export interface PrescriptionMedicine {
+  id: string;
+  prescription_id: string;
+  medicineName: string;
+  morning: boolean;
+  afternoon: boolean;
+  night: boolean;
+  beforeMeal: boolean;
+  afterMeal: boolean;
+  dosage: string | null;
+  duration: string | null;
+}
+
+export interface Prescription {
+  id: string;
+  patient_id: string;
+  doctor_id: string;
+  token: string;
+  prescriptionDate: string;
+  prescriptionTime: string;
+  diagnosis: string | null;
+  labTest: string | null;
+  clinicalNotes: string | null;
+
+  patient: Patient;
+  medicines: PrescriptionMedicine[];
+}
+
+export interface PrescriptionApiResponse {
+  success: boolean;
+  data: Prescription[];
+}
+
+export interface PrescriptionWithPatient extends Prescription {
+  patient: Patient;
+  medicines: PrescriptionMedicine[];
 }

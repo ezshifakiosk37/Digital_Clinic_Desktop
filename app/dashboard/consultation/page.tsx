@@ -12,6 +12,7 @@ import DocSignin from './docSignin';
 import DocSignup from './docSignup';
 
 import { DoctorProfile } from './doctor_registration';
+import { Button } from '@/components/ui/button';
 
 const API_BASE_URL = "https://bifurcation-clinic-api.vercel.app";
 
@@ -304,8 +305,9 @@ React.useEffect(() => {
 
             {/* Current Patient Queue */}
             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-6">
-              <div className="px-8 py-5 border-b">
+              <div className="px-8 py-5 border-b flex justify-between">
                 <h2 className="font-bold text-xl text-slate-800">CURRENT PATIENT QUEUE</h2>
+                
               </div>
 
               <table className="w-full">

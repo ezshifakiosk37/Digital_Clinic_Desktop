@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'; // Added useRef
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Video, Stethoscope, Loader2, AlertCircle, Clock } from "lucide-react";
+import { apiService } from '@/app/_utils/apiService';
 
 interface VideoConsultModelProps {
   isOpen: boolean;
@@ -64,109 +65,104 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
 
   const startPollingStatus = (vid: string) => {
     setIsWaitingForDoctor(true);
+
     const startTime = Date.now();
+
+    // 🚨 Prevent duplicate intervals (you ignored this before)
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
 
     pollIntervalRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/call-status/${vid}`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const data = await res.json();
+        const data = await apiService.getCallStatus(vid);
 
-        // CASE 1: SUCCESS - DOCTOR JOINED
+        if (!data?.status) return;
+
+        // ✅ CASE 1: ACCEPTED
         if (data.status === 'accepted') {
-          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+          clearInterval(pollIntervalRef.current!);
           window.location.href = `/dashboard/video-call/${vid}`;
           return;
         }
 
-        // CASE 2: DOCTOR DECLINED
-        // Check for the specific identification status from the doctor
-        else if (data.status === 'declined_by_doctor') {
-          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        // ❌ CASE 2: DOCTOR DECLINED
+        if (data.status === 'declined_by_doctor') {
+          clearInterval(pollIntervalRef.current!);
 
           setIsWaitingForDoctor(false);
           setIsConnecting(false);
-          alert("The doctor is currently busy and declined the call.");
+
+          alert("Doctor declined the call.");
           onClose();
           return;
         }
 
-        // CASE 3: SYNC CHECK (If call was canceled elsewhere)
-        else if (data.status === 'declined_by_patient') {
-          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        // ❌ CASE 3: PATIENT CANCELLED (SYNC)
+        if (data.status === 'declined_by_patient') {
+          clearInterval(pollIntervalRef.current!);
+
           setIsWaitingForDoctor(false);
           setIsConnecting(false);
+
           onClose();
           return;
         }
-      } catch (err) {
-        console.error("Polling error:", err);
+
+      } catch (err: any) {
+        console.error("Polling error:", err.message || err);
       }
 
-      // CASE 4: PATIENT TIMEOUT
-      const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+      // ⏱️ TIMEOUT LOGIC
+      const elapsedSeconds = (Date.now() - startTime) / 1000;
+
       if (elapsedSeconds >= 20) {
-        // We call handleCancel with the specific "timeout" reason 
-        // to tell the backend to close the doctor's modal.
+        clearInterval(pollIntervalRef.current!);
+
         handleCancel("doctor_not_responding");
 
-        alert("Doctor did not respond in time. Please try again later.");
-        return;
+        alert("Doctor did not respond in time.");
       }
+
     }, 2000);
   };
 
   const handleStartConsult = async () => {
     if (!vitalsId || !doctorId) return;
+
     setIsConnecting(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/alert-doctor`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ doctorId, vitalsId })
-      });
+      await apiService.alertDoctor(doctorId, vitalsId);
 
-      const data = await response.json();
-
-      if (!response.ok) throw new Error(data.error || "Failed to alert doctor");
-
-      // ✅ INSTEAD OF REDIRECTING, START POLLING
+      // ✅ Start polling only after success
       startPollingStatus(vitalsId);
 
     } catch (err: any) {
       setIsConnecting(false);
-      alert(err.message);
+
+      console.error("Alert doctor failed:", err.message || err);
+      alert(err.message || "Failed to start consultation");
     }
   };
 
   // Inside VideoConsultModel
   const handleCancel = async (reason: string) => {
-    if (vitalsId) {
-      try {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/end-call`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({
-            vitalsId,
-            reason: reason // Send the reason to the backend
-          })
-        });
-      } catch (e) {
-        console.error("Cleanup request failed", e);
+    try {
+      if (vitalsId) {
+        await apiService.endCall(vitalsId, reason);
       }
+    } catch (err: any) {
+      console.error("Cleanup request failed:", err.message || err);
     }
 
-    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+
     setIsWaitingForDoctor(false);
     setIsConnecting(false);
+
     onClose();
   };
 
