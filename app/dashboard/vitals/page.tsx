@@ -12,14 +12,6 @@ import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Search, Loader2, Check, ChevronsUpDown } from 'lucide-react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogOverlay
-} from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge'
@@ -51,7 +43,8 @@ const VitalsPage = () => {
   const [openTokenDialog, setOpenTokenDialog] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [sessionName, setSessionName] = useState("");
-  const [showExpiredDialog, setShowExpiredDialog] = useState(false);
+  const [showExpiredToast, setShowExpiredToast] = useState(false);
+  const [showInvalidToast, setShowInvalidToast] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [verifyingToken, setVerifyingToken] = useState(false);
@@ -60,6 +53,11 @@ const VitalsPage = () => {
   const [manualWeightInput, setManualWeightInput] = useState("");
   const [vitalsId, setVitalsId] = useState<string>("")
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [vitalsError, setVitalsError] = useState(false);
+  const [symptomsError, setSymptomsError] = useState(false);
+  const [vitalsSaved, setVitalsSaved] = useState(false);
+  const [patientType, setPatientType] = useState<'Walk-in' | 'Online Consultation'>('Walk-in');
 
   const router = useRouter()
 
@@ -138,6 +136,11 @@ const VitalsPage = () => {
   };
 
   const handleAddVitals = async () => {
+    if (!vitals.symptoms.length) {
+      setSymptomsError(true);
+      setTimeout(() => setSymptomsError(false), 3000);
+      return;
+    }
     const patientId = localStorage.getItem("localClinic_entryId");
     if (!patientId) {
       alert("No active patient session.");
@@ -145,21 +148,37 @@ const VitalsPage = () => {
     }
     setLoading(true);
     try {
-      const result = await apiService.saveVitals(patientId, vitals);
+      let result;
+
+      if (vitalsSaved && vitalsId) {
+        // UPDATE existing row
+        result = await apiService.updateVitals(vitalsId, {
+          ...vitals,
+          bmi: bmi?.value ?? null,
+          patientType,
+        });
+      } else {
+        // INSERT new row
+        result = await apiService.saveVitals(patientId, {
+          ...vitals,
+          bmi: bmi?.value ?? null,
+          patientType,
+        });
+      }
 
       if (result.success) {
-        // Capture the ID of the vitals record just created
-        const newVitalsId = result.data.id;
-        setVitalsId(newVitalsId);
+        if (!vitalsSaved) {
+          const newVitalsId = result.data?.id ?? result.vitalsId ?? result.data;
+          if (!newVitalsId) {
+            alert("Failed to capture vitals ID. Please try again.");
+            return;
+          }
+          setVitalsId(newVitalsId);
+          setVitalsSaved(true);
+        }
 
         setShowSuccessToast(true);
         setTimeout(() => setShowSuccessToast(false), 3000);
-
-        // DO NOT reset everything immediately if you want to stay on the page for the call
-        // Instead, trigger the Video Consult Modal
-        setIsVideoModalOpen(true);
-
-        // Optional: Move your reset logic to AFTER the call or when the modal closes
       }
     } catch (error: any) {
       alert(`Failed: ${error.message}`);
@@ -180,18 +199,17 @@ const VitalsPage = () => {
     });
   };
 
-  // Handle "Other" symptom
-  // const addOtherSymptom = () => {
-  //   if (otherSymptom.trim()) {
-  //     setVitals(prev => ({
-  //       ...prev,
-  //       symptoms: [...(prev.symptoms || []), otherSymptom.trim()]
-  //     }));
-  //     setOtherSymptom("");
-  //     setShowOtherInput(false);
-  //   }
-  // };
-
+  const handleNextStep = () => {
+    const { BP, PulseRate, Temperature, Spo2, Height, Weight } = vitals;
+    const allFilled =
+      BP.value1 && BP.value2 && PulseRate && Temperature && Spo2 && Height && Weight;
+    if (!allFilled) {
+      setVitalsError(true);
+      setTimeout(() => setVitalsError(false), 3000);
+      return;
+    }
+    setStep(2);
+  };
   const handleOtherSymptomChange = (value: string) => {
     const trimmedValue = value.trim();
     setVitals(prev => ({
@@ -226,14 +244,20 @@ const VitalsPage = () => {
           Weight: "",
           symptoms: []
         });
+        setStep(1);
+        setPatientType('Walk-in');
+        setVitalsSaved(false);
+        setVitalsId('');
       }
     }
     catch (error: any) {
       const msg = error.message || "";
       if (msg.toLowerCase().includes("already used")) {
-        setShowExpiredDialog(true);
+        setShowExpiredToast(true);
+        setTimeout(() => setShowExpiredToast(false), 3000);
       } else {
-        alert(msg || "Invalid token number");
+        setShowInvalidToast(true);
+        setTimeout(() => setShowInvalidToast(false), 3000);
       }
     } finally {
       setVerifyingToken(false);
@@ -355,6 +379,42 @@ const VitalsPage = () => {
 
   return (
     <div className="pl-4 pr-4 sm:pr-6 py-1 md:py-3 relative justify-center-safe">
+
+      {/* Token Already Used Toast */}
+      <div className={`fixed top-6 right-6 z-100 transition-all duration-500 ${showExpiredToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+        <div className="bg-red-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+          <div className="bg-white/20 rounded-full p-1">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
+            </svg>
+          </div>
+          Token #{tokenNumber} has already been used today.
+        </div>
+      </div>
+
+      {/* Invalid Token Toast */}
+      <div className={`fixed top-6 right-6 z-100 transition-all duration-500 ${showInvalidToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+        <div className="bg-purple-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+          <div className="bg-white/20 rounded-full p-1">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
+            </svg>
+          </div>
+          Token #{tokenNumber} is invalid or not generated for today.
+        </div>
+      </div>
+
+      {/* Symptoms Error Toast */}
+      <div className={`fixed top-6 right-6 z-100 transition-all duration-500 ${symptomsError ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+        <div className="bg-purple-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+          <div className="bg-white/20 rounded-full p-1">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
+            </svg>
+          </div>
+          Please add at least one symptom before saving.
+        </div>
+      </div>
       {/* Success Toast */}
       <div className={`fixed top-6 right-6 z-100 transition-all duration-500 ${showSuccessToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
         <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
@@ -366,29 +426,6 @@ const VitalsPage = () => {
           Vitals recorded successfully!
         </div>
       </div>
-      {/* Token expire dialog box */}
-      <Dialog open={showExpiredDialog} onOpenChange={setShowExpiredDialog}>
-        <DialogContent className="sm:max-w-md text-center py-10">
-          <DialogHeader>
-            <div className="mx-auto bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-              <span className="text-blue-600 text-3xl font-black">!</span>
-            </div>
-            <DialogTitle className="text-2xl text-center text-blue-600">Token Already Used</DialogTitle>
-            <DialogDescription className="text-center text-base mt-2">
-              Vitals for token <span className="font-bold text-slate-800">#{tokenNumber}</span> have already been recorded today. Please check the token number and try again.
-            </DialogDescription>
-          </DialogHeader>
-          <Button
-            onClick={() => {
-              setShowExpiredDialog(false);
-              setTokenNumber("");
-            }}
-            className="w-full mt-4 bg-blue-500 hover:bg-blue-600 h-12 text-lg font-bold"
-          >
-            Try Again
-          </Button>
-        </DialogContent>
-      </Dialog>
 
       <div className="relative">
         {openTokenDialog && (
@@ -407,190 +444,226 @@ const VitalsPage = () => {
         )}
 
         <section className={openTokenDialog ? "blur-sm pointer-events-none" : ""}>
-          <div className='flex flex-wrap justify-between items-center gap-3 mb-6'>
+
+          {/* ── PERSISTENT HEADER (shows on both steps) ── */}
+          <div className='flex flex-wrap justify-between items-center gap-3 mb-6 relative'>
             <div>
               <h2 className="text-xl md:text-3xl font-extrabold text-slate-900">Patient Vitals</h2>
-              {sessionPhone && <p className="text-blue-600 text-sm font-medium">Active Session: {sessionPhone}</p>}
+              {sessionPhone && (
+                <p className="text-blue-600 text-sm font-medium">
+                  Active Session: {sessionPhone}
+                  {sessionName && <span className="text-slate-400"> · {sessionName}</span>}
+                </p>
+              )}
+            </div>
+            {/* Step indicator — absolutely centered */}
+            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${step === 1 ? 'bg-primary text-white' : 'bg-green-500 text-white'}`}>
+                {step === 1 ? '1' : '✓'}
+              </div>
+              <div className="w-6 h-0.5 bg-slate-200" />
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${step === 2 ? 'bg-primary text-white' : 'bg-slate-200 text-slate-400'}`}>
+                2
+              </div>
             </div>
             <Button onClick={() => setOpenTokenDialog(true)}>Add Token</Button>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
-            <VitalCard type={VitalType.PULSE_RATE} onChange={(val) => handleUpdate('PulseRate', val)} value={vitals.PulseRate} />
-            <VitalCard type={VitalType.BLOOD_PRESSURE} onChange1={(val) => handleBPUpdate('value1', val)} onChange2={(val) => handleBPUpdate('value2', val)} isDualValue value1={vitals.BP.value1} value2={vitals.BP.value2} />
-            <VitalCard type={VitalType.TEMPERATURE} onChange={(val) => handleUpdate('Temperature', val)} value={vitals.Temperature} />
-            <VitalCard type={VitalType.BLOOD_OXYGEN} onChange={(val) => handleUpdate('Spo2', val)} value={vitals.Spo2} />
-            <VitalCard
-              type={VitalType.WEIGHT}
-              onChange={(val) => handleUpdate('Weight', val)}
-              value={vitals.Weight}
-              onCalibrate={handleStartCalibration} // Separated function reference
-            />
-            {/* The Separated Modal */}
-            <WeightCalibrationModal
-              isOpen={isCalibrateModalOpen}
-              onClose={handleCancelCalibration}
-              onConfirm={handleFinalizeCalibration}
-              knownWeightValue={manualWeightInput}
-              setKnownWeightValue={setManualWeightInput}
-            />
-            <VitalCard
-              type={VitalType.HEIGHT}
-              customContent={
-                <div className="flex items-baseline gap-1 w-full">
-                  <input
-                    type="text"
-                    placeholder="--"
-                    value={vitals.Height?.split('.')[0] || ''}
-                    onChange={(e) => {
-                      const inches = vitals.Height?.split('.')[1] || '0';
-                      handleUpdate('Height', `${e.target.value}.${inches}`);
-                    }}
-                    className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-12 md:w-14 rounded px-1"
-                  />
-                  <span className="text-slate-400 font-medium">ft</span>
-                  <input
-                    type="text"
-                    placeholder="--"
-                    value={vitals.Height?.split('.')[1] || ''}
-                    onChange={(e) => {
-                      const feet = vitals.Height?.split('.')[0] || '0';
-                      handleUpdate('Height', `${feet}.${e.target.value}`);
-                    }}
-                    className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-12 md:w-14 rounded px-1"
-                  />
-                  <span className="text-slate-400 font-medium">in</span>
-                </div>
-              }
-            />
-            <div className="col-span-2 md:col-span-2 lg:col-span-1 lg:col-start-2">
-              <div className='justify-center w-full sm:w-79 md:w-79 md:ml-40 lg:w-full lg:ml-0'>
+          {/* ── STEP 1: VITALS ── */}
+          {step === 1 && (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+                <VitalCard type={VitalType.PULSE_RATE} onChange={(val) => handleUpdate('PulseRate', val)} value={vitals.PulseRate} />
+                <VitalCard type={VitalType.BLOOD_PRESSURE} onChange1={(val) => handleBPUpdate('value1', val)} onChange2={(val) => handleBPUpdate('value2', val)} isDualValue value1={vitals.BP.value1} value2={vitals.BP.value2} />
+                <VitalCard type={VitalType.TEMPERATURE} onChange={(val) => handleUpdate('Temperature', val)} value={vitals.Temperature} />
+                <VitalCard type={VitalType.BLOOD_OXYGEN} onChange={(val) => handleUpdate('Spo2', val)} value={vitals.Spo2} />
                 <VitalCard
-                  type={VitalType.BMI}
+                  type={VitalType.WEIGHT}
+                  onChange={(val) => handleUpdate('Weight', val)}
+                  value={vitals.Weight}
+                  onCalibrate={handleStartCalibration}
+                />
+                <WeightCalibrationModal
+                  isOpen={isCalibrateModalOpen}
+                  onClose={handleCancelCalibration}
+                  onConfirm={handleFinalizeCalibration}
+                  knownWeightValue={manualWeightInput}
+                  setKnownWeightValue={setManualWeightInput}
+                />
+                <VitalCard
+                  type={VitalType.HEIGHT}
                   customContent={
-                    <div className="flex items-baseline justify-between w-full">
-                      <span className="text-2xl md:text-4xl font-bold text-secondary">
-                        {bmi ? bmi.value : '—'}
-                      </span>
-                      <span className={`text-sm font-bold ${bmi ? bmi.color : 'text-slate-400'}`}>
-                        {bmi ? bmi.label : 'Fill weight & height'}
-                      </span>
+                    <div className="flex items-baseline gap-1 w-full">
+                      <input type="text" placeholder="--" value={vitals.Height?.split('.')[0] || ''}
+                        onChange={(e) => { const inches = vitals.Height?.split('.')[1] || '0'; handleUpdate('Height', `${e.target.value}.${inches}`); }}
+                        className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-12 md:w-14 rounded px-1"
+                      />
+                      <span className="text-slate-400 font-medium">ft</span>
+                      <input type="text" placeholder="--" value={vitals.Height?.split('.')[1] || ''}
+                        onChange={(e) => { const feet = vitals.Height?.split('.')[0] || '0'; handleUpdate('Height', `${feet}.${e.target.value}`); }}
+                        className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-12 md:w-14 rounded px-1"
+                      />
+                      <span className="text-slate-400 font-medium">in</span>
                     </div>
                   }
                 />
-              </div>
-            </div>
-          </div>
-          <div className="mb-4">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Symptoms</p>
-
-            {/* Display Selected Symptoms Tags */}
-            {vitals.symptoms.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-2">
-                {vitals.symptoms.filter(s => s !== 'Other').map((s, i) => (
-                  <span key={i} className="flex items-center gap-1.5 text-xs font-black text-[#0297d6] bg-[#0297d6]/10 px-3 py-1 rounded-lg">
-                    {s.startsWith('Other:') ? `Other: ${s.slice(6)}` : s}
-                    <button
-                      onClick={() => {
-                        setVitals(prev => ({
-                          ...prev,
-                          symptoms: prev.symptoms.filter((_, idx) => idx !== i)
-                        }));
-                        if (s.startsWith('Other:')) setSymptomOther('');
-                      }}
-                      className="hover:text-red-400"
-                    >✕</button>
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Selection Popover */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-between h-auto min-h-9 py-0 text-left bg-slate-50/50">
-                  <div className="flex flex-wrap gap-1 py-1">
-                    {vitals.symptoms.length > 0 ? (
-                      vitals.symptoms.map((s) => (
-                        <span key={s} className="bg-[#0297d6]/10 text-[#0297d6] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20">{s.startsWith('Other:') ? 'Other' : s}</span>
-                      ))
-                    ) : (
-                      <span className="text-slate-400 text-sm">Search symptoms...</span>
-                    )}
+                <div className="col-span-2 md:col-span-2 lg:col-span-1 lg:col-start-2">
+                  <div className='justify-center w-full sm:w-79 md:w-79 md:ml-40 lg:w-full lg:ml-0'>
+                    <VitalCard
+                      type={VitalType.BMI}
+                      customContent={
+                        <div className="flex items-baseline justify-between w-full">
+                          <span className="text-2xl md:text-4xl font-bold text-secondary">{bmi ? bmi.value : '—'}</span>
+                          <span className={`text-sm font-bold ${bmi ? bmi.color : 'text-slate-400'}`}>{bmi ? bmi.label : 'Fill weight & height'}</span>
+                        </div>
+                      }
+                    />
                   </div>
-                  <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Search symptom..." />
-                  <CommandList>
-                    <CommandGroup className="max-h-60 overflow-y-auto">
-                      {COMMON_SYMPTOMS.map((option) => (
-                        <CommandItem
-                          key={option}
-                          onSelect={() => {
-                            setVitals(prev => ({
-                              ...prev,
-                              symptoms: prev.symptoms.includes(option)
-                                ? prev.symptoms.filter(s => s !== option)
-                                : [...prev.symptoms, option]
-                            }));
-                          }}
-                          className="flex items-center gap-2"
-                        >
-                          <div className={`flex h-4 w-4 items-center justify-center rounded border border-primary ${vitals.symptoms.includes(option) ? "bg-primary text-primary-foreground" : "opacity-50"}`}>
-                            {vitals.symptoms.includes(option) && <Check className="h-3 w-3" />}
-                          </div>
-                          <span>{option}</span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-
-            {/* "Other" Input Field (only shows if 'Other' is selected or a custom Other string exists) */}
-            {(vitals.symptoms.includes('Other') || vitals.symptoms.some(s => s.startsWith('Other:'))) && (
-              <div className="flex gap-2 mt-2">
-                <input
-                  autoFocus
-                  placeholder="Specify other symptom..."
-                  className="flex-1 p-3 bg-white border-2 border-[#0297d6] rounded-xl outline-none font-bold text-sm"
-                  value={symptomOther}
-                  onChange={(e) => {
-                    setSymptomOther(e.target.value);
-                    handleOtherSymptomChange(e.target.value);
-                  }}
-                />
-                <button
-                  onClick={() => {
-                    setVitals(prev => ({
-                      ...prev,
-                      symptoms: prev.symptoms.filter(s => s !== 'Other' && !s.startsWith('Other:'))
-                    }));
-                    setSymptomOther('');
-                  }}
-                  className="px-3 text-slate-400 hover:text-red-400 bg-white border border-slate-200 rounded-xl text-xs font-black"
-                >✕</button>
+                </div>
               </div>
-            )}
-          </div>
-          <div className='flex justify-between w-full'>
-            <div>
-              <Button onClick={handleAddVitals} disabled={loading} className="shrink-0 ml-auto px-8 py-5 text-base font-bold">
-                {loading ? <><Loader2 className="animate-spin mr-2 h-4 w-4" />Saving...</> : "Add Vitals"}
-              </Button>
-            </div>
-            {/* The Video Modal */}
-            <Button onClick={() => setIsVideoModalOpen(true)}>Online Consult</Button>
-            <VideoConsultModel
-              isOpen={isVideoModalOpen}
-              onClose={() => setIsVideoModalOpen(false)}
-              vitalsId={vitalsId}
-            />
-          </div>
+              {vitalsError && (
+                <div className="flex justify-end mt-4">
+                  <div className="bg-purple-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+                    <span>⚠️ Please fill all the vitals before proceeding.</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Next Button */}
+              <div className="flex justify-end mt-6">
+                <Button
+                  onClick={handleNextStep}
+                  className="px-8 py-5 text-base font-bold"
+                >
+                  Next →
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* ── STEP 2: SYMPTOMS + CONSULT TYPE + SAVE ── */}
+          {step === 2 && (
+            <>
+              {/* Consultation Type Selector */}
+              <div className="bg-white p-4 rounded-2xl shadow-lg shadow-black/10 border border-slate-100 mb-6">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Consultation Type</p>
+                <div className="flex gap-3">
+                  {(['Walk-in', 'Online Consultation'] as const).map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => setPatientType(type)}
+                      className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all border-2 ${patientType === type
+                        ? 'bg-primary text-white border-primary'
+                        : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-primary/40'
+                        }`}
+                    >
+                      {type === 'Walk-in' ? '🏥 Walk-in' : '💻 Online Consultation'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Symptoms */}
+              <div className="mb-6">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Symptoms</p>
+
+                {vitals.symptoms.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {vitals.symptoms.filter(s => s !== 'Other').map((s, i) => (
+                      <span key={i} className="flex items-center gap-1.5 text-xs font-black text-[#0297d6] bg-[#0297d6]/10 px-3 py-1 rounded-lg">
+                        {s.startsWith('Other:') ? `Other: ${s.slice(6)}` : s}
+                        <button onClick={() => { setVitals(prev => ({ ...prev, symptoms: prev.symptoms.filter((_, idx) => idx !== i) })); if (s.startsWith('Other:')) setSymptomOther(''); }} className="hover:text-red-400">✕</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between h-auto min-h-9 py-0 text-left bg-slate-50/50">
+                      <div className="flex flex-wrap gap-1 py-1">
+                        {vitals.symptoms.length > 0 ? (
+                          vitals.symptoms.map((s) => (
+                            <span key={s} className="bg-[#0297d6]/10 text-[#0297d6] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20">{s.startsWith('Other:') ? 'Other' : s}</span>
+                          ))
+                        ) : (
+                          <span className="text-slate-400 text-sm">Search symptoms...</span>
+                        )}
+                      </div>
+                      <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search symptom..." />
+                      <CommandList>
+                        <CommandGroup className="max-h-60 overflow-y-auto">
+                          {COMMON_SYMPTOMS.map((option) => (
+                            <CommandItem key={option} onSelect={() => { setVitals(prev => ({ ...prev, symptoms: prev.symptoms.includes(option) ? prev.symptoms.filter(s => s !== option) : [...prev.symptoms, option] })); }} className="flex items-center gap-2">
+                              <div className={`flex h-4 w-4 items-center justify-center rounded border border-primary ${vitals.symptoms.includes(option) ? "bg-primary text-primary-foreground" : "opacity-50"}`}>
+                                {vitals.symptoms.includes(option) && <Check className="h-3 w-3" />}
+                              </div>
+                              <span>{option}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
+                {(vitals.symptoms.includes('Other') || vitals.symptoms.some(s => s.startsWith('Other:'))) && (
+                  <div className="flex gap-2 mt-2">
+                    <input autoFocus placeholder="Specify other symptom..."
+                      className="flex-1 p-3 bg-white border-2 border-[#0297d6] rounded-xl outline-none font-bold text-sm"
+                      value={symptomOther}
+                      onChange={(e) => { setSymptomOther(e.target.value); handleOtherSymptomChange(e.target.value); }}
+                    />
+                    <button onClick={() => { setVitals(prev => ({ ...prev, symptoms: prev.symptoms.filter(s => s !== 'Other' && !s.startsWith('Other:')) })); setSymptomOther(''); }}
+                      className="px-3 text-slate-400 hover:text-red-400 bg-white border border-slate-200 rounded-xl text-xs font-black">✕</button>
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom Actions */}
+              <div className='flex justify-between w-full gap-3'>
+                <Button variant="outline" onClick={() => setStep(1)} className="px-6 py-5">
+                  ← Back
+                </Button>
+                <div className="flex gap-3">
+                  {patientType === 'Online Consultation' && (
+                    <div className="relative group">
+                      <Button
+                        onClick={() => vitalsId && setIsVideoModalOpen(true)}
+                        variant="outline"
+                        className={`px-6 py-5 transition-all ${!vitalsId ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        Online Consult
+                      </Button>
+                      {!vitalsId && (
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-800 text-white text-xs font-semibold rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                          Add vitals first
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <Button onClick={handleAddVitals} disabled={loading} className="px-8 py-5 text-base font-bold">
+                    {loading ? (
+                      <><Loader2 className="animate-spin mr-2 h-4 w-4" />{vitalsSaved ? 'Updating...' : 'Saving...'}</>
+                    ) : vitalsSaved ? (
+                      showSuccessToast ? "Updated ✓" : "Update Vitals"
+                    ) : (
+                      showSuccessToast ? "Vitals Added ✓" : "Add Vitals"
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <VideoConsultModel isOpen={isVideoModalOpen} onClose={() => setIsVideoModalOpen(false)} vitalsId={vitalsId} />
+            </>
+          )}
+
         </section>
       </div>
       <div className="mt-8 md:mt-12">

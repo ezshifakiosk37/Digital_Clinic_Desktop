@@ -1,3 +1,4 @@
+//vitals.ts
 export type FieldType =
   | 'text'
   | 'email'
