@@ -5,9 +5,12 @@ import { LogOut } from 'lucide-react';
 
 interface NavbarProps {
   fullName: string;
-  doctorPhoto?: string;       // optional photo URL
+  doctorPhoto?: string;
   onProfileClick: () => void;
   onLogoutClick: () => void;
+  doctorStatus: 'online' | 'offline';
+  togglingStatus: boolean;
+  onToggleStatus: () => void;
 }
 
 const Navbar: React.FC<NavbarProps> = ({
@@ -15,6 +18,9 @@ const Navbar: React.FC<NavbarProps> = ({
   doctorPhoto,
   onProfileClick,
   onLogoutClick,
+  doctorStatus,
+  togglingStatus,
+  onToggleStatus,
 }) => {
   return (
     <nav className="bg-[#0297d6] sticky top-0 z-50 px-6 py-4 flex justify-between items-center shadow-md text-white">
@@ -32,6 +38,22 @@ const Navbar: React.FC<NavbarProps> = ({
       <div className="flex items-center gap-4">
         <div className="text-right hidden sm:block">
           <p className="text-sm font-semibold uppercase tracking-wide">{fullName}</p>
+        </div>
+
+        {/* Status Toggle */}
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-bold ${doctorStatus === 'online' ? 'text-pink-600' : 'text-slate-400'}`}>
+            {doctorStatus === 'online' ? 'Online' : 'Offline'}
+          </span>
+          <button
+            onClick={onToggleStatus}
+            disabled={togglingStatus}
+            className={`relative w-11 h-6 rounded-full transition-colors duration-300 focus:outline-none ${doctorStatus === 'online' ? 'bg-emerald-500' : 'bg-slate-300'
+              } ${togglingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-300 ${doctorStatus === 'online' ? 'translate-x-5' : 'translate-x-0'
+              }`} />
+          </button>
         </div>
 
         {/* Logout Button */}

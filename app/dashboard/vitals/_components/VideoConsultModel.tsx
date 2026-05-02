@@ -169,8 +169,8 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] overflow-hidden p-0 border-none rounded-2xl shadow-2xl">
-        <div className="h-2 bg-gradient-to-r from-blue-500 to-green-500 w-full" />
+      <DialogContent className="sm:max-w-106.25 overflow-hidden p-0 border-none rounded-2xl shadow-2xl">
+        <div className="h-2 bg-linear-to-r from-blue-500 to-green-500 w-full" />
 
         <div className="p-8 bg-white">
           <DialogHeader className="flex flex-col items-center justify-center space-y-2">

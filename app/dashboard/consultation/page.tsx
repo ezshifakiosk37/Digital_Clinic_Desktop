@@ -54,7 +54,9 @@ const EZShifaPortal = () => {
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [doneQueue, setDoneQueue] = useState<any[]>([]);
   const [endingSession, setEndingSession] = useState(false);
-
+  const [doctorStatus, setDoctorStatus] = useState<'online' | 'offline'>('online');
+  const [togglingStatus, setTogglingStatus] = useState(false);
+  const [queueTab, setQueueTab] = useState<'Walk-in' | 'Online Consultation'>('Walk-in');
 
   const updateMedicine = (id: number, field: string, value: any) => {
     setMedicines(prev =>
@@ -77,8 +79,8 @@ const EZShifaPortal = () => {
     city: '',
     photo: '',
   });
-  
-React.useEffect(() => {
+
+  React.useEffect(() => {
     const token = localStorage.getItem('doc_token');
     if (token) {
       setIsLoggedIn(true);
@@ -89,6 +91,9 @@ React.useEffect(() => {
     const savedDoctor = apiService.getDoctor();
     if (savedDoctor) {
       setDoctor(savedDoctor);
+      if (savedDoctor.doctorStatus) {
+        setDoctorStatus(savedDoctor.doctorStatus as 'online' | 'offline');
+      }
     }
 
     setAuthChecked(true);
@@ -105,16 +110,7 @@ React.useEffect(() => {
         setTodayStats(stats);
 
         // Get only today's patients for queue
-        const response = await fetch(`${API_BASE_URL}/api/patients/today-queue`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('doc_token')}`,
-          },
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch queue');
-
-        const data = await response.json();
+        const data = await apiService.getTodayQueue();
         if (data.success) {
           const dedupe = (arr: any[]) => {
             const seen = new Set();
@@ -160,21 +156,12 @@ React.useEffect(() => {
 
   const fullName = `${doctor.title} ${doctor.firstName} ${doctor.lastName}`;
 
-  // const queue: Patient[] = [
-  //   {
-  //     id: 1, token: '101', firstName: 'Ahmed', lastName: 'Khan', age: 45, gender: 'Male',
-  //     symptoms: 'Persistent Cough, Fever', medicalHistory: 'Type 2 Diabetes',
-  //     vitals: { temp: '101.2°F', bp: '130/85', pulse: '88 bpm', weight: '75kg' },
-  //   },
-  //   {
-  //     id: 2, token: '102', firstName: 'Sara', lastName: 'Ahmed', age: 29, gender: 'Female',
-  //     symptoms: 'Severe Headache', medicalHistory: 'Migraine',
-  //     vitals: { temp: '98.4°F', bp: '110/70', pulse: '72 bpm', weight: '60kg' },
-  //   },
-  // ];
+  const walkInCount = queue.filter(p => !p.patientType || p.patientType === 'Walk-in').length;
+  const onlineCount = queue.filter(p => p.patientType === 'Online Consultation').length;
 
   const filteredQueue = queue.filter(p =>
-    !tokenSearch || String(p.token || '').toLowerCase().includes(tokenSearch.toLowerCase())
+    (p.patientType === queueTab || (!p.patientType && queueTab === 'Walk-in')) &&
+    (!tokenSearch || String(p.token || '').toLowerCase().includes(tokenSearch.toLowerCase()))
   );
 
   const handleStartConsult = (patient: Patient) => {
@@ -210,57 +197,69 @@ React.useEffect(() => {
 
     // 1. Tell the Android App to unregister FCM and delete the token
     if (window.AndroidNative && typeof window.AndroidNative.unregisterFcmDevice === 'function') {
-        try {
-            window.AndroidNative.unregisterFcmDevice();
-            console.log("Native FCM unregistration triggered");
-        } catch (bridgeErr) {
-            console.error("Failed to call Android Bridge:", bridgeErr);
-        }
+      try {
+        window.AndroidNative.unregisterFcmDevice();
+        console.log("Native FCM unregistration triggered");
+      } catch (bridgeErr) {
+        console.error("Failed to call Android Bridge:", bridgeErr);
+      }
     }
 
     try {
-        // 2. Inform your backend about the logout
-        await fetch(`${API_BASE_URL}/api/doctors/logout`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('doc_token')}`,
-            },
-            body: JSON.stringify({ 
-                reason: selectedLogoutReason,
-                // Optional: if your backend needs to know which token to remove
-                // fcmToken: currentToken 
-            }),
-        });
+      // 2. Inform your backend about the logout
+      await fetch(`${API_BASE_URL}/api/doctors/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('doc_token')}`,
+        },
+        body: JSON.stringify({ reason: selectedLogoutReason }),
+      });
 
-        // 3. Clean up local state
-        localStorage.removeItem('doc_token');
-        localStorage.removeItem('doctor');
+      try {
+        await apiService.updateDoctorStatus('offline');
+      } catch (_) { }
+      // 3. Clean up local state
+      localStorage.removeItem('doc_token');
+      localStorage.removeItem('doctor');
 
-        setShowLogoutModal(false);
-        setIsLoggedIn(false);
-        setActivePage('login');
-        setSelectedLogoutReason('');
-        setSelectedPatient(null);
+      setShowLogoutModal(false);
+      setIsLoggedIn(false);
+      setActivePage('login');
+      setSelectedLogoutReason('');
+      setSelectedPatient(null);
     } catch (err) {
-        console.error("Logout error:", err);
-        // Fallback cleanup even if the network request fails
-        localStorage.removeItem('doc_token');
-        localStorage.removeItem('doctor');
-        setShowLogoutModal(false);
-        setIsLoggedIn(false);
-        setActivePage('login');
+      console.error("Logout error:", err);
+      // Fallback cleanup even if the network request fails
+      localStorage.removeItem('doc_token');
+      localStorage.removeItem('doctor');
+      setShowLogoutModal(false);
+      setIsLoggedIn(false);
+      setActivePage('login');
     } finally {
-        setLogoutLoading(false);
+      setLogoutLoading(false);
     }
-};
+  };
 
   const cancelLogout = () => {
     setShowLogoutModal(false);
     setSelectedLogoutReason('');
-
   };
 
+  const handleToggleStatus = async () => {
+    const newStatus = doctorStatus === 'online' ? 'offline' : 'online';
+    setTogglingStatus(true);
+    try {
+      const data = await apiService.updateDoctorStatus(newStatus);
+      if (data.success) {
+        setDoctorStatus(data.doctorStatus);
+      }
+    } catch (err) {
+      console.error("Status toggle failed", err);
+    } finally {
+      setTogglingStatus(false);
+    }
+  };
 
   if (!isLoggedIn) {
     if (activePage === 'login') {
@@ -278,6 +277,9 @@ React.useEffect(() => {
         doctorPhoto={doctor.photo}
         onProfileClick={() => setActivePage('profile')}
         onLogoutClick={handleLogoutClick}
+        doctorStatus={doctorStatus}
+        togglingStatus={togglingStatus}
+        onToggleStatus={handleToggleStatus}
       />
 
       <main className="max-w-7xl mx-auto p-6">
@@ -305,9 +307,22 @@ React.useEffect(() => {
 
             {/* Current Patient Queue */}
             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-6">
-              <div className="px-8 py-5 border-b flex justify-between">
+              <div className="px-8 py-5 border-b flex items-center justify-between flex-wrap gap-3">
                 <h2 className="font-bold text-xl text-slate-800">CURRENT PATIENT QUEUE</h2>
-                
+                <div className="flex bg-slate-100 rounded-xl p-1 gap-1">
+                  {(['Walk-in', 'Online Consultation'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setQueueTab(tab)}
+                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${queueTab === tab
+                          ? 'bg-white text-[#0297d6] shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                    >
+                      {tab === 'Walk-in' ? `🏥 Walk-in (${walkInCount})` : `💻 Online (${onlineCount})`}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <table className="w-full">

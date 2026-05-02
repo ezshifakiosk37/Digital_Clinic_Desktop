@@ -21,9 +21,11 @@ const DocSignin: React.FC<DocSigninProps> = ({ setActivePage, setIsLoggedIn }) =
         try {
             const data = await apiService.docLogin({ email, password });
 
-            // Immediately update doctor state in parent (page.tsx)
+            try {
+                await apiService.updateDoctorStatus('online');
+            } catch (_) { }
+
             if (data.doctor) {
-                // This will trigger re-render with correct doctor
                 window.dispatchEvent(new Event('doctorLoggedIn'));
             }
 
