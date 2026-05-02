@@ -1,5 +1,5 @@
 // app/_utils/apiService.ts
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL as string;
+const API_BASE_URL = "https://bifurcation-clinic-api.vercel.app";
 
 const handleResponse = async (response: Response) => {
     const data = await response.json();
