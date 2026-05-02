@@ -1,7 +1,7 @@
 // consultation/page.tsx
 "use client";
 import React, { useState } from 'react';
-import { User, CheckCircle, Clock, Search, X } from 'lucide-react';
+import { User, CheckCircle, Clock, Search, X, Video } from 'lucide-react';
 import { apiService } from '@/app/_utils/apiService';
 
 import Navbar from './components/Navbar';
@@ -12,7 +12,7 @@ import DocSignin from './docSignin';
 import DocSignup from './docSignup';
 
 import { DoctorProfile } from './doctor_registration';
-import { Button } from '@/components/ui/button';
+import { useCallQueue } from '@/app/_context/CallQueueContext';
 
 const API_BASE_URL = "https://bifurcation-clinic-api.vercel.app";
 
@@ -58,28 +58,20 @@ const EZShifaPortal = () => {
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [queueTab, setQueueTab] = useState<'Walk-in' | 'Online Consultation'>('Walk-in');
 
-  const updateMedicine = (id: number, field: string, value: any) => {
-    setMedicines(prev =>
-      prev.map(m => m.id === id ? { ...m, [field]: value } : m)
-    );
-  };
-
+  // ── Call Queue Context ──────────────────────────────────────────────────────
+  const { onlineQueue: fcmOnlineQueue, removeCall } = useCallQueue();
 
   const [doctor, setDoctor] = useState<DoctorProfile>({
-    title: '',
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    phone: '',
-    gender: '',
-    specializations: [],
-    qualifications: [],
-    experience: '',
-    city: '',
-    photo: '',
+    title: '', firstName: '', lastName: '', email: '', password: '',
+    phone: '', gender: '', specializations: [], qualifications: [],
+    experience: '', city: '', photo: '',
   });
 
+  const updateMedicine = (id: number, field: string, value: any) => {
+    setMedicines(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
+  };
+
+  // ── Auth check ──────────────────────────────────────────────────────────────
   React.useEffect(() => {
     const token = localStorage.getItem('doc_token');
     if (token) {
@@ -95,21 +87,17 @@ const EZShifaPortal = () => {
         setDoctorStatus(savedDoctor.doctorStatus as 'online' | 'offline');
       }
     }
-
     setAuthChecked(true);
   }, []);
 
-  // Load today's stats and queue when component mounts or doctor logs in
-  // Load today's stats and queue (ONLY today's patients)
+  // ── Load dashboard data ─────────────────────────────────────────────────────
   React.useEffect(() => {
     const loadDashboardData = async () => {
       setLoadingQueue(true);
       try {
-        // Get stats
         const stats = await apiService.getTodayStats();
         setTodayStats(stats);
 
-        // Get only today's patients for queue
         const data = await apiService.getTodayQueue();
         if (data.success) {
           const dedupe = (arr: any[]) => {
@@ -125,8 +113,6 @@ const EZShifaPortal = () => {
         }
       } catch (err) {
         console.error("Failed to load dashboard data", err);
-        // Optional: show user-friendly message
-        // setError("Failed to load queue. Please refresh.");
       } finally {
         setLoadingQueue(false);
       }
@@ -140,31 +126,59 @@ const EZShifaPortal = () => {
     }
   }, [isLoggedIn]);
 
-
-  // Fix for immediate doctor update after login
+  // ── Doctor login event ──────────────────────────────────────────────────────
   React.useEffect(() => {
     const handleDoctorLogin = () => {
       const savedDoctor = apiService.getDoctor();
-      if (savedDoctor) {
-        setDoctor(savedDoctor);
-      }
+      if (savedDoctor) setDoctor(savedDoctor);
     };
-
     window.addEventListener('doctorLoggedIn', handleDoctorLogin);
     return () => window.removeEventListener('doctorLoggedIn', handleDoctorLogin);
   }, []);
 
+  // ── Derived data ────────────────────────────────────────────────────────────
   const fullName = `${doctor.title} ${doctor.firstName} ${doctor.lastName}`;
 
-  const walkInCount = queue.filter(p => !p.patientType || p.patientType === 'Walk-in').length;
-  const onlineCount = queue.filter(p => p.patientType === 'Online Consultation').length;
+  // Merge API queue with live FCM online calls (deduped by vitalsId)
+  const mergedQueue = [
+    ...queue,
+    ...fcmOnlineQueue
+      .filter(fcmCall => !queue.find((q: any) => q.vitalsId === fcmCall.vitalsId))
+      .map(fcmCall => ({
+        id: fcmCall.vitalsId,
+        vitalsId: fcmCall.vitalsId,
+        token: fcmCall.token || '—',
+        symptoms: fcmCall.symptoms || fcmCall.body || '—',
+        firstName: fcmCall.title || 'Online',
+        lastName: 'Patient',
+        patientType: 'Online Consultation',
+        callUrl: fcmCall.callUrl,
+        _isFcmCall: true,
+      })),
+  ];
 
-  const filteredQueue = queue.filter(p =>
+  const walkInCount = mergedQueue.filter(p => !p.patientType || p.patientType === 'Walk-in').length;
+  const onlineCount = mergedQueue.filter(p => p.patientType === 'Online Consultation').length;
+
+  const filteredQueue = mergedQueue.filter(p =>
     (p.patientType === queueTab || (!p.patientType && queueTab === 'Walk-in')) &&
     (!tokenSearch || String(p.token || '').toLowerCase().includes(tokenSearch.toLowerCase()))
   );
 
-  const handleStartConsult = (patient: Patient) => {
+  // ── Handlers ────────────────────────────────────────────────────────────────
+  const handleStartConsult = async (patient: any) => {
+    if (patient._isFcmCall) {
+      try {
+        const res = await apiService.acceptCall(patient.vitalsId);
+        if (res.success) {
+          removeCall(patient.vitalsId);
+          window.location.href = patient.callUrl;
+        }
+      } catch (err) {
+        console.error("Failed to accept online call:", err);
+      }
+      return;
+    }
     setSelectedPatient(patient);
   };
 
@@ -176,8 +190,6 @@ const EZShifaPortal = () => {
     setNotes('');
     setPrescriptionGenerated(false);
     setEndingSession(false);
-
-    // Re-fetch accurate stats from API instead of guessing locally
     try {
       const stats = await apiService.getTodayStats();
       setTodayStats(stats);
@@ -186,27 +198,17 @@ const EZShifaPortal = () => {
     }
   };
 
-  const handleLogoutClick = () => {
-    setShowLogoutModal(true);
-  };
+  const handleLogoutClick = () => setShowLogoutModal(true);
 
   const confirmLogout = async () => {
     if (!selectedLogoutReason) return;
-
     setLogoutLoading(true);
 
-    // 1. Tell the Android App to unregister FCM and delete the token
     if (window.AndroidNative && typeof window.AndroidNative.unregisterFcmDevice === 'function') {
-      try {
-        window.AndroidNative.unregisterFcmDevice();
-        console.log("Native FCM unregistration triggered");
-      } catch (bridgeErr) {
-        console.error("Failed to call Android Bridge:", bridgeErr);
-      }
+      try { window.AndroidNative.unregisterFcmDevice(); } catch {}
     }
 
     try {
-      // 2. Inform your backend about the logout
       await fetch(`${API_BASE_URL}/api/doctors/logout`, {
         method: 'POST',
         headers: {
@@ -215,28 +217,17 @@ const EZShifaPortal = () => {
         },
         body: JSON.stringify({ reason: selectedLogoutReason }),
       });
-
-      try {
-        await apiService.updateDoctorStatus('offline');
-      } catch (_) { }
-      // 3. Clean up local state
+      try { await apiService.updateDoctorStatus('offline'); } catch {}
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
       localStorage.removeItem('doc_token');
       localStorage.removeItem('doctor');
-
       setShowLogoutModal(false);
       setIsLoggedIn(false);
       setActivePage('login');
       setSelectedLogoutReason('');
       setSelectedPatient(null);
-    } catch (err) {
-      console.error("Logout error:", err);
-      // Fallback cleanup even if the network request fails
-      localStorage.removeItem('doc_token');
-      localStorage.removeItem('doctor');
-      setShowLogoutModal(false);
-      setIsLoggedIn(false);
-      setActivePage('login');
-    } finally {
       setLogoutLoading(false);
     }
   };
@@ -251,9 +242,7 @@ const EZShifaPortal = () => {
     setTogglingStatus(true);
     try {
       const data = await apiService.updateDoctorStatus(newStatus);
-      if (data.success) {
-        setDoctorStatus(data.doctorStatus);
-      }
+      if (data.success) setDoctorStatus(data.doctorStatus);
     } catch (err) {
       console.error("Status toggle failed", err);
     } finally {
@@ -261,17 +250,16 @@ const EZShifaPortal = () => {
     }
   };
 
+  // ── Auth gates ──────────────────────────────────────────────────────────────
   if (!isLoggedIn) {
-    if (activePage === 'login') {
-      return <DocSignin setActivePage={setActivePage} setIsLoggedIn={setIsLoggedIn} />;
-    } else {
-      return <DocSignup setActivePage={setActivePage} />;
-    }
+    return activePage === 'login'
+      ? <DocSignin setActivePage={setActivePage} setIsLoggedIn={setIsLoggedIn} />
+      : <DocSignup setActivePage={setActivePage} />;
   }
 
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-white">
-      {/* Navbar */}
       <Navbar
         fullName={fullName}
         doctorPhoto={doctor.photo}
@@ -283,15 +271,17 @@ const EZShifaPortal = () => {
       />
 
       <main className="max-w-7xl mx-auto p-6">
-        {/* Dashboard - Queue View */}
+
+        {/* ── Dashboard ── */}
         {activePage === 'dashboard' && !selectedPatient && (
           <div>
+
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               {[
-                { label: 'TODAY PATIENTS', val: todayStats.todayPatients, icon: User, color: 'text-blue-600', bg: 'bg-blue-50' },
-                { label: 'IN QUEUE', val: todayStats.inQueue, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
-                { label: 'COMPLETED', val: todayStats.completed, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                { label: 'TODAY PATIENTS', val: todayStats.todayPatients, icon: User,        color: 'text-blue-600',    bg: 'bg-blue-50'    },
+                { label: 'IN QUEUE',       val: todayStats.inQueue,       icon: Clock,       color: 'text-orange-600',  bg: 'bg-orange-50'  },
+                { label: 'COMPLETED',      val: todayStats.completed,     icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
               ].map((s, i) => (
                 <div key={i} className="bg-white rounded-3xl p-6 flex items-center gap-5 shadow-sm border border-slate-100">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${s.bg} ${s.color}`}>
@@ -307,6 +297,8 @@ const EZShifaPortal = () => {
 
             {/* Current Patient Queue */}
             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-6">
+
+              {/* Queue header + tab switcher */}
               <div className="px-8 py-5 border-b flex items-center justify-between flex-wrap gap-3">
                 <h2 className="font-bold text-xl text-slate-800">CURRENT PATIENT QUEUE</h2>
                 <div className="flex bg-slate-100 rounded-xl p-1 gap-1">
@@ -314,32 +306,36 @@ const EZShifaPortal = () => {
                     <button
                       key={tab}
                       onClick={() => setQueueTab(tab)}
-                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${queueTab === tab
+                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                        queueTab === tab
                           ? 'bg-white text-[#0297d6] shadow-sm'
                           : 'text-slate-500 hover:text-slate-700'
-                        }`}
+                      }`}
                     >
-                      {tab === 'Walk-in' ? `🏥 Walk-in (${walkInCount})` : `💻 Online (${onlineCount})`}
+                      {tab === 'Walk-in'
+                        ? `🏥 Walk-in (${walkInCount})`
+                        : `💻 Online (${onlineCount})`}
                     </button>
                   ))}
                 </div>
               </div>
 
+              {/* Queue table */}
               <table className="w-full">
                 <thead className="bg-slate-50">
-                  <tr className="text-sm text-slate-500 font-semibold">
-                    <th className="px-8 py-4 text-left">SR. NO</th>
+                  <tr className="text-sm text-slate-500 font-semibold uppercase tracking-wide">
+                    <th className="px-8 py-4 text-left">Sr. No</th>
                     <th className="px-8 py-4 text-left">
                       Token Number
                       {tokenEditMode ? (
-                        <div className="inline-flex items-center ml-3">
+                        <span className="inline-flex items-center ml-3">
                           <input
                             autoFocus
                             type="text"
                             value={tokenSearch}
                             onChange={(e) => setTokenSearch(e.target.value)}
                             placeholder="Search..."
-                            className="bg-white border border-[#0297d6] rounded px-3 py-1 text-sm w-40 focus:outline-none"
+                            className="bg-white border border-[#0297d6] rounded px-3 py-1 text-sm w-32 focus:outline-none font-normal normal-case"
                           />
                           <button
                             onClick={() => { setTokenSearch(''); setTokenEditMode(false); }}
@@ -347,42 +343,84 @@ const EZShifaPortal = () => {
                           >
                             <X size={16} />
                           </button>
-                        </div>
+                        </span>
                       ) : (
                         <button
                           onClick={() => setTokenEditMode(true)}
-                          className="ml-2 hover:text-[#0297d6]"
+                          className="ml-2 hover:text-[#0297d6] align-middle"
                         >
                           <Search size={16} />
                         </button>
                       )}
                     </th>
-                    <th className="px-8 py-4 text-left">SYMPTOMS</th>
-                    <th className="px-8 py-4 text-right">ACTION</th>
+                    <th className="px-8 py-4 text-left">Symptoms</th>
+                    <th className="px-8 py-4 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
-                  {filteredQueue.map((p, i) => (
-                    <tr key={`${p.id}-${p.token || i}`} className="hover:bg-slate-50">
-                      <td className="px-8 py-5 font-medium text-slate-600">{i + 1}</td>
-                      <td className="px-8 py-5 font-bold text-[#0297d6]">#{p.token}</td>
-                      <td className="px-8 py-5 text-slate-700">{p.symptoms}</td>
-                      <td className="px-8 py-5 text-right">
-                        <button
-                          onClick={() => handleStartConsult(p)}
-                          className="bg-[#0297d6] hover:bg-[#0288c2] text-white px-8 py-2.5 rounded-xl text-sm font-bold tracking-widest transition-all"
-                        >
-                          START
-                        </button>
+                <tbody className="divide-y divide-slate-100">
+                  {loadingQueue ? (
+                    <tr>
+                      <td colSpan={4} className="px-8 py-12 text-center text-slate-400 text-sm">
+                        Loading queue...
                       </td>
                     </tr>
-                  ))}
+                  ) : filteredQueue.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-8 py-12 text-center text-slate-400 text-sm">
+                        {tokenSearch
+                          ? `No patients matching "${tokenSearch}"`
+                          : `No patients in ${queueTab === 'Walk-in' ? 'walk-in' : 'online'} queue.`}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredQueue.map((p, i) => (
+                      <tr
+                        key={`${p.id}-${p.token || i}`}
+                        className={`hover:bg-slate-50 transition-colors ${
+                          p._isFcmCall ? 'bg-blue-50/40' : ''
+                        }`}
+                      >
+                        <td className="px-8 py-5 font-medium text-slate-600">{i + 1}</td>
+                        <td className="px-8 py-5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-[#0297d6]">#{p.token}</span>
+                            {/* Live badge for FCM calls that just came in */}
+                            {p._isFcmCall && (
+                              <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse">
+                                <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                                Live
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-8 py-5 text-slate-700">{p.symptoms}</td>
+                        <td className="px-8 py-5 text-right">
+                          {p._isFcmCall ? (
+                            // Online call — show a video call join button
+                            <button
+                              onClick={() => handleStartConsult(p)}
+                              className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold tracking-widest transition-all"
+                            >
+                              <Video size={15} />
+                              JOIN
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleStartConsult(p)}
+                              className="bg-[#0297d6] hover:bg-[#0288c2] text-white px-8 py-2.5 rounded-xl text-sm font-bold tracking-widest transition-all"
+                            >
+                              START
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
 
-
-            {/* Done Queue */}
+            {/* Completed Today */}
             {doneQueue.length > 0 && (
               <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mt-6">
                 <div className="px-8 py-5 border-b flex items-center gap-3">
@@ -394,15 +432,15 @@ const EZShifaPortal = () => {
                 </div>
                 <table className="w-full">
                   <thead className="bg-slate-50">
-                    <tr className="text-sm text-slate-500 font-semibold">
-                      <th className="px-8 py-4 text-left">SR. NO</th>
-                      <th className="px-8 py-4 text-left">TOKEN</th>
-                      <th className="px-8 py-4 text-left">PATIENT</th>
-                      <th className="px-8 py-4 text-left">SYMPTOMS</th>
-                      <th className="px-8 py-4 text-right">STATUS</th>
+                    <tr className="text-sm text-slate-500 font-semibold uppercase tracking-wide">
+                      <th className="px-8 py-4 text-left">Sr. No</th>
+                      <th className="px-8 py-4 text-left">Token</th>
+                      <th className="px-8 py-4 text-left">Patient</th>
+                      <th className="px-8 py-4 text-left">Symptoms</th>
+                      <th className="px-8 py-4 text-right">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody className="divide-y divide-slate-100">
                     {doneQueue.map((p, i) => (
                       <tr key={`done-${p.id}`} className="bg-emerald-50/30">
                         <td className="px-8 py-4 font-medium text-slate-400">{i + 1}</td>
@@ -420,10 +458,11 @@ const EZShifaPortal = () => {
                 </table>
               </div>
             )}
+
           </div>
         )}
 
-        {/* Patient Consultation */}
+        {/* ── Patient Consultation ── */}
         {selectedPatient && activePage === 'dashboard' && (
           <DocConsult
             selectedPatient={selectedPatient}
@@ -443,7 +482,7 @@ const EZShifaPortal = () => {
           />
         )}
 
-        {/* Profile Page */}
+        {/* ── Profile ── */}
         {activePage === 'profile' && (
           <DocProfile
             setActivePage={setActivePage}
@@ -453,9 +492,9 @@ const EZShifaPortal = () => {
             setEditMode={setEditMode}
           />
         )}
+
       </main>
 
-      {/* Logout Modal - Full props */}
       <DocLogout
         showLogoutModal={showLogoutModal}
         setShowLogoutModal={setShowLogoutModal}
