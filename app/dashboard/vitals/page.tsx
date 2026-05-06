@@ -473,7 +473,7 @@ const VitalsPage = () => {
               </svg>
             </div> */}
             <div className='flex-row'>
-              <p className="text-xl font-bold leading-tight">EZShifa:</p><p className="text-sm text-white/70">Digital Health Clinic</p>
+              <p className="text-xl font-bold leading-tight">EZShifa:<span className="text-sm text-white/70"> Digital Health Clinic </span></p>
 
             </div>
           </div>
