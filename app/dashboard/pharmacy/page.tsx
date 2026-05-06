@@ -259,21 +259,6 @@ const Page = () => {
                                                                 )}
                                                             </div>
 
-                                                            {/* Medicine list */}
-                                                            <div className="space-y-2">
-                                                                {(p.medicines ?? []).map((m: any) => (
-                                                                    <div key={m.id} className="p-3 bg-white border border-slate-100 rounded-xl flex justify-between items-center">
-                                                                        <div>
-                                                                            <p className="font-bold text-slate-800">{m.medicineName}</p>
-                                                                            <p className="text-xs text-slate-500">{m.dosage} • {m.duration}</p>
-                                                                        </div>
-                                                                        <div className="text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg">
-                                                                            M:{m.morning ? 1 : 0} A:{m.afternoon ? 1 : 0} N:{m.night ? 1 : 0}
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-
                                                             {/* Generate prescription button */}
                                                             {!prescriptionGenerated && (
                                                                 <button
