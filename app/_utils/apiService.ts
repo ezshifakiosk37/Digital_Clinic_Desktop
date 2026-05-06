@@ -1,5 +1,6 @@
 // app/_utils/apiService.ts
 const API_BASE_URL = "https://bifurcation-clinic-api.vercel.app";
+// const API_BASE_URL = "http://localhost:5000";
 
 const handleResponse = async (response: Response) => {
     const data = await response.json();

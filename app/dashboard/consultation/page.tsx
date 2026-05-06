@@ -100,7 +100,7 @@ const EZShifaPortal = () => {
 
         const data = await apiService.getTodayQueue();
         if (data.success) {
-          const dedupe = (arr: any[]) => {
+          const dedupeById = (arr: any[]) => {
             const seen = new Set();
             return arr.filter((p: any) => {
               if (seen.has(p.id)) return false;
@@ -108,8 +108,17 @@ const EZShifaPortal = () => {
               return true;
             });
           };
-          setQueue(dedupe(data.patients || []));
-          setDoneQueue(dedupe(data.completed || []));
+          const dedupeByPrescription = (arr: any[]) => {
+            const seen = new Set();
+            return arr.filter((p: any) => {
+              const key = p.prescriptionId || `${p.id}-${p.token}`;
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
+          };
+          setQueue(dedupeById(data.patients || []));
+          setDoneQueue(dedupeByPrescription(data.completed || []));
         }
       } catch (err) {
         console.error("Failed to load dashboard data", err);
@@ -306,11 +315,10 @@ const EZShifaPortal = () => {
                     <button
                       key={tab}
                       onClick={() => setQueueTab(tab)}
-                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                        queueTab === tab
-                          ? 'bg-white text-[#0297d6] shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700'
-                      }`}
+                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${queueTab === tab
+                        ? 'bg-white text-[#0297d6] shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                        }`}
                     >
                       {tab === 'Walk-in'
                         ? `🏥 Walk-in (${walkInCount})`
@@ -442,7 +450,7 @@ const EZShifaPortal = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {doneQueue.map((p, i) => (
-                      <tr key={`done-${p.id}`} className="bg-emerald-50/30">
+                      <tr key={`done-${p.prescriptionId}`} className="bg-emerald-50/30">
                         <td className="px-8 py-4 font-medium text-slate-400">{i + 1}</td>
                         <td className="px-8 py-4 font-bold text-slate-400">#{p.token}</td>
                         <td className="px-8 py-4 text-slate-600 font-semibold">{p.firstName} {p.lastName}</td>

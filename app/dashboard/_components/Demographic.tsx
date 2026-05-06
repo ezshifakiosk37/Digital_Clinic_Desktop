@@ -161,7 +161,7 @@ const DemographicPage: React.FC = () => {
         setShowTokenDialog(true); // Show the success popup
       }
     } catch (error: any) {
-      alert(error.message || "Failed to save details.");
+      showNotification(error.message || "Failed to save details.");
     } finally {
       setIsSaving(false);
     }
@@ -195,7 +195,7 @@ const DemographicPage: React.FC = () => {
   }, []);
 
   return (
-    
+
     <div className="min-h-screen bg-slate-50 flex flex-col items-center w-full">
       {notification && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#d602a1] text-white px-6 py-3 rounded-full shadow-lg text-sm font-semibold animate-fade-in flex items-center gap-2">
