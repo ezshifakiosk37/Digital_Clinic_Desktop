@@ -107,15 +107,15 @@ export const apiService = {
     },
 
     updateVitals: async (vitalsId: string, vitalsData: any) => {
-  const token = localStorage.getItem('token');
-  const res = await fetch(`${API_BASE_URL}/api/vitals/update/${vitalsId}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ vitals: vitalsData }),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-},
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_BASE_URL}/api/vitals/update/${vitalsId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ vitals: vitalsData }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+    },
 
     getVitals: async (patientId: string) => {
         const url = `${API_BASE_URL}/api/patients/history/${patientId}`;
@@ -179,6 +179,16 @@ export const apiService = {
         window.location.href = '/consultation';
     },
 
+    // In apiService.ts — add inside the apiService object
+    docLogoutWithReason: async (reason: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/doctors/logout`, {
+            method: 'POST',
+            headers: getDocHeaders(),
+            body: JSON.stringify({ reason }),
+        });
+        return handleResponse(response);
+    },
+
     getDoctor: () => {
         const doc = localStorage.getItem('doctor');
         return doc ? JSON.parse(doc) : null;
@@ -206,13 +216,13 @@ export const apiService = {
     },
 
     updateDoctorStatus: async (status: 'online' | 'offline') => {
-    const response = await fetch(`${API_BASE_URL}/api/doctors/status`, {
-        method: 'PATCH',
-        headers: getDocHeaders(),
-        body: JSON.stringify({ status }),
-    });
-    return handleResponse(response);
-},
+        const response = await fetch(`${API_BASE_URL}/api/doctors/status`, {
+            method: 'PATCH',
+            headers: getDocHeaders(),
+            body: JSON.stringify({ status }),
+        });
+        return handleResponse(response);
+    },
 
     // ── Dashboard Helpers ──
     getTodayStats: async () => {
@@ -224,12 +234,12 @@ export const apiService = {
     },
 
     getTodayQueue: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/patients/today-queue`, {
-        method: 'GET',
-        headers: getDocHeaders(),
-    });
-    return handleResponse(response);
-},
+        const response = await fetch(`${API_BASE_URL}/api/patients/today-queue`, {
+            method: 'GET',
+            headers: getDocHeaders(),
+        });
+        return handleResponse(response);
+    },
 
     savePrescription: async (payload: any) => {
         const response = await fetch(`${API_BASE_URL}/api/patients/save-prescription`, {
