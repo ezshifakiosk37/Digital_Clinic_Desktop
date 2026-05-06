@@ -107,15 +107,15 @@ export const apiService = {
     },
 
     updateVitals: async (vitalsId: string, vitalsData: any) => {
-  const token = localStorage.getItem('token');
-  const res = await fetch(`${API_BASE_URL}/api/vitals/update/${vitalsId}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ vitals: vitalsData }),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-},
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_BASE_URL}/api/vitals/update/${vitalsId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ vitals: vitalsData }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+    },
 
     getVitals: async (patientId: string) => {
         const url = `${API_BASE_URL}/api/patients/history/${patientId}`;
@@ -206,13 +206,13 @@ export const apiService = {
     },
 
     updateDoctorStatus: async (status: 'online' | 'offline') => {
-    const response = await fetch(`${API_BASE_URL}/api/doctors/status`, {
-        method: 'PATCH',
-        headers: getDocHeaders(),
-        body: JSON.stringify({ status }),
-    });
-    return handleResponse(response);
-},
+        const response = await fetch(`${API_BASE_URL}/api/doctors/status`, {
+            method: 'PATCH',
+            headers: getDocHeaders(),
+            body: JSON.stringify({ status }),
+        });
+        return handleResponse(response);
+    },
 
     // ── Dashboard Helpers ──
     getTodayStats: async () => {
@@ -224,12 +224,12 @@ export const apiService = {
     },
 
     getTodayQueue: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/patients/today-queue`, {
-        method: 'GET',
-        headers: getDocHeaders(),
-    });
-    return handleResponse(response);
-},
+        const response = await fetch(`${API_BASE_URL}/api/patients/today-queue`, {
+            method: 'GET',
+            headers: getDocHeaders(),
+        });
+        return handleResponse(response);
+    },
 
     savePrescription: async (payload: any) => {
         const response = await fetch(`${API_BASE_URL}/api/patients/save-prescription`, {
@@ -310,6 +310,14 @@ export const apiService = {
         return handleResponse(response);
     },
 
+    getVitalsQueue: async () => {
+        const response = await fetch(`${API_BASE_URL}/api/patients/vitals-queue`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+        return handleResponse(response);
+    },
+
     getAllPrescription: async (token: string) => {
         if (!token) throw new Error("Token is required");
 
@@ -322,5 +330,16 @@ export const apiService = {
         );
 
         return handleResponse(response);
+    },
+
+    getLatestVitals: async (patientId: string, token: string) => {
+        const res = await fetch(
+            `${API_BASE_URL}/api/patients/latest-vitals/${patientId}/${token}`,
+            {
+                method: 'GET',
+                headers: getHeaders(),
+            }
+        );
+        return handleResponse(res);
     },
 };
