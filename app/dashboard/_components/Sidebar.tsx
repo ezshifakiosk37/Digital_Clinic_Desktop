@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   LayoutDashboard, User, Activity, LogOut, ChevronRight, Menu, X, RefreshCw, Wifi,
-  PresentationIcon
+  PresentationIcon,
+  Stethoscope
 } from 'lucide-react';
 import { MenuItem } from '@/app/_utils/types';
 import Image from 'next/image';
@@ -21,6 +22,7 @@ export default function Sidebar() {
   const menuItems: MenuItem[] = [
     { name: "Demographic", path: "/dashboard/demographic", icon: <User size={20} /> },
     { name: "Vitals", path: "/dashboard/vitals", icon: <Activity size={20} /> },
+    { name: "Online Consultation", path: "/dashboard/onlineConsult", icon: <Stethoscope size={20} /> },
     { name: "Consultation", path: "/dashboard/consultation", icon: <LayoutDashboard size={20} /> },
     { name: "Pharmacy", path: "/dashboard/pharmacy", icon: <PresentationIcon size={20} /> },
   ];

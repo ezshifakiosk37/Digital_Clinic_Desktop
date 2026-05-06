@@ -42,7 +42,7 @@ const Navbar: React.FC<NavbarProps> = ({
 
         {/* Status Toggle */}
         <div className="flex items-center gap-2">
-          <span className={`text-xs font-bold ${doctorStatus === 'online' ? 'text-pink-600' : 'text-slate-400'}`}>
+          <span className={`text-xs font-bold ${doctorStatus === 'online' ? 'text-pink-800' : 'text-black'}`}>
             {doctorStatus === 'online' ? 'Online' : 'Offline'}
           </span>
           <button

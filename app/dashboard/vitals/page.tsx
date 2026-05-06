@@ -631,7 +631,7 @@ const VitalsPage = () => {
                   ← Back
                 </Button>
                 <div className="flex gap-3">
-                  {patientType === 'Online Consultation' && (
+                  {/* {patientType === 'Online Consultation' && (
                     <div className="relative group">
                       <Button
                         onClick={() => vitalsId && setIsVideoModalOpen(true)}
@@ -647,7 +647,7 @@ const VitalsPage = () => {
                         </div>
                       )}
                     </div>
-                  )}
+                  )} */}
                   <Button onClick={handleAddVitals} disabled={loading} className="px-8 py-5 text-base font-bold">
                     {loading ? (
                       <><Loader2 className="animate-spin mr-2 h-4 w-4" />{vitalsSaved ? 'Updating...' : 'Saving...'}</>
