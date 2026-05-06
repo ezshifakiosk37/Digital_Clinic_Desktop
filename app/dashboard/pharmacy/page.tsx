@@ -8,14 +8,14 @@ import { BluetoothPrinterModal } from '../consultation/components/BluetoothPrint
 
 const Page = () => {
 
-    const [queue, setQueue]                         = useState<PrescriptionWithPatient[]>([]);
-    const [search, setSearch]                       = useState("");
-    const [expandedToken, setExpandedToken]         = useState<string | null>(null);
+    const [queue, setQueue] = useState<PrescriptionWithPatient[]>([]);
+    const [search, setSearch] = useState("");
+    const [expandedToken, setExpandedToken] = useState<string | null>(null);
     const [prescriptionGenerated, setPrescriptionGenerated] = useState(false);
-    const [isPrinting, setIsPrinting]               = useState(false);
+    const [isPrinting, setIsPrinting] = useState(false);
     const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
-    const [isOpenActions, setIsOpenActions]         = useState(false);
-    const [isDispensing, setIsDispensing]           = useState(false);
+    const [isOpenActions, setIsOpenActions] = useState(false);
+    const [isDispensing, setIsDispensing] = useState(false);
 
     // ── Load today's prescriptions via apiService ──────────────────────────────
     useEffect(() => {
@@ -52,9 +52,9 @@ const Page = () => {
     // ── Filtered queue ─────────────────────────────────────────────────────────
     const filteredPrescriptions = queue.filter((item) => {
         if (!search) return true;
-        const q    = search.toLowerCase();
+        const q = search.toLowerCase();
         const full = `${item.patient.firstName || ""} ${item.patient.lastName || ""}`.toLowerCase();
-        const rev  = `${item.patient.lastName || ""} ${item.patient.firstName || ""}`.toLowerCase();
+        const rev = `${item.patient.lastName || ""} ${item.patient.firstName || ""}`.toLowerCase();
         return full.includes(q) || rev.includes(q) || String(item.token || "").toLowerCase().includes(q);
     });
 
@@ -78,25 +78,25 @@ const Page = () => {
                 }
 
                 const printPayload = {
-                    clinicName : "EZShifa Digital Health",
-                    date       : new Date().toLocaleDateString(),
-                    token      : p.token || "N/A",
-                    patient    : {
-                        name   : `${p.patient.firstName} ${p.patient.lastName}`,
-                        ageSex : `${p.patient.age ?? ""}Y / ${p.patient.gender ?? ""}`,
+                    clinicName: "EZShifa Digital Health",
+                    date: new Date().toLocaleDateString(),
+                    token: p.token || "N/A",
+                    patient: {
+                        name: `${p.patient.firstName} ${p.patient.lastName}`,
+                        ageSex: `${p.patient.age ?? ""}Y / ${p.patient.gender ?? ""}`,
                     },
-                    diagnosis  : p.diagnosis || "N/A",
-                    labTests   : p.labTest
+                    diagnosis: p.diagnosis || "N/A",
+                    labTests: p.labTest
                         ? p.labTest.split(',').map((t: string) => t.trim()).filter(Boolean)
                         : [],
-                    notes      : p.clinicalNotes || "",
-                    medicines  : (p.medicines ?? [])
+                    notes: p.clinicalNotes || "",
+                    medicines: (p.medicines ?? [])
                         .filter((m: any) => m.medicineName?.trim())
                         .map((m: any) => ({
-                            name     : m.medicineName,
-                            dosage   : m.dosage   || "",
-                            duration : m.duration || "",
-                            schedule : `${m.morning ? 1 : 0}-${m.afternoon ? 1 : 0}-${m.night ? 1 : 0}`,
+                            name: m.medicineName,
+                            dosage: m.dosage || "",
+                            duration: m.duration || "",
+                            schedule: `${m.morning ? 1 : 0}-${m.afternoon ? 1 : 0}-${m.night ? 1 : 0}`,
                         })),
                 };
 
@@ -153,7 +153,7 @@ const Page = () => {
             />
 
             {/* Header */}
-            <div className="w-full bg-[#0297d6] py-6 px-4 text-white">
+            <div className="w-full bg-[#0297d6] text-white">
                 <div className="max-w-5xl mx-auto flex items-center gap-3 min-w-0">
                     <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm shrink-0">
                         <Activity className="w-5 h-5 text-white" />
@@ -172,7 +172,7 @@ const Page = () => {
 
                     {/* Table header + search */}
                     <div className="px-8 py-4 border-b flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-                        <h2 className="font-bold text-xl text-slate-800 text-nowrap">CURRENT MEDICATION QUEUE</h2>
+                        <h2 className="font-bold text-xl text-slate-800">CURRENT MEDICATION QUEUE</h2>
                         <div className="flex gap-3 w-full md:w-auto">
                             <input
                                 type="text"
@@ -210,8 +210,8 @@ const Page = () => {
                                 </tr>
                             ) : (
                                 filteredPrescriptions.map((p, i) => {
-                                    const isExpanded       = expandedToken === p.token;
-                                    const labTestDisplay   = p.labTest
+                                    const isExpanded = expandedToken === p.token;
+                                    const labTestDisplay = p.labTest
                                         ? p.labTest.split(',').map((t: string) => t.trim()).filter(Boolean)
                                         : [];
 
