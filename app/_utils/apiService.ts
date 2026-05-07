@@ -337,7 +337,7 @@ export const apiService = {
     getAssignedDoctor: async (kioskId: string) => {
         const response = await fetch(`${API_BASE_URL}/api/doctors/assigned-doctor/${kioskId}`, {
             method: 'GET',
-            headers: getHeaders(),
+            // headers: getHeaders(),
         });
         return handleResponse(response);
     },
