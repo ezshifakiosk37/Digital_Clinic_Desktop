@@ -68,14 +68,28 @@ const EZShifaPortal = () => {
   const { onlineQueue: fcmOnlineQueue, addCall, removeCall } = useCallQueue();
 
   // ── Helpers ────────────────────────────────────────────────────────────────
-  const buildCallPayload = (payload: any) => ({
-    vitalsId: payload?.vitalsId || payload?.data?.vitalsId,
-    title: payload?.notification?.title || payload?.title || 'Incoming Call',
-    body: payload?.notification?.body || payload?.body || '',
-    callUrl: `/dashboard/video-call/${payload?.vitalsId || payload?.data?.vitalsId}`,
-    token: payload?.data?.token,
-    symptoms: payload?.data?.symptoms,
-  });
+  const buildCallPayload = (payload: any) => {
+    const vitalsId = payload?.vitalsId || payload?.data?.vitalsId;
+    const patientId = payload?.patientId || payload?.data?.patientId;
+    const patientToken = payload?.patientToken || payload?.data?.patientToken || payload?.data?.token;
+
+    // Build URL with query params
+    const queryParams = new URLSearchParams();
+    if (patientId) queryParams.set('patientId', patientId);
+    if (patientToken) queryParams.set('patientToken', patientToken);
+    const callUrl = `/dashboard/video-call/${vitalsId}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+    return {
+      vitalsId,
+      title: payload?.notification?.title || payload?.title || 'Incoming Call',
+      body: payload?.notification?.body || payload?.body || '',
+      callUrl,
+      token: payload?.data?.token,
+      symptoms: payload?.data?.symptoms,
+      patientId,      // <-- added
+      patientToken,   // <-- added
+    };
+  };
 
   // ── FCM registration ───────────────────────────────────────────────────────
   const registerFcm = useCallback(async () => {
@@ -250,11 +264,18 @@ const EZShifaPortal = () => {
     ...fcmOnlineQueue
       .filter(fcmCall => !queue.find((q: any) => q.vitalsId === fcmCall.vitalsId))
       .map(fcmCall => ({
-        id: fcmCall.vitalsId, vitalsId: fcmCall.vitalsId,
-        token: fcmCall.token || '—', symptoms: fcmCall.symptoms || fcmCall.body || '—',
-        firstName: fcmCall.title || 'Online', lastName: 'Patient',
-        patientType: 'Online Consultation', callUrl: fcmCall.callUrl, _isFcmCall: true,
-      })),
+        id: fcmCall.vitalsId,
+        vitalsId: fcmCall.vitalsId,
+        token: fcmCall.token || '—',
+        symptoms: fcmCall.symptoms || fcmCall.body || '—',
+        firstName: fcmCall.title || 'Online',
+        lastName: 'Patient',
+        patientType: 'Online Consultation',
+        callUrl: fcmCall.callUrl,
+        patientId: fcmCall.patientId,      // optional
+        patientToken: fcmCall.patientToken, // optional
+        _isFcmCall: true,
+      }))
   ];
 
   const walkInCount = mergedQueue.filter(p => !p.patientType || p.patientType === 'Walk-in').length;

@@ -6,7 +6,9 @@ export interface CallPayload {
   title: string;
   body: string;
   callUrl: string;
-  token?: string;
+  token?: string;          // patient token (optional, kept for compatibility)
+  patientId?: string;      // 👈 ADD THIS
+  patientToken?: string;   // 👈 ADD THIS
   symptoms?: string;
 }
 

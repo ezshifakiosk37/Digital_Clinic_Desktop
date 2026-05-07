@@ -44,6 +44,8 @@ export function PrescriptionModal({ onClose, patientId, patientToken }: Prescrip
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  console.log(patientId)
+
   const splitDosage = (val: string) => {
     const match = val?.match(/^(\d*\.?\d*)\s*(.*)$/);
     return { num: match?.[1] ?? '', unit: match?.[2] || 'Tab' };
