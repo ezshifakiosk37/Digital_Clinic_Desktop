@@ -57,6 +57,7 @@ const EZShifaPortal = () => {
   const [doctorStatus, setDoctorStatus] = useState<'online' | 'offline'>('online');
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [queueTab, setQueueTab] = useState<'Walk-in' | 'Online Consultation'>('Walk-in');
+  const [logoutModalMode, setLogoutModalMode] = useState<'offline' | 'logout'>('logout');
 
   // ── Call Queue Context ──────────────────────────────────────────────────────
   const { onlineQueue: fcmOnlineQueue, removeCall } = useCallQueue();
@@ -207,36 +208,47 @@ const EZShifaPortal = () => {
     }
   };
 
-  const handleLogoutClick = () => setShowLogoutModal(true);
-
+  const handleLogoutClick = () => {
+    setLogoutModalMode('logout');
+    setShowLogoutModal(true);
+  };
   const confirmLogout = async () => {
     if (!selectedLogoutReason) return;
     setLogoutLoading(true);
 
-    if (window.AndroidNative && typeof window.AndroidNative.unregisterFcmDevice === 'function') {
-      try { window.AndroidNative.unregisterFcmDevice(); } catch {}
-    }
-
     try {
-      await fetch(`${API_BASE_URL}/api/doctors/logout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('doc_token')}`,
-        },
-        body: JSON.stringify({ reason: selectedLogoutReason }),
-      });
-      try { await apiService.updateDoctorStatus('offline'); } catch {}
+      if (logoutModalMode === 'offline') {
+        // Just going offline — stay logged in
+        await apiService.updateDoctorStatus('offline', selectedLogoutReason);
+        setDoctorStatus('offline');
+        setShowLogoutModal(false);
+        setSelectedLogoutReason('');
+      } else {
+        // Full logout
+        if (window.AndroidNative && typeof window.AndroidNative.unregisterFcmDevice === 'function') {
+          try { window.AndroidNative.unregisterFcmDevice(); } catch {}
+        }
+        await apiService.updateDoctorStatus('offline', selectedLogoutReason);
+        await fetch(`${API_BASE_URL}/api/doctors/logout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('doc_token')}`,
+          },
+          body: JSON.stringify({ reason: selectedLogoutReason }),
+        });
+        localStorage.removeItem('doc_token');
+        localStorage.removeItem('doctor');
+        setShowLogoutModal(false);
+        setIsLoggedIn(false);
+        setActivePage('login');
+        setSelectedLogoutReason('');
+        setSelectedPatient(null);
+        setDoctorStatus('offline');
+      }
     } catch (err) {
-      console.error("Logout error:", err);
+      console.error("Logout/offline error:", err);
     } finally {
-      localStorage.removeItem('doc_token');
-      localStorage.removeItem('doctor');
-      setShowLogoutModal(false);
-      setIsLoggedIn(false);
-      setActivePage('login');
-      setSelectedLogoutReason('');
-      setSelectedPatient(null);
       setLogoutLoading(false);
     }
   };
@@ -247,10 +259,14 @@ const EZShifaPortal = () => {
   };
 
   const handleToggleStatus = async () => {
-    const newStatus = doctorStatus === 'online' ? 'offline' : 'online';
+    if (doctorStatus === 'online') {
+      setLogoutModalMode('offline');
+      setShowLogoutModal(true);
+      return;
+    }
     setTogglingStatus(true);
     try {
-      const data = await apiService.updateDoctorStatus(newStatus);
+      const data = await apiService.updateDoctorStatus('online');
       if (data.success) setDoctorStatus(data.doctorStatus);
     } catch (err) {
       console.error("Status toggle failed", err);
@@ -288,9 +304,9 @@ const EZShifaPortal = () => {
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               {[
-                { label: 'TODAY PATIENTS', val: todayStats.todayPatients, icon: User,        color: 'text-blue-600',    bg: 'bg-blue-50'    },
-                { label: 'IN QUEUE',       val: todayStats.inQueue,       icon: Clock,       color: 'text-orange-600',  bg: 'bg-orange-50'  },
-                { label: 'COMPLETED',      val: todayStats.completed,     icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                { label: 'TODAY PATIENTS', val: todayStats.todayPatients, icon: User, color: 'text-blue-600', bg: 'bg-blue-50' },
+                { label: 'IN QUEUE', val: todayStats.inQueue, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
+                { label: 'COMPLETED', val: todayStats.completed, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
               ].map((s, i) => (
                 <div key={i} className="bg-white rounded-3xl p-6 flex items-center gap-5 shadow-sm border border-slate-100">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${s.bg} ${s.color}`}>
@@ -384,9 +400,8 @@ const EZShifaPortal = () => {
                     filteredQueue.map((p, i) => (
                       <tr
                         key={`${p.id}-${p.token || i}`}
-                        className={`hover:bg-slate-50 transition-colors ${
-                          p._isFcmCall ? 'bg-blue-50/40' : ''
-                        }`}
+                        className={`hover:bg-slate-50 transition-colors ${p._isFcmCall ? 'bg-blue-50/40' : ''
+                          }`}
                       >
                         <td className="px-8 py-5 font-medium text-slate-600">{i + 1}</td>
                         <td className="px-8 py-5">
@@ -511,6 +526,7 @@ const EZShifaPortal = () => {
         confirmLogout={confirmLogout}
         cancelLogout={cancelLogout}
         logoutLoading={logoutLoading}
+        mode={logoutModalMode}
       />
     </div>
   );

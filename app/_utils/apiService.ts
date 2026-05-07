@@ -205,11 +205,11 @@ export const apiService = {
         return data;
     },
 
-    updateDoctorStatus: async (status: 'online' | 'offline') => {
+    updateDoctorStatus: async (status: 'online' | 'offline', reason?: string) => {
         const response = await fetch(`${API_BASE_URL}/api/doctors/status`, {
             method: 'PATCH',
             headers: getDocHeaders(),
-            body: JSON.stringify({ status }),
+            body: JSON.stringify({ status, reason }),
         });
         return handleResponse(response);
     },

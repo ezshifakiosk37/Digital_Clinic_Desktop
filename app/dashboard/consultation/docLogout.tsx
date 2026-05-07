@@ -10,7 +10,8 @@ interface DocLogoutProps {
   setSelectedLogoutReason: (v: string) => void;
   confirmLogout: () => void;
   cancelLogout: () => void;
-  logoutLoading?: boolean;        // ← New prop for loader
+  logoutLoading?: boolean;
+  mode?: 'offline' | 'logout';
 }
 
 const DocLogout: React.FC<DocLogoutProps> = ({
@@ -20,7 +21,8 @@ const DocLogout: React.FC<DocLogoutProps> = ({
   setSelectedLogoutReason,
   confirmLogout,
   cancelLogout,
-  logoutLoading = false,          // default false
+  logoutLoading = false,
+  mode = 'logout',
 }) => {
   if (!showLogoutModal) return null;
 
@@ -30,8 +32,9 @@ const DocLogout: React.FC<DocLogoutProps> = ({
         {/* Header */}
         <div className="px-6 pt-5 pb-3 border-b flex items-center justify-between">
           <h2 className="text-xl font-black text-slate-800">
-            Please select reason of logging out
+            {mode === 'offline' ? 'Reason for going offline' : 'Please select reason of logging out'}
           </h2>
+          
           <button
             onClick={cancelLogout}
             disabled={logoutLoading}
@@ -74,10 +77,10 @@ const DocLogout: React.FC<DocLogoutProps> = ({
             {logoutLoading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Logging out...
+                {mode === 'offline' ? 'Going offline...' : 'Logging out...'}
               </>
             ) : (
-              "Confirm Logout"
+              mode === 'offline' ? 'Confirm' : 'Confirm Logout'
             )}
           </button>
         </div>
