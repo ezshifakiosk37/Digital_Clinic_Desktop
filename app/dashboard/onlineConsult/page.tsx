@@ -1,20 +1,10 @@
 'use client'
-import { Activity } from 'lucide-react'
+import { Activity,RefreshCw } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { apiService } from '@/app/_utils/apiService'
 import { VideoConsultModel } from '../vitals/_components/VideoConsultModel'
+import { QueueItem } from '@/app/_utils/types'
 
-interface QueueItem {
-    id: string
-    token: string
-    firstName: string
-    lastName: string
-    phoneNumber?: string
-    patientType: string
-    vitalsId?: string | null
-    symptoms?: string | null
-    vitalsRecorded: boolean
-}
 
 const parseSymptoms = (raw: string | null | undefined): string[] => {
     if (!raw) return []
@@ -30,18 +20,22 @@ const OnlineConsultPage = () => {
     const [search, setSearch] = useState("")
     const [expandedToken, setExpandedToken] = useState<string | null>(null)
     const [videoVitalsId, setVideoVitalsId] = useState<string | null>(null)
-    useEffect(() => {
-        const load = async () => {
-            try {
-                const res = await apiService.getTodayQueue()
-                const all: QueueItem[] = res.patients ?? []
-                setQueue(all.filter(p => p.patientType === 'Online Consultation'))
-            } catch (err) {
-                console.error("Failed to load queue", err)
-            }
+    const [refreshing, setRefreshing] = useState(false)
+
+    const loadQueue = async (showSpinner = false) => {
+        if (showSpinner) setRefreshing(true)
+        try {
+            const res = await apiService.getTodayQueue()
+            const all: QueueItem[] = res.patients ?? []
+            setQueue(all.filter(p => p.patientType === 'Online Consultation'))
+        } catch (err) {
+            console.error("Failed to load queue", err)
+        } finally {
+            if (showSpinner) setRefreshing(false)
         }
-        load()
-    }, [])
+    }
+
+    useEffect(() => { loadQueue() }, [])
 
     const filtered = queue.filter((p) => {
         if (!search) return true
@@ -87,6 +81,15 @@ const OnlineConsultPage = () => {
                                 className="px-4 py-2 text-sm rounded-lg bg-slate-100 hover:bg-red-100 text-slate-600"
                             >
                                 Clear
+                            </button>
+                            <button
+                                onClick={() => loadQueue(true)}
+                                disabled={refreshing}
+                                title="Refresh queue"
+                                className="px-4 py-2 text-sm rounded-lg bg-[#0297d6] hover:bg-[#0288c2] disabled:opacity-60 text-white font-bold flex items-center gap-1.5"
+                            >
+                                <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+                                {refreshing ? 'Refreshing...' : 'Refresh'}
                             </button>
                         </div>
                     </div>

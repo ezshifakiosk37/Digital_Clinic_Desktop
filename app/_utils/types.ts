@@ -173,3 +173,15 @@ export interface PrescriptionWithPatient extends Prescription {
   patient: Patient;
   medicines: PrescriptionMedicine[];
 }
+
+export interface QueueItem {
+  id: string;
+  token: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  patientType: string;
+  vitalsId?: string | null;
+  symptoms?: string | null;
+  vitalsRecorded: boolean;
+}
