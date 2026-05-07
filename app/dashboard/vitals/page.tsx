@@ -659,8 +659,6 @@ const VitalsPage = () => {
                   </Button>
                 </div>
               </div>
-
-              <VideoConsultModel isOpen={isVideoModalOpen} onClose={() => setIsVideoModalOpen(false)} vitalsId={vitalsId} />
             </>
           )}
 

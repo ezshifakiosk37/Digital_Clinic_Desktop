@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'; // Added useRef
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Video, Stethoscope, Loader2, AlertCircle, Clock } from "lucide-react";
@@ -9,18 +9,19 @@ interface VideoConsultModelProps {
   isOpen: boolean;
   onClose: () => void;
   vitalsId: string | null;
+  patientId: string | null;
+  patientToken: string | null;
 }
 
-export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultModelProps) => {
+export const VideoConsultModel = ({ isOpen, onClose, vitalsId, patientId, patientToken }: VideoConsultModelProps) => {
   const [doctorId, setDoctorId] = useState<string | null>(null);
   const [loadingDoctor, setLoadingDoctor] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isWaitingForDoctor, setIsWaitingForDoctor] = useState(false); // New State
+  const [isWaitingForDoctor, setIsWaitingForDoctor] = useState(false);
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Cleanup polling on unmount or close
   useEffect(() => {
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
@@ -43,8 +44,8 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
           setLoadingDoctor(true);
           setError(null);
           try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/doctors/assigned-doctor/${storedKioskId}`);
-            const data = await res.json();
+            // ✅ replaced raw fetch with apiService
+            const data = await apiService.getAssignedDoctor(storedKioskId);
             if (data.success) setDoctorId(data.doctorId);
             else setError(data.error || "No doctor assigned");
           } catch (err) {
@@ -53,10 +54,12 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
             setLoadingDoctor(false);
           }
         };
+
         fetchAssignedDoctor();
-      } catch (e) { setError("Invalid session data."); }
+      } catch (e) {
+        setError("Invalid session data.");
+      }
     } else {
-      // Reset states when modal closes
       setIsConnecting(false);
       setIsWaitingForDoctor(false);
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
@@ -65,13 +68,9 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
 
   const startPollingStatus = (vid: string) => {
     setIsWaitingForDoctor(true);
-
     const startTime = Date.now();
 
-    // 🚨 Prevent duplicate intervals (you ignored this before)
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-    }
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
 
     pollIntervalRef.current = setInterval(async () => {
       try {
@@ -79,32 +78,28 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
 
         if (!data?.status) return;
 
-        // ✅ CASE 1: ACCEPTED
         if (data.status === 'accepted') {
           clearInterval(pollIntervalRef.current!);
-          window.location.href = `/dashboard/video-call/${vid}`;
+          const query = new URLSearchParams();
+          if (patientId)    query.set('patientId', patientId);
+          if (patientToken) query.set('patientToken', patientToken);
+          window.location.href = `/dashboard/video-call/${vid}?${query.toString()}`;
           return;
         }
 
-        // ❌ CASE 2: DOCTOR DECLINED
         if (data.status === 'declined_by_doctor') {
           clearInterval(pollIntervalRef.current!);
-
           setIsWaitingForDoctor(false);
           setIsConnecting(false);
-
           alert("Doctor declined the call.");
           onClose();
           return;
         }
 
-        // ❌ CASE 3: PATIENT CANCELLED (SYNC)
         if (data.status === 'declined_by_patient') {
           clearInterval(pollIntervalRef.current!);
-
           setIsWaitingForDoctor(false);
           setIsConnecting(false);
-
           onClose();
           return;
         }
@@ -113,59 +108,39 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
         console.error("Polling error:", err.message || err);
       }
 
-      // ⏱️ TIMEOUT LOGIC
       const elapsedSeconds = (Date.now() - startTime) / 1000;
-
       if (elapsedSeconds >= 20) {
         clearInterval(pollIntervalRef.current!);
-
         handleCancel("doctor_not_responding");
-
         alert("Doctor did not respond in time.");
       }
-
     }, 2000);
   };
 
   const handleStartConsult = async () => {
     if (!vitalsId || !doctorId) return;
-
     setIsConnecting(true);
-
     try {
       await apiService.alertDoctor(doctorId, vitalsId);
-
-      // ✅ Start polling only after success
       startPollingStatus(vitalsId);
-
     } catch (err: any) {
       setIsConnecting(false);
-
       console.error("Alert doctor failed:", err.message || err);
       alert(err.message || "Failed to start consultation");
     }
   };
 
-  // Inside VideoConsultModel
   const handleCancel = async (reason: string) => {
     try {
-      if (vitalsId) {
-        await apiService.endCall(vitalsId, reason);
-      }
+      if (vitalsId) await apiService.endCall(vitalsId, reason);
     } catch (err: any) {
       console.error("Cleanup request failed:", err.message || err);
     }
-
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-    }
-
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     setIsWaitingForDoctor(false);
     setIsConnecting(false);
-
     onClose();
   };
-
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -175,7 +150,6 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
         <div className="p-8 bg-white">
           <DialogHeader className="flex flex-col items-center justify-center space-y-2">
             <div className="relative mb-4">
-              {/* UI changes based on state */}
               {isWaitingForDoctor ? (
                 <div className="relative bg-amber-50 p-6 rounded-full border border-amber-100 shadow-sm">
                   <Clock className="h-10 w-10 text-amber-600 animate-pulse" />
@@ -223,7 +197,7 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
               <Button
                 variant="ghost"
                 className="flex-1 text-slate-500 font-semibold h-12"
-                onClick={() => handleCancel('declined_by_patient')} // Use the new handler
+                onClick={() => handleCancel('declined_by_patient')}
                 disabled={isConnecting && !isWaitingForDoctor && !error}
               >
                 {isWaitingForDoctor ? "Cancel Request" : "Skip for now"}

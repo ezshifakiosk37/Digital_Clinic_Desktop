@@ -236,7 +236,7 @@ export const apiService = {
     getTodayQueue: async () => {
         const response = await fetch(`${API_BASE_URL}/api/patients/today-queue`, {
             method: 'GET',
-            headers: getDocHeaders(),
+            headers: getHeaders(),
         });
         return handleResponse(response);
     },
@@ -331,6 +331,14 @@ export const apiService = {
             }
         );
 
+        return handleResponse(response);
+    },
+
+    getAssignedDoctor: async (kioskId: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/doctors/assigned-doctor/${kioskId}`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
         return handleResponse(response);
     },
 };

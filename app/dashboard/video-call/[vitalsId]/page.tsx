@@ -19,7 +19,7 @@ export default function Page({ params }: { params: Promise<{ vitalsId: string }>
 
   return (
     <main>
-      <VideoCallClient vitalsId={resolvedParams.vitalsId} />
+      <VideoCallClient  vitalsId={resolvedParams.vitalsId} />
     </main>
   );
 }
