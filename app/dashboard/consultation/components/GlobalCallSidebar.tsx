@@ -5,9 +5,11 @@ import { Phone, PhoneOff, X } from 'lucide-react';
 import { AndroidBridge } from '../../../_utils/AndroidBridges/AndroidBridge';
 import { apiService } from '@/app/_utils/apiService';
 import { useCallQueue } from '@/app/_context/CallQueueContext';
+import { useCallData } from '@/app/_context/CallDataContext'; // 👈 Import
 
 export default function GlobalCallSidebar() {
   const { activeCall, removeCall, setActiveCall } = useCallQueue();
+  const { setCallMetadata } = useCallData(); // 👈 Get setter
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -60,7 +62,23 @@ export default function GlobalCallSidebar() {
       const res = await apiService.acceptCall(activeCall.vitalsId);
       if (!res.success) throw new Error("Accept failed");
       stopAudio();
+      
+      // 👇 Store patient data in context before navigation
+      if (activeCall.patientId && activeCall.patientToken) {
+        console.log('📦 Storing call metadata:', activeCall.vitalsId, {
+          patientId: activeCall.patientId,
+          patientToken: activeCall.patientToken,
+        });
+        setCallMetadata(activeCall.vitalsId, {
+          patientId: activeCall.patientId,
+          patientToken: activeCall.patientToken,
+        });
+      } else {
+        console.warn('⚠️ No patient data in activeCall – cannot store metadata');
+      }
+      
       removeCall(activeCall.vitalsId);
+      // Ensure callUrl is clean (no query params) – we rely on context
       window.location.href = activeCall.callUrl;
     } catch (err: any) {
       console.error("Accept error:", err.message);
@@ -79,7 +97,6 @@ export default function GlobalCallSidebar() {
   };
 
   const handleDismissToast = () => {
-    // Dismiss toast but keep in queue — doctor can start from queue later
     setActiveCall(null);
     stopAudio();
   };

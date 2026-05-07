@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
 import AgoraRTC, {
@@ -12,15 +12,15 @@ import {
   CameraOff, AlertCircle, ClipboardList
 } from "lucide-react";
 import { apiService } from '@/app/_utils/apiService';
-import { PrescriptionModal } from './PrescriptionModel';  // ← imported
+import { PrescriptionModal } from './PrescriptionModel';
+import { useCallData } from '@/app/_context/CallDataContext';
 
 interface VideoCallClientProps {
   vitalsId: string;
-  patientId?: string;
-  patientToken?: string;
+  // ❌ patientId and patientToken removed – now only from context
 }
 
-export default function VideoCallClient({ vitalsId, patientId, patientToken }: VideoCallClientProps) {
+export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
   const [joined, setJoined] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +30,10 @@ export default function VideoCallClient({ vitalsId, patientId, patientToken }: V
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [isPrescriptionOpen, setIsPrescriptionOpen] = useState(false);
 
+  // State for patient data – will be populated from context or sessionStorage
+  const [patientId, setPatientId] = useState<string | undefined>();
+  const [patientToken, setPatientToken] = useState<string | undefined>();
+
   const client = useRef<IAgoraRTCClient | null>(null);
   const initialized = useRef(false);
   const localAudioTrack = useRef<ILocalAudioTrack | null>(null);
@@ -37,6 +41,59 @@ export default function VideoCallClient({ vitalsId, patientId, patientToken }: V
   const remoteRef = useRef<HTMLDivElement>(null);
   const localRef = useRef<HTMLDivElement>(null);
 
+  const { getCallMetadata, clearCallMetadata } = useCallData();
+
+  // Load patient data from context (or fallback to sessionStorage)
+  useEffect(() => {
+    const loadPatientData = () => {
+      // 1. Try context first
+      const metadata = getCallMetadata(vitalsId);
+      if (metadata?.patientId && metadata?.patientToken) {
+        console.log('✅ Using patient data from context', metadata);
+        setPatientId(metadata.patientId);
+        setPatientToken(metadata.patientToken);
+        // Clean up context after reading
+        clearCallMetadata(vitalsId);
+        // Backup to sessionStorage for page refresh
+        sessionStorage.setItem(`call_${vitalsId}`, JSON.stringify({
+          patientId: metadata.patientId,
+          patientToken: metadata.patientToken,
+        }));
+        return;
+      }
+
+      // 2. Fallback to sessionStorage (e.g., after page refresh)
+      const stored = sessionStorage.getItem(`call_${vitalsId}`);
+      if (stored) {
+        try {
+          const { patientId: storedId, patientToken: storedToken } = JSON.parse(stored);
+          if (storedId && storedToken) {
+            console.log('✅ Using patient data from sessionStorage (refresh recovery)');
+            setPatientId(storedId);
+            setPatientToken(storedToken);
+            return;
+          }
+        } catch (err) {
+          console.error('Failed to parse sessionStorage data', err);
+        }
+      }
+
+      console.warn('⚠️ No patient data found for vitalsId:', vitalsId);
+    };
+
+    loadPatientData();
+  }, [vitalsId, getCallMetadata, clearCallMetadata]);
+
+  // Clean up sessionStorage when call ends (delayed to allow refresh)
+  useEffect(() => {
+    return () => {
+      setTimeout(() => {
+        sessionStorage.removeItem(`call_${vitalsId}`);
+      }, 5000);
+    };
+  }, [vitalsId]);
+
+  // (rest of your Agora logic unchanged)
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
@@ -87,10 +144,8 @@ export default function VideoCallClient({ vitalsId, patientId, patientToken }: V
 
           await client.current.publish([audioTrack, videoTrack]);
           setHasCamera(true);
-
         } catch (deviceErr: any) {
           console.warn("Camera/mic failed:", deviceErr.code);
-
           if (
             deviceErr.code === 'PERMISSION_DENIED' ||
             deviceErr.message?.includes('Permission denied') ||
@@ -143,6 +198,7 @@ export default function VideoCallClient({ vitalsId, patientId, patientToken }: V
   }, [vitalsId]);
 
   const handleEndCall = () => {
+    sessionStorage.removeItem(`call_${vitalsId}`);
     localAudioTrack.current?.stop();
     localAudioTrack.current?.close();
     localVideoTrack.current?.stop();
@@ -167,14 +223,16 @@ export default function VideoCallClient({ vitalsId, patientId, patientToken }: V
 
   return (
     <div className="relative h-screen w-full bg-slate-950 overflow-hidden flex flex-col items-center justify-center">
-
       {/* Prescription Modal */}
       {isPrescriptionOpen && (
-        <PrescriptionModal
-          onClose={() => setIsPrescriptionOpen(false)}
-          patientId={patientId}
-          patientToken={patientToken}
-        />
+        <>
+          {console.log('📋 Opening PrescriptionModal with:', { patientId, patientToken })}
+          <PrescriptionModal
+            onClose={() => setIsPrescriptionOpen(false)}
+            patientId={patientId}
+            patientToken={patientToken}
+          />
+        </>
       )}
 
       {/* Loading */}
@@ -208,7 +266,6 @@ export default function VideoCallClient({ vitalsId, patientId, patientToken }: V
       {/* Controls */}
       {joined && (
         <div className="absolute bottom-10 flex items-center gap-4 z-20">
-
           <Button
             onClick={async () => {
               if (localAudioTrack.current) {
@@ -251,7 +308,6 @@ export default function VideoCallClient({ vitalsId, patientId, patientToken }: V
           >
             <ClipboardList size={20} />
           </Button>
-
         </div>
       )}
     </div>

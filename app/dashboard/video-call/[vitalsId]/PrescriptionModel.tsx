@@ -30,6 +30,9 @@ interface PrescriptionModalProps {
 }
 
 export function PrescriptionModal({ onClose, patientId, patientToken }: PrescriptionModalProps) {
+    console.log('PrescriptionModal received:', { patientId, patientToken });
+
+    
   const [medicines, setMedicines] = useState<Medicine[]>([
     { id: Date.now(), name: '', morning: false, afternoon: false, night: false, meal: 'After Meal' }
   ]);
@@ -44,7 +47,6 @@ export function PrescriptionModal({ onClose, patientId, patientToken }: Prescrip
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  console.log(patientId)
 
   const splitDosage = (val: string) => {
     const match = val?.match(/^(\d*\.?\d*)\s*(.*)$/);

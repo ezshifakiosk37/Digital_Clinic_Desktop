@@ -18,6 +18,7 @@ import GlobalCallSidebar from './components/GlobalCallSidebar';
 
 import { DoctorProfile } from './doctor_registration';
 import { useCallQueue } from '@/app/_context/CallQueueContext';
+import { useCallData } from '@/app/_context/CallDataContext';
 
 // ── API_BASE_URL removed — lives only in apiService.ts now ────────────────────
 
@@ -67,17 +68,16 @@ const EZShifaPortal = () => {
   // ── Call Queue Context ─────────────────────────────────────────────────────
   const { onlineQueue: fcmOnlineQueue, addCall, removeCall } = useCallQueue();
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  const { setCallMetadata } = useCallData();
+
+  // Update buildCallPayload to extract patient data
   const buildCallPayload = (payload: any) => {
     const vitalsId = payload?.vitalsId || payload?.data?.vitalsId;
     const patientId = payload?.patientId || payload?.data?.patientId;
     const patientToken = payload?.patientToken || payload?.data?.patientToken || payload?.data?.token;
 
-    // Build URL with query params
-    const queryParams = new URLSearchParams();
-    if (patientId) queryParams.set('patientId', patientId);
-    if (patientToken) queryParams.set('patientToken', patientToken);
-    const callUrl = `/dashboard/video-call/${vitalsId}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    // Don't add to URL - we'll use context instead
+    const callUrl = `/dashboard/video-call/${vitalsId}`;
 
     return {
       vitalsId,
@@ -86,8 +86,8 @@ const EZShifaPortal = () => {
       callUrl,
       token: payload?.data?.token,
       symptoms: payload?.data?.symptoms,
-      patientId,      // <-- added
-      patientToken,   // <-- added
+      patientId,      // Store for later use
+      patientToken,   // Store for later use
     };
   };
 
@@ -294,10 +294,21 @@ const EZShifaPortal = () => {
   const handleStartConsult = async (patient: any) => {
     if (patient._isFcmCall) {
       try {
-        // apiService.acceptCall — uses getDocHeaders() internally
         const res = await apiService.acceptCall(patient.vitalsId);
-        if (res.success) { removeCall(patient.vitalsId); window.location.href = patient.callUrl; }
-      } catch (err) { console.error("Failed to accept online call:", err); }
+        if (res.success) {
+          // Store patient data in context BEFORE navigation
+          if (patient.patientId && patient.patientToken) {
+            setCallMetadata(patient.vitalsId, {
+              patientId: patient.patientId,
+              patientToken: patient.patientToken,
+            });
+          }
+          removeCall(patient.vitalsId);
+          window.location.href = patient.callUrl; // URL without query params
+        }
+      } catch (err) {
+        console.error("Failed to accept online call:", err);
+      }
       return;
     }
     setSelectedPatient(patient);
