@@ -341,4 +341,12 @@ export const apiService = {
         });
         return handleResponse(response);
     },
+
+    getPatientByVitalsId: async (vitalsId: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/patients/patient-by-vitals/${vitalsId}`, {
+            method: 'GET',
+            headers: getDocHeaders(),  // doctor token
+        });
+        return handleResponse(response);
+    },
 };

@@ -18,9 +18,6 @@ import GlobalCallSidebar from './components/GlobalCallSidebar';
 
 import { DoctorProfile } from './doctor_registration';
 import { useCallQueue } from '@/app/_context/CallQueueContext';
-import { useCallData } from '@/app/_context/CallDataContext';
-
-// ── API_BASE_URL removed — lives only in apiService.ts now ────────────────────
 
 interface Vitals { temp: string; bp: string; pulse: string; weight: string; }
 interface Patient {
@@ -29,7 +26,6 @@ interface Patient {
 }
 
 const EZShifaPortal = () => {
-
   // ── Auth / page state ──────────────────────────────────────────────────────
   const [activePage, setActivePage] = useState<'login' | 'signup' | 'dashboard' | 'profile'>('dashboard');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -66,28 +62,24 @@ const EZShifaPortal = () => {
   const fcmRegisteredRef = useRef(false);
 
   // ── Call Queue Context ─────────────────────────────────────────────────────
-  const { onlineQueue: fcmOnlineQueue, addCall, removeCall } = useCallQueue();
+  const { onlineQueue: fcmOnlineQueue, addCall, removeCall, updateCallStatus } = useCallQueue();
 
-  const { setCallMetadata } = useCallData();
-
-  // Update buildCallPayload to extract patient data
+  // Build call payload from incoming notification
   const buildCallPayload = (payload: any) => {
     const vitalsId = payload?.vitalsId || payload?.data?.vitalsId;
     const patientId = payload?.patientId || payload?.data?.patientId;
     const patientToken = payload?.patientToken || payload?.data?.patientToken || payload?.data?.token;
 
-    // Don't add to URL - we'll use context instead
-    const callUrl = `/dashboard/video-call/${vitalsId}`;
-
     return {
       vitalsId,
       title: payload?.notification?.title || payload?.title || 'Incoming Call',
       body: payload?.notification?.body || payload?.body || '',
-      callUrl,
+      callUrl: `/dashboard/video-call/${vitalsId}`,
       token: payload?.data?.token,
       symptoms: payload?.data?.symptoms,
-      patientId,      // Store for later use
-      patientToken,   // Store for later use
+      patientId,
+      patientToken,
+      status: 'waiting' as const,   // initial status
     };
   };
 
@@ -110,7 +102,7 @@ const EZShifaPortal = () => {
     const handleIncomingCall = (payload: any) => {
       const call = buildCallPayload(payload);
       if (!call.vitalsId) return;
-      addCall(call);
+      addCall(call);   // adds to queue and shows toast
     };
 
     if (typeof window === 'undefined') return;
@@ -121,7 +113,6 @@ const EZShifaPortal = () => {
       const androidHandler = (e: Event) => handleIncomingCall((e as CustomEvent).detail);
       window.addEventListener('incoming-call', androidHandler);
       fcmListenerRef.current = () => window.removeEventListener('incoming-call', androidHandler);
-
     } else if ("Notification" in window) {
       try {
         const permission = await Notification.requestPermission();
@@ -149,7 +140,7 @@ const EZShifaPortal = () => {
     fcmRegisteredRef.current = true;
   }, [addCall]);
 
-  // ── FCM unregistration - ONLY for logout/offline ───────────────────────────
+  // ── FCM unregistration ─────────────────────────────────────────────────────
   const unregisterFcm = useCallback(async (shouldCleanup: boolean = true) => {
     if (!fcmRegisteredRef.current) return;
 
@@ -178,19 +169,17 @@ const EZShifaPortal = () => {
     fcmRegisteredRef.current = false;
   }, []);
 
-  // ── Gate FCM on online/offline status - MODIFIED ───────────────────────────
+  // Gate FCM based on doctor's online status
   useEffect(() => {
     if (!isLoggedIn || !authChecked) return;
-
     if (doctorStatus === 'online') {
       registerFcm();
     } else {
-      // Only unregister when explicitly going offline
       unregisterFcm(true);
     }
   }, [isLoggedIn, authChecked, doctorStatus, registerFcm, unregisterFcm]);
 
-  // ── Auth check ─────────────────────────────────────────────────────────────
+  // Auth check on mount
   useEffect(() => {
     const token = localStorage.getItem('doc_token');
     if (token) { setIsLoggedIn(true); } else { setActivePage('login'); }
@@ -205,16 +194,14 @@ const EZShifaPortal = () => {
     setAuthChecked(true);
   }, []);
 
-  // ── Load dashboard data ────────────────────────────────────────────────────
+  // Load dashboard data (walk‑in queue)
   useEffect(() => {
     const loadDashboardData = async () => {
       setLoadingQueue(true);
       try {
-        // apiService.getTodayStats — uses getDocHeaders() internally
         const stats = await apiService.getTodayStats();
         setTodayStats(stats);
 
-        // apiService.getTodayQueue — uses getDocHeaders() internally
         const data = await apiService.getTodayQueue();
         if (data.success) {
           const dedupeById = (arr: any[]) => {
@@ -228,7 +215,9 @@ const EZShifaPortal = () => {
               if (seen.has(key)) return false; seen.add(key); return true;
             });
           };
-          setQueue(dedupeById(data.patients || []));
+          setQueue(dedupeById((data.patients || []).filter((p: any) =>
+            !p.patientType || p.patientType === 'Walk-in'
+          )));
           setDoneQueue(dedupeByPrescription(data.completed || []));
         }
       } catch (err) {
@@ -246,7 +235,7 @@ const EZShifaPortal = () => {
     }
   }, [isLoggedIn]);
 
-  // ── Doctor login event ─────────────────────────────────────────────────────
+  // Doctor login event
   useEffect(() => {
     const handleDoctorLogin = () => {
       const savedDoctor = apiService.getDoctor();
@@ -259,32 +248,52 @@ const EZShifaPortal = () => {
   // ── Derived data ───────────────────────────────────────────────────────────
   const fullName = `${doctor.title} ${doctor.firstName} ${doctor.lastName}`;
 
+  // Filter online calls: only those that are still waiting or have not responded
+  const activeOnlineCalls = fcmOnlineQueue.filter(
+    call => call.status === 'waiting' || call.status === 'not_responding'
+  );
+
   const mergedQueue = [
-    ...queue,
-    ...fcmOnlineQueue
-      .filter(fcmCall => !queue.find((q: any) => q.vitalsId === fcmCall.vitalsId))
-      .map(fcmCall => ({
-        id: fcmCall.vitalsId,
-        vitalsId: fcmCall.vitalsId,
-        token: fcmCall.token || '—',
-        symptoms: fcmCall.symptoms || fcmCall.body || '—',
-        firstName: fcmCall.title || 'Online',
-        lastName: 'Patient',
-        patientType: 'Online Consultation',
-        callUrl: fcmCall.callUrl,
-        patientId: fcmCall.patientId,      // optional
-        patientToken: fcmCall.patientToken, // optional
-        _isFcmCall: true,
-      }))
+    ...queue,  // walk‑in patients from backend
+    ...activeOnlineCalls.map(call => ({
+      id: call.vitalsId,
+      vitalsId: call.vitalsId,
+      token: call.token || '—',
+      symptoms: call.symptoms || call.body || '—',
+      firstName: call.title || 'Online',
+      lastName: 'Patient',
+      patientType: 'Online Consultation',
+      callUrl: call.callUrl,
+      patientId: call.patientId,
+      patientToken: call.patientToken,
+      status: call.status,
+      _isFcmCall: true,
+    }))
   ];
 
-  const walkInCount = mergedQueue.filter(p => !p.patientType || p.patientType === 'Walk-in').length;
-  const onlineCount = mergedQueue.filter(p => p.patientType === 'Online Consultation').length;
+  const walkInCount = queue.length;
+  const onlineCount = activeOnlineCalls.length;
 
-  const filteredQueue = mergedQueue.filter(p =>
-    (p.patientType === queueTab || (!p.patientType && queueTab === 'Walk-in')) &&
-    (!tokenSearch || String(p.token || '').toLowerCase().includes(tokenSearch.toLowerCase()))
-  );
+  const filteredQueue = queueTab === 'Walk-in'
+    ? queue.filter(p =>
+      !tokenSearch || String(p.token || '').toLowerCase().includes(tokenSearch.toLowerCase())
+    )
+    : activeOnlineCalls.filter(p =>
+      !tokenSearch || String(p.token || '').toLowerCase().includes(tokenSearch.toLowerCase())
+    ).map(call => ({
+      id: call.vitalsId,
+      vitalsId: call.vitalsId,
+      token: call.token || '—',
+      symptoms: call.symptoms || call.body || '—',
+      firstName: call.title || 'Online',
+      lastName: 'Patient',
+      patientType: 'Online Consultation',
+      callUrl: call.callUrl,
+      patientId: call.patientId,
+      patientToken: call.patientToken,
+      status: call.status,
+      _isFcmCall: true,
+    }));
 
   const updateMedicine = (id: number, field: string, value: any) => {
     setMedicines(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
@@ -296,15 +305,9 @@ const EZShifaPortal = () => {
       try {
         const res = await apiService.acceptCall(patient.vitalsId);
         if (res.success) {
-          // Store patient data in context BEFORE navigation
-          if (patient.patientId && patient.patientToken) {
-            setCallMetadata(patient.vitalsId, {
-              patientId: patient.patientId,
-              patientToken: patient.patientToken,
-            });
-          }
+          // Remove the call from queue (accepted)
           removeCall(patient.vitalsId);
-          window.location.href = patient.callUrl; // URL without query params
+          window.location.href = patient.callUrl;
         }
       } catch (err) {
         console.error("Failed to accept online call:", err);
@@ -325,7 +328,7 @@ const EZShifaPortal = () => {
     } catch (err) { console.error("Failed to refresh stats:", err); }
   };
 
-  // ── Modified toggle status handler ─────────────────────────────────────────
+  // Toggle doctor online/offline status
   const handleToggleStatus = async () => {
     const newStatus = doctorStatus === 'online' ? 'offline' : 'online';
     setTogglingStatus(true);
@@ -333,8 +336,6 @@ const EZShifaPortal = () => {
       const data = await apiService.updateDoctorStatus(newStatus);
       if (data.success) {
         setDoctorStatus(data.doctorStatus);
-        // The useEffect above will handle FCM registration/unregistration
-        // No need to call anything extra here
       }
     } catch (err) {
       console.error("Status toggle failed:", err);
@@ -343,22 +344,16 @@ const EZShifaPortal = () => {
     }
   };
 
-  // ── Logout ─────────────────────────────────────────────────────────────────
+  // Logout handling
   const handleLogoutClick = () => setShowLogoutModal(true);
 
-  // ── Modified logout handler ────────────────────────────────────────────────
   const confirmLogout = async () => {
     if (!selectedLogoutReason) return;
     setLogoutLoading(true);
-
-    // Unregister FCM before logout (this is correct - we want this on logout)
     await unregisterFcm(true);
-
     try {
       await apiService.docLogoutWithReason(selectedLogoutReason);
-
       try { await apiService.updateDoctorStatus('offline'); } catch { }
-
     } catch (err) {
       console.error("Logout error:", err);
     } finally {
@@ -375,7 +370,7 @@ const EZShifaPortal = () => {
 
   const cancelLogout = () => { setShowLogoutModal(false); setSelectedLogoutReason(''); };
 
-  // ── Auth gates ─────────────────────────────────────────────────────────────
+  // Auth gates
   if (!isLoggedIn) {
     return activePage === 'login'
       ? <DocSignin setActivePage={setActivePage} setIsLoggedIn={setIsLoggedIn} />
@@ -399,10 +394,8 @@ const EZShifaPortal = () => {
 
       <main className="max-w-7xl mx-auto p-6">
 
-        {/* ── Dashboard ── */}
         {activePage === 'dashboard' && !selectedPatient && (
           <div>
-
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               {[
@@ -477,7 +470,7 @@ const EZShifaPortal = () => {
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-[#0297d6]">#{p.token}</span>
-                            {p._isFcmCall && (
+                            {p._isFcmCall && p.status === 'waiting' && (
                               <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse">
                                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />Live
                               </span>
@@ -487,10 +480,16 @@ const EZShifaPortal = () => {
                         <td className="px-8 py-5 text-slate-700">{p.symptoms}</td>
                         <td className="px-8 py-5 text-right">
                           {p._isFcmCall ? (
-                            <button onClick={() => handleStartConsult(p)}
-                              className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold tracking-widest transition-all">
-                              <Video size={15} />JOIN
-                            </button>
+                            p.status === 'waiting' ? (
+                              <button onClick={() => handleStartConsult(p)}
+                                className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all">
+                                <Video size={15} /> JOIN
+                              </button>
+                            ) : p.status === 'not_responding' ? (
+                              <span className="inline-block bg-gray-200 text-gray-500 px-4 py-2 rounded-xl text-sm font-bold">
+                                Not Responding
+                              </span>
+                            ) : null
                           ) : (
                             <button onClick={() => handleStartConsult(p)}
                               className="bg-[#0297d6] hover:bg-[#0288c2] text-white px-8 py-2.5 rounded-xl text-sm font-bold tracking-widest transition-all">
@@ -542,7 +541,7 @@ const EZShifaPortal = () => {
           </div>
         )}
 
-        {/* ── Patient Consultation ── */}
+        {/* Patient Consultation (walk‑in) */}
         {selectedPatient && activePage === 'dashboard' && (
           <DocConsult
             selectedPatient={selectedPatient} setSelectedPatient={setSelectedPatient}
@@ -554,7 +553,7 @@ const EZShifaPortal = () => {
           />
         )}
 
-        {/* ── Profile ── */}
+        {/* Profile */}
         {activePage === 'profile' && (
           <DocProfile setActivePage={setActivePage} doctor={doctor} setDoctor={setDoctor}
             editMode={editMode} setEditMode={setEditMode} />

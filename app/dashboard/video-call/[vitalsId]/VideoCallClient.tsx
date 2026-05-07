@@ -13,11 +13,9 @@ import {
 } from "lucide-react";
 import { apiService } from '@/app/_utils/apiService';
 import { PrescriptionModal } from './PrescriptionModel';
-import { useCallData } from '@/app/_context/CallDataContext';
 
 interface VideoCallClientProps {
   vitalsId: string;
-  // ❌ patientId and patientToken removed – now only from context
 }
 
 export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
@@ -30,9 +28,10 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [isPrescriptionOpen, setIsPrescriptionOpen] = useState(false);
 
-  // State for patient data – will be populated from context or sessionStorage
+  // Patient data – fetched directly from backend
   const [patientId, setPatientId] = useState<string | undefined>();
   const [patientToken, setPatientToken] = useState<string | undefined>();
+  const [fetchingPatient, setFetchingPatient] = useState(true);
 
   const client = useRef<IAgoraRTCClient | null>(null);
   const initialized = useRef(false);
@@ -41,59 +40,27 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
   const remoteRef = useRef<HTMLDivElement>(null);
   const localRef = useRef<HTMLDivElement>(null);
 
-  const { getCallMetadata, clearCallMetadata } = useCallData();
-
-  // Load patient data from context (or fallback to sessionStorage)
+  // 1. Fetch patient data using vitalsId
   useEffect(() => {
-    const loadPatientData = () => {
-      // 1. Try context first
-      const metadata = getCallMetadata(vitalsId);
-      if (metadata?.patientId && metadata?.patientToken) {
-        console.log('✅ Using patient data from context', metadata);
-        setPatientId(metadata.patientId);
-        setPatientToken(metadata.patientToken);
-        // Clean up context after reading
-        clearCallMetadata(vitalsId);
-        // Backup to sessionStorage for page refresh
-        sessionStorage.setItem(`call_${vitalsId}`, JSON.stringify({
-          patientId: metadata.patientId,
-          patientToken: metadata.patientToken,
-        }));
-        return;
+    const fetchPatientData = async () => {
+      if (!vitalsId) return;
+      try {
+        console.log('🔍 Fetching patient data for vitalsId:', vitalsId);
+        const data = await apiService.getPatientByVitalsId(vitalsId);
+        console.log('✅ Fetched patient data:', data);
+        setPatientId(data.patientId);
+        setPatientToken(data.token || data.patientToken);
+      } catch (err: any) {
+        console.error('❌ Failed to fetch patient data:', err);
+        // Optionally show error but don't block video call
+      } finally {
+        setFetchingPatient(false);
       }
-
-      // 2. Fallback to sessionStorage (e.g., after page refresh)
-      const stored = sessionStorage.getItem(`call_${vitalsId}`);
-      if (stored) {
-        try {
-          const { patientId: storedId, patientToken: storedToken } = JSON.parse(stored);
-          if (storedId && storedToken) {
-            console.log('✅ Using patient data from sessionStorage (refresh recovery)');
-            setPatientId(storedId);
-            setPatientToken(storedToken);
-            return;
-          }
-        } catch (err) {
-          console.error('Failed to parse sessionStorage data', err);
-        }
-      }
-
-      console.warn('⚠️ No patient data found for vitalsId:', vitalsId);
     };
-
-    loadPatientData();
-  }, [vitalsId, getCallMetadata, clearCallMetadata]);
-
-  // Clean up sessionStorage when call ends (delayed to allow refresh)
-  useEffect(() => {
-    return () => {
-      setTimeout(() => {
-        sessionStorage.removeItem(`call_${vitalsId}`);
-      }, 5000);
-    };
+    fetchPatientData();
   }, [vitalsId]);
 
-  // (rest of your Agora logic unchanged)
+  // 2. Initialize Agora call
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
@@ -198,7 +165,6 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
   }, [vitalsId]);
 
   const handleEndCall = () => {
-    sessionStorage.removeItem(`call_${vitalsId}`);
     localAudioTrack.current?.stop();
     localAudioTrack.current?.close();
     localVideoTrack.current?.stop();
@@ -225,14 +191,11 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
     <div className="relative h-screen w-full bg-slate-950 overflow-hidden flex flex-col items-center justify-center">
       {/* Prescription Modal */}
       {isPrescriptionOpen && (
-        <>
-          {console.log('📋 Opening PrescriptionModal with:', { patientId, patientToken })}
-          <PrescriptionModal
-            onClose={() => setIsPrescriptionOpen(false)}
-            patientId={patientId}
-            patientToken={patientToken}
-          />
-        </>
+        <PrescriptionModal
+          onClose={() => setIsPrescriptionOpen(false)}
+          patientId={patientId}
+          patientToken={patientToken}
+        />
       )}
 
       {/* Loading */}
