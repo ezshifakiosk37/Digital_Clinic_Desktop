@@ -383,7 +383,7 @@ const EZShifaPortal = () => {
 
   // ── Render ─────────────────────────────────────────────────────────────────
       return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-dvh bg-white">
           <GlobalCallSidebar />
 
           <Navbar
@@ -420,7 +420,7 @@ const EZShifaPortal = () => {
                 </div>
 
                 {/* Current Patient Queue */}
-                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-6">
+                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-x-hidden overflow-y-auto mb-6">
                   <div className="px-8 py-5 border-b flex items-center justify-between flex-wrap gap-3">
                     <h2 className="font-bold text-xl text-slate-800">CURRENT PATIENT QUEUE</h2>
                     <div className="flex bg-slate-100 rounded-xl p-1 gap-1">
@@ -514,7 +514,7 @@ const EZShifaPortal = () => {
 
                 {/* Completed Today */}
                 {doneQueue.length > 0 && (
-                  <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mt-6">
+                  <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-x-hidden overflow-y-auto mt-6">
                     <div className="px-8 py-5 border-b flex items-center gap-3">
                       <CheckCircle size={20} className="text-blue-700" />
                       <h2 className="font-bold text-xl text-slate-800">COMPLETED TODAY</h2>

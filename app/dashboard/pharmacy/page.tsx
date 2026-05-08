@@ -143,7 +143,7 @@ const Page = () => {
 
     // ── Render ─────────────────────────────────────────────────────────────────
     return (
-        <main className="min-h-screen bg-slate-50">
+        <main className="min-h-dvh bg-slate-50">
 
             <BluetoothPrinterModal
                 isOpen={isPrinterModalOpen}
@@ -168,7 +168,7 @@ const Page = () => {
 
             {/* Body */}
             <div className="max-w-6xl mx-auto px-4 py-8">
-                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-6">
+                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-x-hidden overflow-y-auto mb-6">
 
                     {/* Table header + search */}
                     <div className="px-8 py-4 border-b flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">

@@ -47,7 +47,7 @@ const OnlineConsultPage = () => {
     })
 
     return (
-        <main className="min-h-screen bg-slate-50">
+        <main className="min-h-dvh bg-slate-50">
 
             {/* Header */}
             <div className="w-full bg-[#0297d6] py-6 px-4 text-white">
@@ -64,7 +64,7 @@ const OnlineConsultPage = () => {
             </div>
 
             <div className="max-w-6xl mx-auto px-4 py-8">
-                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-x-hidden overflow-y-auto">
 
                     {/* Table header bar */}
                     <div className="px-8 py-4 border-b flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
