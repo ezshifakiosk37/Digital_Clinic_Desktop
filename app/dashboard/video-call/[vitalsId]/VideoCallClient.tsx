@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
 import AgoraRTC, {
@@ -7,10 +7,18 @@ import AgoraRTC, {
   IAgoraRTCClient
 } from "agora-rtc-sdk-ng";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Loader2, CameraOff, AlertCircle } from "lucide-react";
+import {
+  Mic, MicOff, Video, VideoOff, PhoneOff, Loader2,
+  CameraOff, AlertCircle, ClipboardList
+} from "lucide-react";
 import { apiService } from '@/app/_utils/apiService';
+import { PrescriptionModal } from './PrescriptionModel';
 
-export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
+interface VideoCallClientProps {
+  vitalsId: string;
+}
+
+export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
   const [joined, setJoined] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,17 +26,41 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
   const [videoOn, setVideoOn] = useState(true);
   const [hasCamera, setHasCamera] = useState(true);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [isPrescriptionOpen, setIsPrescriptionOpen] = useState(false);
+
+  // Patient data – fetched directly from backend
+  const [patientId, setPatientId] = useState<string | undefined>();
+  const [patientToken, setPatientToken] = useState<string | undefined>();
+  const [fetchingPatient, setFetchingPatient] = useState(true);
 
   const client = useRef<IAgoraRTCClient | null>(null);
-  const initialized = useRef(false);  // ← NEVER reset this in cleanup
+  const initialized = useRef(false);
   const localAudioTrack = useRef<ILocalAudioTrack | null>(null);
   const localVideoTrack = useRef<ILocalVideoTrack | null>(null);
   const remoteRef = useRef<HTMLDivElement>(null);
   const localRef = useRef<HTMLDivElement>(null);
-
+  const isDoctor = typeof window !== 'undefined' && !!localStorage.getItem('doc_token');
+  // 1. Fetch patient data using vitalsId
   useEffect(() => {
-    // Guard prevents StrictMode double-run AND Suspense reconnect re-runs.
-    // Do NOT reset this in the cleanup — that's what was breaking it.
+    if (!vitalsId || !isDoctor) return;  // ✅ skip entirely for patients
+    const fetchPatientData = async () => {
+      try {
+        console.log('🔍 Fetching patient data for vitalsId:', vitalsId);
+        const data = await apiService.getPatientByVitalsId(vitalsId);
+        console.log('✅ Fetched patient data:', data);
+        setPatientId(data.patientId);
+        setPatientToken(data.token || data.patientToken);
+      } catch (err: any) {
+        console.error('❌ Failed to fetch patient data:', err);
+      } finally {
+        setFetchingPatient(false);
+      }
+    };
+    fetchPatientData();
+  }, [vitalsId, isDoctor]);
+
+  // 2. Initialize Agora call
+  useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
 
@@ -74,16 +106,12 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
           localAudioTrack.current = audioTrack;
           localVideoTrack.current = videoTrack;
 
-          if (localRef.current) {
-            videoTrack.play(localRef.current);
-          }
+          if (localRef.current) videoTrack.play(localRef.current);
 
           await client.current.publish([audioTrack, videoTrack]);
           setHasCamera(true);
-
         } catch (deviceErr: any) {
           console.warn("Camera/mic failed:", deviceErr.code);
-
           if (
             deviceErr.code === 'PERMISSION_DENIED' ||
             deviceErr.message?.includes('Permission denied') ||
@@ -124,9 +152,6 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
     initCall();
 
     return () => {
-      // Clean up tracks and leave — but DO NOT reset initialized.current.
-      // Resetting it here was the root cause: StrictMode cleanup + remount
-      // would flip it back to false and let the effect run twice.
       localAudioTrack.current?.stop();
       localAudioTrack.current?.close();
       localAudioTrack.current = null;
@@ -154,12 +179,8 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
         <AlertCircle className="h-12 w-12 text-red-400" />
         <p className="text-red-400 font-medium text-center">{error}</p>
         <div className="flex gap-3">
-          <Button onClick={() => window.location.reload()} variant="secondary">
-            Retry
-          </Button>
-          <Button onClick={handleEndCall} variant="destructive">
-            Leave
-          </Button>
+          <Button onClick={() => window.location.reload()} variant="secondary">Retry</Button>
+          <Button onClick={handleEndCall} variant="destructive">Leave</Button>
         </div>
       </div>
     );
@@ -167,6 +188,16 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
 
   return (
     <div className="relative h-screen w-full bg-slate-950 overflow-hidden flex flex-col items-center justify-center">
+      {/* Prescription Modal */}
+      {isPrescriptionOpen && (
+        <PrescriptionModal
+          onClose={() => setIsPrescriptionOpen(false)}
+          patientId={patientId}
+          patientToken={patientToken}
+        />
+      )}
+
+      {/* Loading */}
       {loading && (
         <div className="z-50 flex flex-col items-center gap-4">
           <Loader2 className="h-12 w-12 text-blue-500 animate-spin" />
@@ -174,7 +205,7 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
         </div>
       )}
 
-      {/* Permission denied warning banner */}
+      {/* Permission denied banner */}
       {permissionDenied && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-yellow-500/90 text-black px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 shadow-lg">
           <AlertCircle className="h-4 w-4" />
@@ -182,23 +213,21 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
         </div>
       )}
 
-      {/* Remote video — full screen */}
+      {/* Remote video */}
       <div ref={remoteRef} className="absolute inset-0 w-full h-full bg-slate-900" />
 
-      {/* Local video — picture-in-picture (hidden if no camera) */}
+      {/* Local video PiP */}
       {hasCamera ? (
-        <div
-          ref={localRef}
-          className="absolute top-4 right-4 w-32 h-44 sm:w-48 sm:h-64 bg-black rounded-2xl border-2 border-white/20 shadow-2xl overflow-hidden z-10"
-        />
+        <div ref={localRef} className="absolute top-4 right-4 w-32 h-44 sm:w-48 sm:h-64 bg-black rounded-2xl border-2 border-white/20 shadow-2xl overflow-hidden z-10" />
       ) : (
         <div className="absolute top-4 right-4 w-32 h-44 sm:w-48 sm:h-64 bg-slate-800 rounded-2xl border-2 border-white/20 shadow-2xl overflow-hidden z-10 flex items-center justify-center">
           <CameraOff className="h-8 w-8 text-slate-400" />
         </div>
       )}
 
+      {/* Controls */}
       {joined && (
-        <div className="absolute bottom-10 flex items-center gap-6 z-20">
+        <div className="absolute bottom-10 flex items-center gap-4 z-20">
           <Button
             onClick={async () => {
               if (localAudioTrack.current) {
@@ -233,6 +262,16 @@ export default function VideoCallClient({ vitalsId }: { vitalsId: string }) {
           >
             {videoOn ? <Video /> : <VideoOff />}
           </Button>
+
+          {isDoctor && (
+            <Button
+              onClick={() => setIsPrescriptionOpen(true)}
+              className="rounded-full h-14 w-14 bg-[#0297d6] hover:bg-[#0288c2] text-white shadow-lg shadow-[#0297d6]/40 border-2 border-white/20 transition-all active:scale-95"
+              title="Write Prescription"
+            >
+              <ClipboardList size={20} />
+            </Button>
+          )}
         </div>
       )}
     </div>

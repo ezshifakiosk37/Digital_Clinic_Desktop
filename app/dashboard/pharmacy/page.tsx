@@ -11,34 +11,35 @@ const Page = () => {
     const [queue, setQueue] = useState<PrescriptionWithPatient[]>([]);
     const [search, setSearch] = useState("");
     const [expandedToken, setExpandedToken] = useState<string | null>(null);
-
-    // ── Per-expanded prescription state ──
     const [prescriptionGenerated, setPrescriptionGenerated] = useState(false);
     const [isPrinting, setIsPrinting] = useState(false);
     const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
-    const [isOpenPrescriptionSend, setIsOpenPrescriptionSend] = useState(false);
+    const [isOpenActions, setIsOpenActions] = useState(false);
+    const [isDispensing, setIsDispensing] = useState(false);
 
+    // ── Load today's prescriptions via apiService ──────────────────────────────
     useEffect(() => {
         const loadQueue = async () => {
             const token = localStorage.getItem("token");
-            if (!token) return console.log("User token not found");
+            if (!token) return console.warn("[Queue] No staff token found.");
             try {
                 const res = await apiService.getAllPrescription(token);
                 setQueue(res.data || []);
             } catch (err) {
-                console.error("Failed to load prescriptions", err);
+                console.error("[Queue] Failed to load prescriptions:", err);
             }
         };
         loadQueue();
     }, []);
 
-    // Reset prescription state whenever the expanded row changes
+    // ── Reset expanded-row UI whenever a different row is opened ───────────────
     useEffect(() => {
         setPrescriptionGenerated(false);
         setIsPrinterModalOpen(false);
-        setIsOpenPrescriptionSend(false);
+        setIsOpenActions(false);
     }, [expandedToken]);
 
+    // ── Android print callback ─────────────────────────────────────────────────
     useEffect(() => {
         (window as any).onPrintResult = (success: boolean, message: string) => {
             setIsPrinting(false);
@@ -48,34 +49,26 @@ const Page = () => {
         return () => { delete (window as any).onPrintResult; };
     }, []);
 
+    // ── Filtered queue ─────────────────────────────────────────────────────────
     const filteredPrescriptions = queue.filter((item) => {
         if (!search) return true;
-        const query = search.toLowerCase();
-        const fullName = `${item.patient.firstName || ""} ${item.patient.lastName || ""}`.toLowerCase();
-        const reversedName = `${item.patient.lastName || ""} ${item.patient.firstName || ""}`.toLowerCase();
-        const token = String(item.token || "").toLowerCase();
-        return fullName.includes(query) || reversedName.includes(query) || token.includes(query);
+        const q = search.toLowerCase();
+        const full = `${item.patient.firstName || ""} ${item.patient.lastName || ""}`.toLowerCase();
+        const rev = `${item.patient.lastName || ""} ${item.patient.firstName || ""}`.toLowerCase();
+        return full.includes(q) || rev.includes(q) || String(item.token || "").toLowerCase().includes(q);
     });
 
-    const handleDispense = () => {
-        const success = AndroidBridge.dispenseMedicine(2, 4, 6);
-        if (!success) alert("Dispense triggered (Simulated: No Hardware Connected)");
-    };
-
+    // ── Print ──────────────────────────────────────────────────────────────────
     const handlePrint = () => {
-        if (!(window as any).AndroidNative) {
-            window.print();
-            return;
-        }
+        if (!(window as any).AndroidNative) { window.print(); return; }
         setIsPrinterModalOpen(true);
     };
 
-    // Build print payload from the currently expanded prescription
     const executePrint = useCallback(() => {
-        setIsPrinting(true);
         const p = queue.find(q => q.token === expandedToken);
-        if (!p) { setIsPrinting(false); return; }
+        if (!p) return;
 
+        setIsPrinting(true);
         setTimeout(() => {
             try {
                 if (!(window as any).AndroidNative) {
@@ -93,11 +86,13 @@ const Page = () => {
                         ageSex: `${p.patient.age ?? ""}Y / ${p.patient.gender ?? ""}`,
                     },
                     diagnosis: p.diagnosis || "N/A",
-                    labTests: p.labTest ? p.labTest.split(',').map(t => t.trim()) : [],
+                    labTests: p.labTest
+                        ? p.labTest.split(',').map((t: string) => t.trim()).filter(Boolean)
+                        : [],
                     notes: p.clinicalNotes || "",
                     medicines: (p.medicines ?? [])
-                        .filter(m => m.medicineName?.trim())
-                        .map(m => ({
+                        .filter((m: any) => m.medicineName?.trim())
+                        .map((m: any) => ({
                             name: m.medicineName,
                             dosage: m.dosage || "",
                             duration: m.duration || "",
@@ -107,13 +102,46 @@ const Page = () => {
 
                 (window as any).AndroidNative.printThermal(JSON.stringify(printPayload));
             } catch (err) {
-                console.error("Print mapping error:", err);
+                console.error("[Print] Mapping error:", err);
                 alert("Failed to prepare prescription for printing.");
                 setIsPrinting(false);
             }
         }, 150);
     }, [queue, expandedToken]);
 
+    // ── Save PDF (system print dialog → browser saves as PDF) ─────────────────
+    const handleSavePdf = () => {
+        window.print();
+        setIsOpenActions(false);
+    };
+
+    // ── Dispense via apiService.endCall (reuses the vitalsId from prescription) ─
+    // If your backend has a dedicated dispense endpoint, swap this out below.
+    const handleDispense = async () => {
+        const p = queue.find(q => q.token === expandedToken);
+        if (!p) return;
+
+        // Try hardware first
+        const hardwareOk = AndroidBridge.dispenseMedicine(2, 4, 6);
+
+        // Then mark the call/visit as ended on the backend so stock is logged
+        if (!hardwareOk) {
+            setIsDispensing(true);
+            try {
+                // apiService.endCall accepts a vitalsId — reuse it as the dispense hook.
+                // Replace with a dedicated dispense endpoint if your API has one.
+                await apiService.endCall(String(p.patient.id), "dispensed");
+            } catch (err) {
+                console.error("[Dispense] API call failed:", err);
+            } finally {
+                setIsDispensing(false);
+            }
+        }
+
+        setIsOpenActions(false);
+    };
+
+    // ── Render ─────────────────────────────────────────────────────────────────
     return (
         <main className="min-h-screen bg-slate-50">
 
@@ -125,7 +153,7 @@ const Page = () => {
             />
 
             {/* Header */}
-            <div className="w-full bg-[#0297d6] py-6 px-4 text-white">
+            <div className="w-full bg-[#0297d6] text-white">
                 <div className="max-w-5xl mx-auto flex items-center gap-3 min-w-0">
                     <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm shrink-0">
                         <Activity className="w-5 h-5 text-white" />
@@ -138,22 +166,20 @@ const Page = () => {
                 </div>
             </div>
 
-            {/* Page body */}
-            <div className="max-w-5xl mx-auto px-4 py-8">
+            {/* Body */}
+            <div className="max-w-6xl mx-auto px-4 py-8">
                 <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-6">
 
-                    {/* Table Header */}
-                    <div className="px-8 py-4 border-b flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-                        <h2 className="font-bold text-xl text-slate-800 text-nowrap">
-                            CURRENT MEDICATION QUEUE
-                        </h2>
-                        <div className="flex gap-3 w-full md:w-auto">
+                    {/* Table header + search */}
+                    <div className="px-8 py-4 border-b flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+                        <h2 className="font-bold text-xl text-slate-800">CURRENT MEDICATION QUEUE</h2>
+                        <div className="flex gap-3 w-full lg:w-auto">
                             <input
                                 type="text"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search by token or name..."
-                                className="border border-slate-200 rounded-lg px-4 py-2 text-sm w-full md:w-64 focus:outline-none focus:border-[#0297d6]"
+                                className="border border-slate-200 rounded-lg px-4 py-2 text-sm w-full lg:w-64 focus:outline-none focus:border-[#0297d6]"
                             />
                             <button
                                 onClick={() => setSearch("")}
@@ -185,16 +211,14 @@ const Page = () => {
                             ) : (
                                 filteredPrescriptions.map((p, i) => {
                                     const isExpanded = expandedToken === p.token;
-
-                                    // Derived values for this prescription
                                     const labTestDisplay = p.labTest
-                                        ? p.labTest.split(',').map(t => t.trim()).filter(Boolean)
+                                        ? p.labTest.split(',').map((t: string) => t.trim()).filter(Boolean)
                                         : [];
 
                                     return (
                                         <React.Fragment key={p.id}>
 
-                                            {/* ROW */}
+                                            {/* ── Main row ── */}
                                             <tr className="hover:bg-slate-50 transition-colors">
                                                 <td className="px-8 py-5 text-slate-600 font-medium">{i + 1}</td>
                                                 <td className="px-8 py-5 font-bold text-[#0297d6]">#{p.token}</td>
@@ -212,13 +236,13 @@ const Page = () => {
                                                 </td>
                                             </tr>
 
-                                            {/* EXPANDED ROW */}
+                                            {/* ── Expanded row ── */}
                                             {isExpanded && (
                                                 <tr>
                                                     <td colSpan={5} className="px-8 py-6 bg-slate-50">
                                                         <div className="space-y-5">
 
-                                                            {/* ── Patient Info ── */}
+                                                            {/* Patient info card */}
                                                             <div className="bg-white rounded-2xl border border-slate-100 p-5">
                                                                 <p className="font-bold text-slate-800 text-base mb-1">
                                                                     {p.patient.firstName} {p.patient.lastName}
@@ -235,25 +259,7 @@ const Page = () => {
                                                                 )}
                                                             </div>
 
-                                                            {/* ── Medicine List ──
-                                                            <div className="space-y-2">
-                                                                {p.medicines?.map((m) => (
-                                                                    <div
-                                                                        key={m.id}
-                                                                        className="p-3 bg-white border border-slate-100 rounded-xl flex justify-between items-center"
-                                                                    >
-                                                                        <div>
-                                                                            <p className="font-bold text-slate-800">{m.medicineName}</p>
-                                                                            <p className="text-xs text-slate-500">{m.dosage} • {m.duration}</p>
-                                                                        </div>
-                                                                        <div className="text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg">
-                                                                            M:{m.morning ? 1 : 0} A:{m.afternoon ? 1 : 0} N:{m.night ? 1 : 0}
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div> */}
-
-                                                            {/* ── Generate Prescription Button ── */}
+                                                            {/* Generate prescription button */}
                                                             {!prescriptionGenerated && (
                                                                 <button
                                                                     onClick={() => setPrescriptionGenerated(true)}
@@ -263,7 +269,7 @@ const Page = () => {
                                                                 </button>
                                                             )}
 
-                                                            {/* ── PRINTABLE PRESCRIPTION ── */}
+                                                            {/* ── Printable prescription slip ── */}
                                                             {prescriptionGenerated && (
                                                                 <>
                                                                     <div className="flex justify-center">
@@ -279,7 +285,7 @@ const Page = () => {
                                                                                 <p className="text-[10px] font-bold">EZShifa Digital Health</p>
                                                                             </div>
 
-                                                                            {/* Patient Info */}
+                                                                            {/* Patient info */}
                                                                             <div className="space-y-1 text-[11px] border-b border-dashed border-slate-300 pb-3 mb-3">
                                                                                 <div className="flex justify-between">
                                                                                     <span className="font-black uppercase">Name:</span>
@@ -301,14 +307,14 @@ const Page = () => {
                                                                                 <p className="italic">{p.diagnosis || 'N/A'}</p>
                                                                             </div>
 
-                                                                            {/* Rx Medicines */}
+                                                                            {/* Rx */}
                                                                             <div className="mb-3">
                                                                                 <p className="text-lg font-black italic mb-2">Rx</p>
-                                                                                {(p.medicines ?? []).filter(m => m.medicineName).length === 0
+                                                                                {(p.medicines ?? []).filter((m: any) => m.medicineName).length === 0
                                                                                     ? <p className="text-[10px] text-slate-400 italic">No medicines prescribed.</p>
                                                                                     : (
                                                                                         <div className="space-y-3">
-                                                                                            {(p.medicines ?? []).filter(m => m.medicineName).map((m, idx) => (
+                                                                                            {(p.medicines ?? []).filter((m: any) => m.medicineName).map((m: any, idx: number) => (
                                                                                                 <div key={m.id} className="border-b border-slate-100 pb-2">
                                                                                                     <p className="text-[11px] font-black uppercase">{idx + 1}. {m.medicineName}</p>
                                                                                                     <div className="flex justify-between text-[10px] mt-0.5">
@@ -324,12 +330,12 @@ const Page = () => {
                                                                                 }
                                                                             </div>
 
-                                                                            {/* Lab Tests */}
+                                                                            {/* Lab tests */}
                                                                             {labTestDisplay.length > 0 && (
                                                                                 <div className="border-t border-dashed border-slate-300 pt-3 mb-3 text-[11px]">
                                                                                     <p className="font-black uppercase text-[9px] tracking-widest mb-1">Lab Tests Advised</p>
                                                                                     <ul className="space-y-0.5">
-                                                                                        {labTestDisplay.map((t, idx) => (
+                                                                                        {labTestDisplay.map((t: string, idx: number) => (
                                                                                             <li key={idx} className="flex items-start gap-1">
                                                                                                 <span className="text-[#0297d6] font-black mt-0.5">›</span>
                                                                                                 <span>{t}</span>
@@ -339,7 +345,7 @@ const Page = () => {
                                                                                 </div>
                                                                             )}
 
-                                                                            {/* Clinical Notes */}
+                                                                            {/* Clinical notes */}
                                                                             {p.clinicalNotes && (
                                                                                 <div className="border-t border-dashed border-slate-300 pt-3 mb-3 text-[11px]">
                                                                                     <p className="font-black uppercase text-[9px] tracking-widest mb-0.5">Clinical Notes</p>
@@ -347,17 +353,16 @@ const Page = () => {
                                                                                 </div>
                                                                             )}
 
-                                                                            {/* Footer */}
-                                                                            <div className="text-center mt-4 opacity-40">
+                                                                            <div className="mt-4 text-center opacity-40">
                                                                                 <p className="text-[8px] uppercase tracking-widest">*** End of Prescription ***</p>
                                                                             </div>
                                                                         </div>
                                                                     </div>
 
-                                                                    {/* ── Action Buttons ── */}
+                                                                    {/* ── Action buttons ── */}
                                                                     <div className="flex gap-3 print:hidden">
 
-                                                                        {/* Print */}
+                                                                        {/* Print Rx */}
                                                                         <button
                                                                             onClick={handlePrint}
                                                                             disabled={isPrinting}
@@ -372,32 +377,34 @@ const Page = () => {
                                                                         {/* Actions dropdown */}
                                                                         <div className="relative flex-1">
                                                                             <button
-                                                                                onClick={() => setIsOpenPrescriptionSend(!isOpenPrescriptionSend)}
+                                                                                onClick={() => setIsOpenActions(v => !v)}
                                                                                 className="w-full bg-slate-100 text-slate-700 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition-all"
                                                                             >
                                                                                 Actions
-                                                                                <span className={`transition-transform inline-block ${isOpenPrescriptionSend ? 'rotate-180' : ''}`}>▼</span>
+                                                                                <span className={`transition-transform inline-block ${isOpenActions ? 'rotate-180' : ''}`}>▼</span>
                                                                             </button>
 
-                                                                            {isOpenPrescriptionSend && (
+                                                                            {isOpenActions && (
                                                                                 <div className="absolute bottom-full left-0 mb-2 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-10 overflow-hidden">
+
+                                                                                    {/* Save PDF — uses apiService indirectly via window.print() */}
                                                                                     <button
-                                                                                        onClick={() => {
-                                                                                            window.print();
-                                                                                            setIsOpenPrescriptionSend(false);
-                                                                                        }}
+                                                                                        onClick={handleSavePdf}
                                                                                         className="w-full text-left px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 hover:bg-slate-50 transition-colors"
                                                                                     >
                                                                                         Save PDF
                                                                                     </button>
+
+                                                                                    {/* Dispense — AndroidBridge + apiService.endCall */}
                                                                                     <button
-                                                                                        onClick={() => {
-                                                                                            handleDispense();
-                                                                                            setIsOpenPrescriptionSend(false);
-                                                                                        }}
-                                                                                        className="w-full text-left px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 hover:bg-slate-50 border-t border-slate-100 transition-colors"
+                                                                                        onClick={handleDispense}
+                                                                                        disabled={isDispensing}
+                                                                                        className="w-full text-left px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 hover:bg-slate-50 border-t border-slate-100 transition-colors disabled:opacity-50"
                                                                                     >
-                                                                                        Dispense
+                                                                                        {isDispensing
+                                                                                            ? <span className="flex items-center gap-2"><Loader2 size={12} className="animate-spin" />Dispensing...</span>
+                                                                                            : 'Dispense'
+                                                                                        }
                                                                                     </button>
                                                                                 </div>
                                                                             )}
@@ -405,7 +412,6 @@ const Page = () => {
                                                                     </div>
                                                                 </>
                                                             )}
-
                                                         </div>
                                                     </td>
                                                 </tr>

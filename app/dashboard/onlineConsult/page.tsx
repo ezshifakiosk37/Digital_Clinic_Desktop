@@ -20,6 +20,7 @@ const OnlineConsultPage = () => {
     const [search, setSearch] = useState("")
     const [expandedToken, setExpandedToken] = useState<string | null>(null)
     const [videoVitalsId, setVideoVitalsId] = useState<string | null>(null)
+    const [selectedPatient, setSelectedPatient] = useState<QueueItem | null>(null)
     const [refreshing, setRefreshing] = useState(false)
 
     const loadQueue = async (showSpinner = false) => {
@@ -162,7 +163,7 @@ const OnlineConsultPage = () => {
                                                     <td className="px-6 py-5 text-right">
                                                         <div className="flex gap-2 justify-end">
                                                             <button
-                                                                onClick={() => p.vitalsId ? setVideoVitalsId(p.vitalsId) : null}
+                                                                onClick={() => p.vitalsId ? setSelectedPatient(p) : null}
                                                                 disabled={!p.vitalsId}
                                                                 title={!p.vitalsId ? "Add vitals first" : "Start online consult"}
                                                                 className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-colors
@@ -204,9 +205,11 @@ const OnlineConsultPage = () => {
 
             {/* Reuse existing VideoConsultModel */}
             <VideoConsultModel
-                isOpen={!!videoVitalsId}
-                onClose={() => setVideoVitalsId(null)}
-                vitalsId={videoVitalsId}
+                isOpen={!!selectedPatient}
+                onClose={() => setSelectedPatient(null)}
+                vitalsId={selectedPatient?.vitalsId ?? null}
+                patientId={selectedPatient?.id ?? null}
+                patientToken={selectedPatient?.token ?? null}
             />
         </main>
     )

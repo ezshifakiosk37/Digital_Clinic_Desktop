@@ -7,7 +7,10 @@ export interface CallPayload {
   body: string;
   callUrl: string;
   token?: string;
+  patientId?: string;
+  patientToken?: string;
   symptoms?: string;
+  status?: 'waiting' | 'accepted' | 'declined' | 'not_responding';
 }
 
 interface CallQueueContextType {
@@ -15,6 +18,7 @@ interface CallQueueContextType {
   activeCall: CallPayload | null;
   addCall: (call: CallPayload) => void;
   removeCall: (vitalsId: string) => void;
+  updateCallStatus: (vitalsId: string, status: CallPayload['status']) => void;
   setActiveCall: (call: CallPayload | null) => void;
 }
 
@@ -25,10 +29,12 @@ export function CallQueueProvider({ children }: { children: ReactNode }) {
   const [activeCall, setActiveCall] = useState<CallPayload | null>(null);
 
   const addCall = (call: CallPayload) => {
+    // Set default status if not provided
+    const newCall = { ...call, status: call.status || 'waiting' };
     setOnlineQueue(prev =>
-      prev.find(c => c.vitalsId === call.vitalsId) ? prev : [...prev, call]
+      prev.find(c => c.vitalsId === newCall.vitalsId) ? prev : [...prev, newCall]
     );
-    setActiveCall(call); // always show toast for latest
+    setActiveCall(newCall);
   };
 
   const removeCall = (vitalsId: string) => {
@@ -36,8 +42,28 @@ export function CallQueueProvider({ children }: { children: ReactNode }) {
     setActiveCall(prev => prev?.vitalsId === vitalsId ? null : prev);
   };
 
+  const updateCallStatus = (vitalsId: string, status: CallPayload['status']) => {
+    setOnlineQueue(prev =>
+      prev.map(call =>
+        call.vitalsId === vitalsId ? { ...call, status } : call
+      )
+    );
+    setActiveCall(prev =>
+      prev?.vitalsId === vitalsId ? { ...prev, status } : prev
+    );
+  };
+
   return (
-    <CallQueueContext.Provider value={{ onlineQueue, activeCall, addCall, removeCall, setActiveCall }}>
+    <CallQueueContext.Provider
+      value={{
+        onlineQueue,
+        activeCall,
+        addCall,
+        removeCall,
+        updateCallStatus,
+        setActiveCall,
+      }}
+    >
       {children}
     </CallQueueContext.Provider>
   );

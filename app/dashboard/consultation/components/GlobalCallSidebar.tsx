@@ -7,7 +7,7 @@ import { apiService } from '@/app/_utils/apiService';
 import { useCallQueue } from '@/app/_context/CallQueueContext';
 
 export default function GlobalCallSidebar() {
-  const { activeCall, removeCall, setActiveCall } = useCallQueue();
+  const { activeCall, removeCall, setActiveCall, updateCallStatus } = useCallQueue();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -20,7 +20,7 @@ export default function GlobalCallSidebar() {
     if (!wasNative) {
       const ring = new Audio('/sounds/iphone_ringtone.mp3');
       ring.loop = true;
-      ring.play().catch(() => {});
+      ring.play().catch(() => { });
       audioRef.current = ring;
     }
 
@@ -35,11 +35,14 @@ export default function GlobalCallSidebar() {
       try {
         const data = await apiService.getCallStatus(activeCall.vitalsId);
         const status = data?.status;
+        // Inside the polling useEffect
         if (status === 'declined_by_patient' || status === 'doctor_not_responding') {
           stopAudio();
-          removeCall(activeCall.vitalsId);
+          // Update the call status in the queue, don't remove it
+          updateCallStatus(activeCall.vitalsId, 'not_responding');
+          setActiveCall(null);   // hide the toast
         }
-      } catch {}
+      } catch { }
     }, 2000);
 
     return () => clearInterval(interval);
@@ -60,7 +63,19 @@ export default function GlobalCallSidebar() {
       const res = await apiService.acceptCall(activeCall.vitalsId);
       if (!res.success) throw new Error("Accept failed");
       stopAudio();
+
+      // 👇 Store patient data in context before navigation
+      if (activeCall.patientId && activeCall.patientToken) {
+        console.log('📦 Storing call metadata:', activeCall.vitalsId, {
+          patientId: activeCall.patientId,
+          patientToken: activeCall.patientToken,
+        });
+      } else {
+        console.warn('⚠️ No patient data in activeCall – cannot store metadata');
+      }
+
       removeCall(activeCall.vitalsId);
+      // Ensure callUrl is clean (no query params) – we rely on context
       window.location.href = activeCall.callUrl;
     } catch (err: any) {
       console.error("Accept error:", err.message);
@@ -73,13 +88,12 @@ export default function GlobalCallSidebar() {
     if (!activeCall) return;
     try {
       await apiService.endCall(activeCall.vitalsId, 'declined_by_doctor');
-    } catch {}
+    } catch { }
     stopAudio();
     removeCall(activeCall.vitalsId);
   };
 
   const handleDismissToast = () => {
-    // Dismiss toast but keep in queue — doctor can start from queue later
     setActiveCall(null);
     stopAudio();
   };

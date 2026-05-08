@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'; // Added useRef
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Video, Stethoscope, Loader2, AlertCircle, Clock } from "lucide-react";
@@ -9,21 +9,24 @@ interface VideoConsultModelProps {
   isOpen: boolean;
   onClose: () => void;
   vitalsId: string | null;
+  patientId: string | null;
+  patientToken: string | null;
 }
 
-export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultModelProps) => {
+export const VideoConsultModel = ({ isOpen, onClose, vitalsId, patientId, patientToken }: VideoConsultModelProps) => {
   const [doctorId, setDoctorId] = useState<string | null>(null);
   const [loadingDoctor, setLoadingDoctor] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isWaitingForDoctor, setIsWaitingForDoctor] = useState(false); // New State
+  const [isWaitingForDoctor, setIsWaitingForDoctor] = useState(false);
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Cleanup polling on unmount or close
   useEffect(() => {
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);  // ✅
     };
   }, []);
 
@@ -43,8 +46,8 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
           setLoadingDoctor(true);
           setError(null);
           try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/doctors/assigned-doctor/${storedKioskId}`);
-            const data = await res.json();
+            // ✅ replaced raw fetch with apiService
+            const data = await apiService.getAssignedDoctor(storedKioskId);
             if (data.success) setDoctorId(data.doctorId);
             else setError(data.error || "No doctor assigned");
           } catch (err) {
@@ -53,10 +56,12 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
             setLoadingDoctor(false);
           }
         };
+
         fetchAssignedDoctor();
-      } catch (e) { setError("Invalid session data."); }
+      } catch (e) {
+        setError("Invalid session data.");
+      }
     } else {
-      // Reset states when modal closes
       setIsConnecting(false);
       setIsWaitingForDoctor(false);
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
@@ -64,108 +69,117 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
   }, [isOpen]);
 
   const startPollingStatus = (vid: string) => {
+    console.log("🚀 [startPollingStatus] Called with vid:", vid);
     setIsWaitingForDoctor(true);
 
-    const startTime = Date.now();
-
-    // 🚨 Prevent duplicate intervals (you ignored this before)
     if (pollIntervalRef.current) {
+      console.log("⚠️ [startPollingStatus] Clearing existing poll interval before starting new one");
       clearInterval(pollIntervalRef.current);
     }
 
+    console.log("⏳ [startPollingStatus] Setting 30s timeout...");
+    const timeoutId = setTimeout(() => {
+      console.log("🕐 [TIMEOUT] 30 seconds elapsed — doctor did not respond. Calling handleCancel...");
+      clearInterval(pollIntervalRef.current!);
+      handleCancel("doctor_not_responding");
+      alert("Doctor did not respond in time.");
+    }, 30000);
+
+    timeoutRef.current = timeoutId;
+    console.log("✅ [startPollingStatus] 30s timeout set. Starting poll interval every 2s...");
+
     pollIntervalRef.current = setInterval(async () => {
+      console.log("🔄 [POLL] Tick — calling getCallStatus for vid:", vid);
       try {
         const data = await apiService.getCallStatus(vid);
+        console.log("📦 [POLL] Response received:", data);
 
-        if (!data?.status) return;
-
-        // ✅ CASE 1: ACCEPTED
-        if (data.status === 'accepted') {
-          clearInterval(pollIntervalRef.current!);
-          window.location.href = `/dashboard/video-call/${vid}`;
+        if (!data?.status) {
+          console.log("⚠️ [POLL] No status in response, skipping tick.");
           return;
         }
 
-        // ❌ CASE 2: DOCTOR DECLINED
-        if (data.status === 'declined_by_doctor') {
-          clearInterval(pollIntervalRef.current!);
+        console.log("📋 [POLL] Status:", data.status);
 
+        if (data.status === 'accepted') {
+          console.log("✅ [POLL] Doctor accepted! Clearing interval + timeout, redirecting...");
+          clearInterval(pollIntervalRef.current!);
+          clearTimeout(timeoutId);
+          const query = new URLSearchParams();
+          if (patientId) query.set('patientId', patientId);
+          if (patientToken) query.set('patientToken', patientToken);
+          window.location.href = `/dashboard/video-call/${vid}?${query.toString()}`;
+          return;
+        }
+
+        if (data.status === 'declined_by_doctor') {
+          console.log("❌ [POLL] Doctor declined. Clearing interval + timeout, closing modal...");
+          clearInterval(pollIntervalRef.current!);
+          clearTimeout(timeoutId);
           setIsWaitingForDoctor(false);
           setIsConnecting(false);
-
           alert("Doctor declined the call.");
           onClose();
           return;
         }
 
-        // ❌ CASE 3: PATIENT CANCELLED (SYNC)
         if (data.status === 'declined_by_patient') {
+          console.log("🚪 [POLL] Patient declined. Clearing interval + timeout, closing modal...");
           clearInterval(pollIntervalRef.current!);
-
+          clearTimeout(timeoutId);
           setIsWaitingForDoctor(false);
           setIsConnecting(false);
-
           onClose();
           return;
         }
 
+        console.log("⏸️ [POLL] Status not actionable yet, waiting for next tick...");
+
       } catch (err: any) {
-        console.error("Polling error:", err.message || err);
+        console.error("💥 [POLL] getCallStatus threw an error:", err.message || err);
       }
-
-      // ⏱️ TIMEOUT LOGIC
-      const elapsedSeconds = (Date.now() - startTime) / 1000;
-
-      if (elapsedSeconds >= 20) {
-        clearInterval(pollIntervalRef.current!);
-
-        handleCancel("doctor_not_responding");
-
-        alert("Doctor did not respond in time.");
-      }
-
     }, 2000);
+
+    console.log("✅ [startPollingStatus] Poll interval started.");
   };
 
   const handleStartConsult = async () => {
     if (!vitalsId || !doctorId) return;
-
     setIsConnecting(true);
-
     try {
       await apiService.alertDoctor(doctorId, vitalsId);
-
-      // ✅ Start polling only after success
       startPollingStatus(vitalsId);
-
     } catch (err: any) {
       setIsConnecting(false);
-
       console.error("Alert doctor failed:", err.message || err);
       alert(err.message || "Failed to start consultation");
     }
   };
 
-  // Inside VideoConsultModel
   const handleCancel = async (reason: string) => {
+    console.log("🛑 [handleCancel] Called with reason:", reason);
     try {
       if (vitalsId) {
+        console.log("📡 [handleCancel] Calling endCall with vitalsId:", vitalsId);
         await apiService.endCall(vitalsId, reason);
+        console.log("✅ [handleCancel] endCall succeeded");
       }
     } catch (err: any) {
-      console.error("Cleanup request failed:", err.message || err);
+      console.error("💥 [handleCancel] endCall failed:", err.message || err);
     }
-
     if (pollIntervalRef.current) {
+      console.log("🧹 [handleCancel] Clearing poll interval");
       clearInterval(pollIntervalRef.current);
     }
-
+    if (timeoutRef.current) {
+      console.log("🧹 [handleCancel] Clearing timeout ref");
+      clearTimeout(timeoutRef.current);
+    }
     setIsWaitingForDoctor(false);
     setIsConnecting(false);
-
+    console.log("🚪 [handleCancel] Calling onClose()");
     onClose();
   };
-
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -175,7 +189,6 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
         <div className="p-8 bg-white">
           <DialogHeader className="flex flex-col items-center justify-center space-y-2">
             <div className="relative mb-4">
-              {/* UI changes based on state */}
               {isWaitingForDoctor ? (
                 <div className="relative bg-amber-50 p-6 rounded-full border border-amber-100 shadow-sm">
                   <Clock className="h-10 w-10 text-amber-600 animate-pulse" />
@@ -223,7 +236,7 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
               <Button
                 variant="ghost"
                 className="flex-1 text-slate-500 font-semibold h-12"
-                onClick={() => handleCancel('declined_by_patient')} // Use the new handler
+                onClick={() => handleCancel('declined_by_patient')}
                 disabled={isConnecting && !isWaitingForDoctor && !error}
               >
                 {isWaitingForDoctor ? "Cancel Request" : "Skip for now"}

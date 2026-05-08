@@ -179,6 +179,18 @@ export const apiService = {
         window.location.href = '/consultation';
     },
 
+    // In apiService.ts — add inside the apiService object
+    docLogoutWithReason: async (reason: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/doctors/logout`, {
+            method: 'POST',
+            headers: getDocHeaders(),
+            body: JSON.stringify({ reason }),
+        });
+        localStorage.removeItem('doc_token');
+        localStorage.removeItem('doctor');
+        return handleResponse(response);
+    },
+
     getDoctor: () => {
         const doc = localStorage.getItem('doctor');
         return doc ? JSON.parse(doc) : null;
@@ -226,7 +238,7 @@ export const apiService = {
     getTodayQueue: async () => {
         const response = await fetch(`${API_BASE_URL}/api/patients/today-queue`, {
             method: 'GET',
-            headers: getDocHeaders(),
+            headers: getHeaders(),
         });
         return handleResponse(response);
     },
@@ -341,5 +353,20 @@ export const apiService = {
             }
         );
         return handleResponse(res);
+    },
+    getAssignedDoctor: async (kioskId: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/doctors/assigned-doctor/${kioskId}`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+        return handleResponse(response);
+    },
+
+    getPatientByVitalsId: async (vitalsId: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/patients/patient-by-vitals/${vitalsId}`, {
+            method: 'GET',
+            headers: getDocHeaders(),  // doctor token
+        });
+        return handleResponse(response);
     },
 };
