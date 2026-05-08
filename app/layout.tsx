@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Outfit } from "next/font/google";
 import { CallQueueProvider } from "./_context/CallQueueContext";
+import KeyboardFix from "./keyboardFix"; // ← create this file
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,7 +17,7 @@ const geistMono = Geist_Mono({
 const quicksand = Outfit({
   variable: "--font-quicksand",
   subsets: ["latin"],
-  weight: ['300', '400'], // Optional: specify weights
+  weight: ["300", "400"],
 });
 
 export const metadata: Metadata = {
@@ -27,16 +28,31 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
+    <html lang="en" style={{ height: "100%" }}>
       <body
+        style={{
+          height: "100%",
+          margin: 0,
+          overflow: "auto",
+        }}
         className={`${geistSans.variable} ${geistMono.variable} ${quicksand.variable} antialiased`}
       >
         <CallQueueProvider>
+          {/* This wrapper is CRITICAL */}
+          <div
+            style={{
+              minHeight: "100dvh", // ← dynamic viewport height (fixes keyboard)
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <KeyboardFix />
             {children}
+          </div>
         </CallQueueProvider>
       </body>
     </html>
