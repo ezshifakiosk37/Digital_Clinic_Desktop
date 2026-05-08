@@ -21,10 +21,12 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId, patientId, patien
   const [isWaitingForDoctor, setIsWaitingForDoctor] = useState(false);
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);  // ✅
     };
   }, []);
 
@@ -67,28 +69,53 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId, patientId, patien
   }, [isOpen]);
 
   const startPollingStatus = (vid: string) => {
+    console.log("🚀 [startPollingStatus] Called with vid:", vid);
     setIsWaitingForDoctor(true);
-    const startTime = Date.now();
 
-    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    if (pollIntervalRef.current) {
+      console.log("⚠️ [startPollingStatus] Clearing existing poll interval before starting new one");
+      clearInterval(pollIntervalRef.current);
+    }
+
+    console.log("⏳ [startPollingStatus] Setting 30s timeout...");
+    const timeoutId = setTimeout(() => {
+      console.log("🕐 [TIMEOUT] 30 seconds elapsed — doctor did not respond. Calling handleCancel...");
+      clearInterval(pollIntervalRef.current!);
+      handleCancel("doctor_not_responding");
+      alert("Doctor did not respond in time.");
+    }, 30000);
+
+    timeoutRef.current = timeoutId;
+    console.log("✅ [startPollingStatus] 30s timeout set. Starting poll interval every 2s...");
 
     pollIntervalRef.current = setInterval(async () => {
+      console.log("🔄 [POLL] Tick — calling getCallStatus for vid:", vid);
       try {
         const data = await apiService.getCallStatus(vid);
+        console.log("📦 [POLL] Response received:", data);
 
-        if (!data?.status) return;
+        if (!data?.status) {
+          console.log("⚠️ [POLL] No status in response, skipping tick.");
+          return;
+        }
+
+        console.log("📋 [POLL] Status:", data.status);
 
         if (data.status === 'accepted') {
+          console.log("✅ [POLL] Doctor accepted! Clearing interval + timeout, redirecting...");
           clearInterval(pollIntervalRef.current!);
+          clearTimeout(timeoutId);
           const query = new URLSearchParams();
-          if (patientId)    query.set('patientId', patientId);
+          if (patientId) query.set('patientId', patientId);
           if (patientToken) query.set('patientToken', patientToken);
           window.location.href = `/dashboard/video-call/${vid}?${query.toString()}`;
           return;
         }
 
         if (data.status === 'declined_by_doctor') {
+          console.log("❌ [POLL] Doctor declined. Clearing interval + timeout, closing modal...");
           clearInterval(pollIntervalRef.current!);
+          clearTimeout(timeoutId);
           setIsWaitingForDoctor(false);
           setIsConnecting(false);
           alert("Doctor declined the call.");
@@ -97,24 +124,23 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId, patientId, patien
         }
 
         if (data.status === 'declined_by_patient') {
+          console.log("🚪 [POLL] Patient declined. Clearing interval + timeout, closing modal...");
           clearInterval(pollIntervalRef.current!);
+          clearTimeout(timeoutId);
           setIsWaitingForDoctor(false);
           setIsConnecting(false);
           onClose();
           return;
         }
 
-      } catch (err: any) {
-        console.error("Polling error:", err.message || err);
-      }
+        console.log("⏸️ [POLL] Status not actionable yet, waiting for next tick...");
 
-      const elapsedSeconds = (Date.now() - startTime) / 1000;
-      if (elapsedSeconds >= 20) {
-        clearInterval(pollIntervalRef.current!);
-        handleCancel("doctor_not_responding");
-        alert("Doctor did not respond in time.");
+      } catch (err: any) {
+        console.error("💥 [POLL] getCallStatus threw an error:", err.message || err);
       }
     }, 2000);
+
+    console.log("✅ [startPollingStatus] Poll interval started.");
   };
 
   const handleStartConsult = async () => {
@@ -131,14 +157,27 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId, patientId, patien
   };
 
   const handleCancel = async (reason: string) => {
+    console.log("🛑 [handleCancel] Called with reason:", reason);
     try {
-      if (vitalsId) await apiService.endCall(vitalsId, reason);
+      if (vitalsId) {
+        console.log("📡 [handleCancel] Calling endCall with vitalsId:", vitalsId);
+        await apiService.endCall(vitalsId, reason);
+        console.log("✅ [handleCancel] endCall succeeded");
+      }
     } catch (err: any) {
-      console.error("Cleanup request failed:", err.message || err);
+      console.error("💥 [handleCancel] endCall failed:", err.message || err);
     }
-    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    if (pollIntervalRef.current) {
+      console.log("🧹 [handleCancel] Clearing poll interval");
+      clearInterval(pollIntervalRef.current);
+    }
+    if (timeoutRef.current) {
+      console.log("🧹 [handleCancel] Clearing timeout ref");
+      clearTimeout(timeoutRef.current);
+    }
     setIsWaitingForDoctor(false);
     setIsConnecting(false);
+    console.log("🚪 [handleCancel] Calling onClose()");
     onClose();
   };
 
