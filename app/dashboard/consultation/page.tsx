@@ -70,6 +70,9 @@ const EZShifaPortal = () => {
     const patientId = payload?.patientId || payload?.data?.patientId;
     const patientToken = payload?.patientToken || payload?.data?.patientToken || payload?.data?.token;
 
+    console.log("📦 [buildCallPayload] raw payload.data:", payload?.data);  // ✅ add this
+    console.log("📦 [buildCallPayload] token:", payload?.data?.token);       // ✅ add this
+
     return {
       vitalsId,
       title: payload?.notification?.title || payload?.title || 'Incoming Call',
@@ -79,7 +82,7 @@ const EZShifaPortal = () => {
       symptoms: payload?.data?.symptoms,
       patientId,
       patientToken,
-      status: 'waiting' as const,   // initial status
+      status: 'waiting' as const,
     };
   };
 
@@ -369,6 +372,8 @@ const EZShifaPortal = () => {
   };
 
   const cancelLogout = () => { setShowLogoutModal(false); setSelectedLogoutReason(''); };
+
+  console.log(filteredQueue[0])
 
   // Auth gates
   if (!isLoggedIn) {
