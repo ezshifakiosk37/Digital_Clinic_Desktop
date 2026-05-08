@@ -23,7 +23,6 @@ const quicksand = Outfit({
 export const metadata: Metadata = {
   title: "EZBifurcation",
   description: "A complete digitized clinic structure",
-  viewport: "width=device-width, initial-scale=1.0, viewport-fit=cover",
 };
 
 export default function RootLayout({
