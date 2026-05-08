@@ -42,8 +42,8 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
   const isDoctor = typeof window !== 'undefined' && !!localStorage.getItem('doc_token');
   // 1. Fetch patient data using vitalsId
   useEffect(() => {
+    if (!vitalsId || !isDoctor) return;  // ✅ skip entirely for patients
     const fetchPatientData = async () => {
-      if (!vitalsId) return;
       try {
         console.log('🔍 Fetching patient data for vitalsId:', vitalsId);
         const data = await apiService.getPatientByVitalsId(vitalsId);
@@ -52,13 +52,12 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
         setPatientToken(data.token || data.patientToken);
       } catch (err: any) {
         console.error('❌ Failed to fetch patient data:', err);
-        // Optionally show error but don't block video call
       } finally {
         setFetchingPatient(false);
       }
     };
     fetchPatientData();
-  }, [vitalsId]);
+  }, [vitalsId, isDoctor]);
 
   // 2. Initialize Agora call
   useEffect(() => {
