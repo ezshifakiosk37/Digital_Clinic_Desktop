@@ -99,11 +99,16 @@ const OnlineConsultPage = () => {
   const handleConsultClick = async (patient: PatientResult) => {
     if (!patient.vitalsId) return
     try {
-      // Check if this token already has a prescription (already consulted today)
+      // Check if this specific patient+token already has a prescription today
       const res = await apiService.getAllPrescription(patient.token)
       if (res.success && res.data && res.data.length > 0) {
-        showToast(`Token #${patient.token} has already been consulted today.`)
-        return
+        const alreadyConsulted = res.data.some(
+          (rx: any) => rx.token === patient.token && rx.patient_id === patient.id
+        )
+        if (alreadyConsulted) {
+          showToast(`Token #${patient.token} has already been consulted today.`)
+          return
+        }
       }
     } catch (err: any) {
       // If error is not "not found", just proceed
