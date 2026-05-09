@@ -38,15 +38,15 @@ const DocProfile: React.FC<DocProfileProps> = ({
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-    React.useEffect(() => {
+  React.useEffect(() => {
     apiService.docGetProfile().then((data) => {
       if (data?.doctor) {
         setDoctor((d) => ({ ...d, password: data.doctor.password ?? '' }));
       }
-    }).catch(() => {});
+    }).catch(() => { });
 
   }, []);
-  
+
   // Reusable text field
   const field = (key: keyof DoctorProfileType, type: string = 'text', placeholder: string = '') => (
     <input
@@ -77,10 +77,10 @@ const DocProfile: React.FC<DocProfileProps> = ({
   );
 
   return (
-    <div>
+    <div className="p-3 md:p-6">
       <button
         onClick={() => setActivePage('dashboard')}
-        className="bg-[#0297d6] text-white py-3 px-6 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-[#0288c2] transition-all mb-2 lg:mb-0"
+        className="bg-[#0297d6] text-white py-3 px-6 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-[#0288c2] transition-all mb-4"
       >
         ← Back to Queue
       </button>

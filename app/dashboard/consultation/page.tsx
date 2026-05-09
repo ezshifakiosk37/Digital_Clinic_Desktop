@@ -180,7 +180,7 @@ const EZShifaPortal = () => {
     return () => window.removeEventListener('doctorLoggedIn', handleDoctorLogin);
   }, []);
 
-// ── Sidebar sign-out event (doctor) ────────────────────────────────────────
+  // ── Sidebar sign-out event (doctor) ────────────────────────────────────────
   React.useEffect(() => {
     const handleSidebarLogout = () => {
       setLogoutModalMode('logout');
@@ -190,7 +190,7 @@ const EZShifaPortal = () => {
     return () => window.removeEventListener('doctor-logout-requested', handleSidebarLogout);
   }, []);
 
-// ── Sidebar profile event (doctor) ─────────────────────────────────────────
+  // ── Sidebar profile event (doctor) ─────────────────────────────────────────
   React.useEffect(() => {
     const handleSidebarProfile = () => {
       setActivePage('profile');
@@ -384,6 +384,7 @@ const EZShifaPortal = () => {
     }
   };
 
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   // ── Auth gates ──────────────────────────────────────────────────────────────
   // if (!isLoggedIn) {
   //   return activePage === 'login'
@@ -409,7 +410,7 @@ const EZShifaPortal = () => {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-dvh bg-white text-sm">
       <Navbar
         fullName={fullName}
         doctorPhoto={doctor.photo}
@@ -418,28 +419,30 @@ const EZShifaPortal = () => {
         doctorStatus={doctorStatus}
         togglingStatus={togglingStatus}
         onToggleStatus={handleToggleStatus}
+        onMenuClick={() => window.dispatchEvent(new CustomEvent('toggle-mobile-sidebar'))}
       />
 
-      <main className="max-w-7xl mx-auto p-6">
+      <main className="max-w-7xl mx-auto p-3 md:p-6 pb-6">
 
         {/* ── Dashboard ── */}
         {activePage === 'dashboard' && !selectedPatient && (
           <div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
               {[
                 { label: 'TODAY PATIENTS', val: todayStats.todayPatients, icon: User, color: 'text-blue-600', bg: 'bg-blue-50' },
                 { label: 'IN QUEUE', val: todayStats.inQueue, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
                 { label: 'COMPLETED', val: todayStats.completed, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
               ].map((s, i) => (
-                <div key={i} className="bg-white rounded-3xl p-6 flex items-center gap-5 shadow-sm border border-slate-100">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${s.bg} ${s.color}`}>
-                    <s.icon size={32} />
+                <div key={i} className="bg-white rounded-2xl md:rounded-3xl p-3 md:p-6 flex flex-col md:flex-row items-center gap-2 md:gap-5 shadow-sm border border-slate-100">
+                  <div className={`w-8 h-8 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center ${s.bg} ${s.color}`}>
+                    <s.icon size={18} className="md:hidden" />
+                    <s.icon size={32} className="hidden md:block" />
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-500 tracking-widest uppercase">{s.label}</p>
-                    <h3 className="text-4xl font-black text-slate-800 mt-1">{s.val}</h3>
+                  <div className="text-center md:text-left">
+                    <p className="text-[9px] md:text-sm font-semibold text-slate-500 tracking-widest uppercase leading-tight">{s.label}</p>
+                    <h3 className="text-2xl md:text-4xl font-black text-slate-800 mt-0.5 md:mt-1">{s.val}</h3>
                   </div>
                 </div>
               ))}
@@ -704,38 +707,38 @@ const EZShifaPortal = () => {
           </div>
         )}
 
-        {/* ── Patient Consultation ── */}
-        {selectedPatient && activePage === 'dashboard' && (
-          <DocConsult
-            selectedPatient={selectedPatient}
-            setSelectedPatient={setSelectedPatient}
-            medicines={medicines}
-            setMedicines={setMedicines}
-            notes={notes}
-            setNotes={setNotes}
-            prescriptionGenerated={prescriptionGenerated}
-            setPrescriptionGenerated={setPrescriptionGenerated}
-            doctor={doctor}
-            updateMedicine={updateMedicine}
-            fullName={fullName}
-            onSessionEnd={handleSessionEnd}
-            endingSession={endingSession}
-            setEndingSession={setEndingSession}
-          />
-        )}
-
-        {/* ── Profile ── */}
-        {activePage === 'profile' && (
-          <DocProfile
-            setActivePage={setActivePage}
-            doctor={doctor}
-            setDoctor={setDoctor}
-            editMode={editMode}
-            setEditMode={setEditMode}
-          />
-        )}
-
       </main>
+
+      {/* ── Patient Consultation — full width, outside main padding ── */}
+      {selectedPatient && activePage === 'dashboard' && (
+        <DocConsult
+          selectedPatient={selectedPatient}
+          setSelectedPatient={setSelectedPatient}
+          medicines={medicines}
+          setMedicines={setMedicines}
+          notes={notes}
+          setNotes={setNotes}
+          prescriptionGenerated={prescriptionGenerated}
+          setPrescriptionGenerated={setPrescriptionGenerated}
+          doctor={doctor}
+          updateMedicine={updateMedicine}
+          fullName={fullName}
+          onSessionEnd={handleSessionEnd}
+          endingSession={endingSession}
+          setEndingSession={setEndingSession}
+        />
+      )}
+
+      {/* ── Profile — full width, outside main padding ── */}
+      {activePage === 'profile' && (
+        <DocProfile
+          setActivePage={setActivePage}
+          doctor={doctor}
+          setDoctor={setDoctor}
+          editMode={editMode}
+          setEditMode={setEditMode}
+        />
+      )}
 
       <DocLogout
         showLogoutModal={showLogoutModal}

@@ -78,10 +78,10 @@ function ConsultationInner({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <section className="min-h-screen bg-gray-50">
+    <>
       <GlobalCallSidebar />
       {children}
-    </section>
+    </>
   );
 }
 

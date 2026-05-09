@@ -110,6 +110,12 @@ export default function Sidebar() {
     }
   }, [pathname, isDoctor]);
 
+  useEffect(() => {
+    const handleMobileToggle = () => setIsOpen(prev => !prev);
+    window.addEventListener('toggle-mobile-sidebar', handleMobileToggle);
+    return () => window.removeEventListener('toggle-mobile-sidebar', handleMobileToggle);
+  }, []);
+
   return (
     <>
       {/* ── Overlay (mobile only, when open) ── */}
@@ -123,10 +129,10 @@ export default function Sidebar() {
       {/* ── Sidebar Panel ── */}
       <aside
         className={`
-    fixed top-0 left-0 h-screen z-60 bg-white border-r border-slate-200
+    fixed top-0 left-0 h-dvh z-60 bg-white border-r border-slate-200
     shadow-xl shadow-black/15 flex flex-col
     transition-all duration-300
-    ${isOpen ? 'w-64 px-6' : 'w-16 px-2'}
+    ${isOpen ? 'w-64 px-6' : 'w-0 md:w-16 px-0 md:px-2 overflow-hidden'}
   `}
       >
         {/* ── Logo + Hamburger Row ── */}
@@ -209,7 +215,7 @@ export default function Sidebar() {
         <button
           onClick={onReconnectPress}
           disabled={isConnecting}
-          className={`fixed bottom-6 right-6 z-50 p-4 bg-[#0297d6] text-white rounded-full shadow-2xl transition-all duration-200 group 
+          className={`hidden md:flex fixed bottom-6 right-6 z-50 p-4 bg-[#0297d6] text-white rounded-full shadow-2xl transition-all duration-200 group 
             ${isConnecting ? 'opacity-80 cursor-wait' : 'hover:bg-[#0286c2] hover:scale-110 active:scale-95'}
           `}
           title="Reconnect to ESP32"

@@ -153,7 +153,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
     const diagnosisDisplay = diagnoses.filter(d => d !== 'Other').map(d => d.startsWith('Other:') ? d.slice(6) : d);
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className=" bg-white">
             <BluetoothPrinterModal
                 isOpen={isPrinterModalOpen}
                 onClose={() => { if (!isPrinting) setIsPrinterModalOpen(false); }}
@@ -161,34 +161,35 @@ const DocConsult: React.FC<DocConsultProps> = ({
                 isPrinting={isPrinting}
             />
 
-            <main className="max-w-7xl mx-auto p-6 lg:p-1">
-                <div className="lg:mt-2 lg:mx-4 lg:pb-8">
+            <main className="max-w-7xl mx-auto p-3 md:p-6">
+                <div className="md:pb-8">
                     <button onClick={() => setSelectedPatient(null)}
                         className="mb-6 bg-[#0297d6] text-white py-3 px-6 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-[#0288c2] transition-all">
                         ← Back to Queue
                     </button>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8">
 
                         {/* LEFT PANEL */}
-                        <div className="lg:col-span-5 bg-slate-50 p-6 lg:p-8 rounded-[2.5rem]">
-                            <div className="flex gap-20 lg:gap-4 mb-8 bg-white p-5 rounded-3xl shadow-sm">
-                                <div className="w-25 h-25 bg-slate-100 rounded-2xl flex items-center justify-center text-[#0297d6] shrink-0">
-                                    <User size={72} />
+                        <div className="lg:col-span-5 bg-slate-50 p-4 lg:p-8 rounded-2xl lg:rounded-[2.5rem]">
+                            <div className="flex gap-4 mb-4 lg:mb-8 bg-white p-4 rounded-2xl lg:rounded-3xl shadow-sm">
+                                <div className="w-14 h-14 lg:w-25 lg:h-25 bg-slate-100 rounded-xl lg:rounded-2xl flex items-center justify-center text-[#0297d6] shrink-0">
+                                    <User size={32} className="lg:hidden" />
+                                    <User size={72} className="hidden lg:block" />
                                 </div>
-                                <div className="flex-1">
-                                    <div className="mb-3">
-                                        <span className="text-lg lg:text-xs font-black text-slate-400 uppercase tracking-widest">NAME: </span>
-                                        <span className="text-2xl lg:text-sm font-black text-slate-900">{selectedPatient.firstName} {selectedPatient.lastName}</span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="mb-1 lg:mb-3">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">NAME: </span>
+                                        <span className="text-sm font-black text-slate-900">{selectedPatient.firstName} {selectedPatient.lastName}</span>
                                     </div>
-                                    <div className="flex gap-6">
+                                    <div className="flex gap-4">
                                         <div>
-                                            <span className="text-lg lg:text-xs font-black text-slate-400 uppercase tracking-widest">AGE: </span>
-                                            <span className="text-2xl lg:text-sm font-semibold text-slate-700">{selectedPatient.age} Years</span>
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">AGE: </span>
+                                            <span className="text-sm font-semibold text-slate-700">{selectedPatient.age}Y</span>
                                         </div>
                                         <div>
-                                            <span className="text-lg lg:text-xs font-black text-slate-400 uppercase tracking-widest">GENDER: </span>
-                                            <span className="text-2xl lg:text-sm font-semibold text-slate-700">{selectedPatient.gender}</span>
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">GENDER: </span>
+                                            <span className="text-sm font-semibold text-slate-700">{selectedPatient.gender}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -199,11 +200,11 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                 <p className="text-sm font-bold text-red-500">{selectedPatient.symptoms}</p>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-3 lg:grid-cols-2 gap-2 lg:gap-3">
                                 {selectedPatient.vitals && Object.entries(selectedPatient.vitals).map(([k, v]) => (
-                                    <div key={k} className="bg-white p-4 rounded-2xl border border-slate-100">
+                                    <div key={k} className="bg-white p-2 lg:p-4 rounded-xl lg:rounded-2xl border border-slate-100">
                                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{k.toUpperCase()}</p>
-                                        <p className="text-base font-black text-slate-800 mt-1">{String(v)}</p>
+                                        <p className="text-sm lg:text-base font-black text-slate-800 mt-0.5 lg:mt-1">{String(v)}</p>
                                     </div>
                                 ))}
                                 {!selectedPatient.vitals && (
@@ -599,8 +600,6 @@ const DocConsult: React.FC<DocConsultProps> = ({
             </main>
 
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-                body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: white; }
                 @media print {
                     body * { visibility: hidden; }
                     #prescription-paper, #prescription-paper * { visibility: visible; }
@@ -609,6 +608,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
                         transform: translateX(-50%);
                         width: 320px !important; padding: 16px !important;
                         box-shadow: none !important; border: none !important;
+                        font-family: monospace !important;
                     }
                     .print\\:hidden { display: none !important; }
                 }
