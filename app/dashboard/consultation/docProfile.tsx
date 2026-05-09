@@ -51,7 +51,7 @@ const DocProfile: React.FC<DocProfileProps> = ({
   const field = (key: keyof DoctorProfileType, type: string = 'text', placeholder: string = '') => (
     <input
       type={type}
-      value={doctor[key] as string}
+      value={(doctor[key] as string) ?? ''}
       placeholder={placeholder}
       disabled={!editMode}
       onChange={(e) => setDoctor((d) => ({ ...d, [key]: e.target.value }))}

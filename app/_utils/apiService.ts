@@ -215,16 +215,22 @@ export const apiService = {
     },
 
     // ── Dashboard Helpers ──
-    getTodayStats: async () => {
-        const response = await fetch(`${API_BASE_URL}/api/patients/today-stats`, {
+    getTodayStats: async (doctorId?: string) => {
+        const url = doctorId
+            ? `${API_BASE_URL}/api/patients/today-stats?doctorId=${doctorId}`
+            : `${API_BASE_URL}/api/patients/today-stats`;
+        const response = await fetch(url, {
             method: 'GET',
             headers: getDocHeaders(),
         });
         return handleResponse(response);
     },
 
-    getTodayQueue: async () => {
-        const response = await fetch(`${API_BASE_URL}/api/patients/today-queue`, {
+    getTodayQueue: async (doctorId?: string) => {
+        const url = doctorId
+            ? `${API_BASE_URL}/api/patients/today-queue?doctorId=${doctorId}`
+            : `${API_BASE_URL}/api/patients/today-queue`;
+        const response = await fetch(url, {
             method: 'GET',
             headers: getDocHeaders(),
         });
@@ -342,4 +348,13 @@ export const apiService = {
         );
         return handleResponse(res);
     },
+
+        getAllDoctors: async () => {
+        const response = await fetch(`${API_BASE_URL}/api/doctors/all`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+        return handleResponse(response);
+    },
+
 };
