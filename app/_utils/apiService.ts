@@ -107,9 +107,13 @@ export const apiService = {
     },
 
     verifyToken: async (token: string) => {
+        const authToken = localStorage.getItem('token') || localStorage.getItem('doc_token');
         const response = await fetch(`${API_BASE_URL}/api/patients/verify-token/${token}`, {
             method: 'GET',
-            headers: getHeaders(),
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`,
+            },
         });
         return handleResponse(response);
     },

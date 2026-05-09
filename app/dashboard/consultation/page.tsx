@@ -256,10 +256,25 @@ const EZShifaPortal = () => {
     setWalkinSearchError('');
     setWalkinSearchResult(null);
     try {
+      // ✅ Use already-loaded globalDoneTokens — no extra API call needed
+      if (globalDoneTokens.has(String(token))) {
+        setWalkinSearchError('This token has already been consulted today.');
+        return;
+      }
+
       const res = await apiService.verifyToken(token);
       if (res.success) {
-        // Get full patient info from today's queue
         const queueRes = await apiService.getTodayQueue();
+
+        // ✅ Also re-check against freshly fetched completed list
+        const freshDoneTokens = new Set<string>(
+          (queueRes.completed || []).map((p: any) => String(p.token))
+        );
+        if (freshDoneTokens.has(String(token))) {
+          setWalkinSearchError('This token has already been consulted today.');
+          return;
+        }
+
         const allPatients: any[] = queueRes.patients ?? [];
         const found = allPatients.find(
           (p: any) => String(p.token).toLowerCase() === token.toLowerCase()
