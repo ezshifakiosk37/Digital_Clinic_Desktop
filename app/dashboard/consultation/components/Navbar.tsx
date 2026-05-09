@@ -1,7 +1,7 @@
 // consultation/components/Navbar.tsx
 "use client";
 import React from 'react';
-import { LogOut } from 'lucide-react';
+// import { LogOut } from 'lucide-react';
 
 interface NavbarProps {
   fullName: string;
@@ -36,7 +36,7 @@ const Navbar: React.FC<NavbarProps> = ({
 
       {/* Right Side - Doctor Info + Avatar */}
       <div className="flex items-center gap-4">
-        <div className="text-right hidden sm:block">
+        <div className="text-right">
           <p className="text-sm font-semibold uppercase tracking-wide">{fullName}</p>
         </div>
 
@@ -56,14 +56,14 @@ const Navbar: React.FC<NavbarProps> = ({
           </button>
         </div>
 
-        {/* Logout Button */}
+        {/* Logout Button
         <button
           onClick={onLogoutClick}
           className="hidden sm:flex items-center gap-1.5 text-xs font-bold opacity-90 hover:opacity-100 transition-all"
         >
           <LogOut size={14} />
           LOGOUT
-        </button>
+        </button> */}
 
         {/* Profile Avatar */}
         <div

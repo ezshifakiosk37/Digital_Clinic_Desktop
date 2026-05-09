@@ -36,6 +36,12 @@ const OnlineConsultPage = () => {
 
   // Video consult
   const [videoVitalsId, setVideoVitalsId]   = useState<string | null>(null)
+  const [toast, setToast]                   = useState<string | null>(null)
+
+  const showToast = (msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 3500)
+  }
 
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -90,8 +96,22 @@ const OnlineConsultPage = () => {
 
   const onlineDocotrs = doctors.filter(d => d.doctorStatus === 'online')
 
-  const handleConsultClick = (patient: PatientResult) => {
+  const handleConsultClick = async (patient: PatientResult) => {
     if (!patient.vitalsId) return
+    try {
+      // Check if this token already has a prescription (already consulted today)
+      const res = await apiService.getAllPrescription(patient.token)
+      if (res.success && res.data && res.data.length > 0) {
+        showToast(`Token #${patient.token} has already been consulted today.`)
+        return
+      }
+    } catch (err: any) {
+      // If error is not "not found", just proceed
+      const msg = err.message?.toLowerCase() || ''
+      if (!msg.includes('not found') && !msg.includes('no prescription')) {
+        console.error('Prescription check failed', err)
+      }
+    }
     setPickerPatient(patient)
   }
 
@@ -403,6 +423,13 @@ const OnlineConsultPage = () => {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 `z-9999` bg-red-600 text-white text-sm font-bold px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-2 animate-fade-in">
+          <span>⚠</span> {toast}
         </div>
       )}
 

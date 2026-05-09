@@ -15,19 +15,27 @@ import { apiService } from '@/app/_utils/apiService';
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge';
 
 export default function Sidebar() {
+  const isDoctor = !!localStorage.getItem('doc_token');
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState(pathname);
   const [isOpen, setIsOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const router = useRouter();
-  const menuItems: MenuItem[] = [
+
+  const staffMenuItems: MenuItem[] = [
     { name: "Demographic", path: "/dashboard/demographic", icon: <User size={20} /> },
     { name: "Vitals", path: "/dashboard/vitals", icon: <Activity size={20} /> },
     { name: "Online Consultation", path: "/dashboard/onlineConsult", icon: <Stethoscope size={20} /> },
-    { name: "Consultation", path: "/dashboard/consultation", icon: <LayoutDashboard size={20} /> },
-    { name: "Pharmacy", path: "/dashboard/pharmacy", icon: <BriefcaseMedical  size={20} /> },
+    // { name: "Consultation", path: "/dashboard/consultation", icon: <LayoutDashboard size={20} /> },
+    { name: "Pharmacy", path: "/dashboard/pharmacy", icon: <BriefcaseMedical size={20} /> },
   ];
 
+  const doctorMenuItems: MenuItem[] = [
+    { name: "Consultation", path: "/dashboard/consultation", icon: <LayoutDashboard size={20} /> },
+    { name: "Profile", path: "/dashboard/consultation/profile", icon: <User size={20} /> },
+  ];
+
+  const menuItems = isDoctor ? doctorMenuItems : staffMenuItems;
   // 2. Initialize Hardware Status Listener
   useEffect(() => {
     // We use the helper to set up the window.onUsbStatus listener
@@ -62,22 +70,45 @@ export default function Sidebar() {
 
 
   const handleSignOut = () => {
-    apiService.logout();
-    localStorage.removeItem('localClinic_entryId');
-    localStorage.removeItem('doctor');
-    localStorage.removeItem('doc_token');
-    router.push("/sign-in");
+    if (isDoctor) {
+      // Doctor logout — open reason modal in consultation/page.tsx
+      // Actual token removal happens in confirmLogout() after reason is selected
+      window.dispatchEvent(new CustomEvent('doctor-logout-requested'));
+      setIsOpen(false);
+    } else {
+      // Staff logout — only clear staff tokens, never touch doc_token
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('localClinic_entryId');
+      router.push("/sign-in");
+    }
   };
 
-  const handleRouteChange = (path: string) => {
+  const handleRouteChange = (path: string, name?: string) => {
+    if (isDoctor && name === 'Profile') {
+      window.dispatchEvent(new CustomEvent('doctor-show-profile'));
+      setActiveTab('/dashboard/consultation/profile');
+      setIsOpen(false);
+      return;
+    }
+    if (isDoctor && name === 'Consultation') {
+      window.dispatchEvent(new CustomEvent('doctor-show-dashboard'));
+      setActiveTab('/dashboard/consultation');
+      setIsOpen(false);
+      return;
+    }
     setActiveTab(path);
     router.push(path);
-    setIsOpen(false); // close sidebar on mobile after navigation
+    setIsOpen(false);
   };
 
   useEffect(() => {
-    setActiveTab(pathname);
-  }, [pathname]);
+    if (isDoctor) {
+      setActiveTab('/dashboard/consultation');
+    } else {
+      setActiveTab(pathname);
+    }
+  }, [pathname, isDoctor]);
 
   return (
     <>
@@ -126,11 +157,13 @@ export default function Sidebar() {
         {/* ── Nav Items ── */}
         <nav className="flex-1 space-y-3">
           {menuItems.map((item) => {
-            const isActive = pathname.startsWith(item.path);
+            const isActive = isDoctor
+              ? activeTab === item.path
+              : pathname.startsWith(item.path);
             return (
               <button
-                key={item.path}
-                onClick={() => handleRouteChange(item.path)}
+                key={item.name}
+                onClick={() => handleRouteChange(item.path, item.name)}
                 title={item.name}
                 className={`w-full group flex cursor-pointer items-center justify-between gap-3 p-3 rounded-xl font-semibold transition-all duration-200 ${isActive
                   ? "bg-[#0297d6] text-white scale-[1.02]"

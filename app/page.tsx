@@ -1,3 +1,4 @@
+//app/page.tsx
 "use client"; // Mandatory: You cannot check localStorage on the server
 
 import { useEffect } from "react";
@@ -8,13 +9,24 @@ export default function Home() {
 
   useEffect(() => {
     // Logic: Check the ID badge (token)
-    const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
+    // const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
 
-    if (token) {
-      // Logic: User is already logged in, send them to work
+    // if (token) {
+    //   // Logic: User is already logged in, send them to work
+    //   router.replace("/dashboard/demographic");
+    // } else {
+    //   // Logic: No session found, send them to the entry gate
+    //   router.replace("/sign-in");
+    // }
+
+    const staffToken = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
+    const docToken   = typeof window !== 'undefined' ? localStorage.getItem("doc_token") : null;
+
+    if (docToken) {
+      router.replace("/dashboard/consultation");
+    } else if (staffToken) {
       router.replace("/dashboard/demographic");
     } else {
-      // Logic: No session found, send them to the entry gate
       router.replace("/sign-in");
     }
   }, [router]);

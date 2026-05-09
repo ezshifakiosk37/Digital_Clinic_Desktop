@@ -35,14 +35,35 @@ export const apiService = {
 
         const data = await handleResponse(response);
 
-        if (data.token) {
-            localStorage.setItem('token', data.token);
-            if (data.user) {
-                localStorage.setItem('user', JSON.stringify(data.user));
-            }
+        if (data.role === 'doctor') {
+            // Doctor login — store doc_token and doctor profile
+            if (data.doc_token) localStorage.setItem('doc_token', data.doc_token);
+            if (data.doctor) localStorage.setItem('doctor', JSON.stringify(data.doctor));
+        } else {
+            // Staff login — store token and user
+            if (data.token) localStorage.setItem('token', data.token);
+            if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
         }
         return data;
     },
+
+    // login: async (credentials: Record<string, any>) => {
+    //     const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    //         method: 'POST',
+    //         headers: { 'Content-Type': 'application/json' },
+    //         body: JSON.stringify(credentials),
+    //     });
+
+    //     const data = await handleResponse(response);
+
+    //     if (data.token) {
+    //         localStorage.setItem('token', data.token);
+    //         if (data.user) {
+    //             localStorage.setItem('user', JSON.stringify(data.user));
+    //         }
+    //     }
+    //     return data;
+    // },
 
     logout: () => {
         localStorage.removeItem('token');
@@ -230,13 +251,17 @@ export const apiService = {
         const url = doctorId
             ? `${API_BASE_URL}/api/patients/today-queue?doctorId=${doctorId}`
             : `${API_BASE_URL}/api/patients/today-queue`;
+        // Use whichever token is available (staff or doctor)
+        const token = localStorage.getItem('token') || localStorage.getItem('doc_token');
         const response = await fetch(url, {
             method: 'GET',
-            headers: getDocHeaders(),
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
         });
         return handleResponse(response);
     },
-
     savePrescription: async (payload: any) => {
         const response = await fetch(`${API_BASE_URL}/api/patients/save-prescription`, {
             method: 'POST',
@@ -349,7 +374,7 @@ export const apiService = {
         return handleResponse(res);
     },
 
-        getAllDoctors: async () => {
+    getAllDoctors: async () => {
         const response = await fetch(`${API_BASE_URL}/api/doctors/all`, {
             method: 'GET',
             headers: getHeaders(),
