@@ -57,7 +57,7 @@ const VitalsPage = () => {
   const [vitalsError, setVitalsError] = useState(false);
   const [symptomsError, setSymptomsError] = useState(false);
   const [vitalsSaved, setVitalsSaved] = useState(false);
-  const [patientType, setPatientType] = useState<'Walk-in' | 'Online Consultation'>('Walk-in');
+  // const [patientType, setPatientType] = useState<'Walk-in' | 'Online Consultation'>('Walk-in');
   const [vitalsQueue, setVitalsQueue] = useState<any[]>([]);
   const [loadingQueue, setLoadingQueue] = useState(false);
   const [vitalsSearch, setVitalsSearch] = useState("");
@@ -184,7 +184,7 @@ const VitalsPage = () => {
       symptoms: []
     });
     setStep(1);
-    setPatientType('Walk-in');
+    // setPatientType('Walk-in');
     setVitalsSaved(false);
     setVitalsId('');
     setVitalsQueue(prev => prev.filter(p => p.id !== patient.id));
@@ -217,7 +217,7 @@ const VitalsPage = () => {
       result = await apiService.saveVitals(patientId, {
         ...vitals,
         bmi: bmi?.value ?? null,
-        patientType,
+        patientType: 'walk-in',
       });
 
       if (result.success) {
@@ -330,7 +330,7 @@ const VitalsPage = () => {
         setHistorySearchPhone("");
 
         setStep(1);
-        setPatientType('Walk-in');
+        // setPatientType('Walk-in');
         setVitalsSaved(false);
         setVitalsId('');
       }
@@ -659,7 +659,7 @@ const VitalsPage = () => {
             {/* ── STEP 2: SYMPTOMS + CONSULT TYPE + SAVE ── */}
             {step === 2 && (
               <>
-                {/* Consultation Type Selector */}
+                {/* Consultation Type Selector
                 <div className="bg-white p-4 rounded-2xl shadow-lg shadow-black/10 border border-slate-100 mb-6">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Consultation Type</p>
                   <div className="flex gap-3">
@@ -676,7 +676,7 @@ const VitalsPage = () => {
                       </button>
                     ))}
                   </div>
-                </div>
+                </div> */}
 
                 {/* Symptoms */}
                 <div className="mb-6">

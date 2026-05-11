@@ -35,14 +35,35 @@ export const apiService = {
 
         const data = await handleResponse(response);
 
-        if (data.token) {
-            localStorage.setItem('token', data.token);
-            if (data.user) {
-                localStorage.setItem('user', JSON.stringify(data.user));
-            }
+        if (data.role === 'doctor') {
+            // Doctor login — store doc_token and doctor profile
+            if (data.doc_token) localStorage.setItem('doc_token', data.doc_token);
+            if (data.doctor) localStorage.setItem('doctor', JSON.stringify(data.doctor));
+        } else {
+            // Staff login — store token and user
+            if (data.token) localStorage.setItem('token', data.token);
+            if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
         }
         return data;
     },
+
+    // login: async (credentials: Record<string, any>) => {
+    //     const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    //         method: 'POST',
+    //         headers: { 'Content-Type': 'application/json' },
+    //         body: JSON.stringify(credentials),
+    //     });
+
+    //     const data = await handleResponse(response);
+
+    //     if (data.token) {
+    //         localStorage.setItem('token', data.token);
+    //         if (data.user) {
+    //             localStorage.setItem('user', JSON.stringify(data.user));
+    //         }
+    //     }
+    //     return data;
+    // },
 
     logout: () => {
         localStorage.removeItem('token');
@@ -86,9 +107,13 @@ export const apiService = {
     },
 
     verifyToken: async (token: string) => {
+        const authToken = localStorage.getItem('token') || localStorage.getItem('doc_token');
         const response = await fetch(`${API_BASE_URL}/api/patients/verify-token/${token}`, {
             method: 'GET',
-            headers: getHeaders(),
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`,
+            },
         });
         return handleResponse(response);
     },
@@ -227,22 +252,36 @@ export const apiService = {
     },
 
     // ── Dashboard Helpers ──
-    getTodayStats: async () => {
-        const response = await fetch(`${API_BASE_URL}/api/patients/today-stats`, {
+    getTodayStats: async (doctorId?: string) => {
+        const url = doctorId
+            ? `${API_BASE_URL}/api/patients/today-stats?doctorId=${doctorId}`
+            : `${API_BASE_URL}/api/patients/today-stats`;
+        const response = await fetch(url, {
             method: 'GET',
             headers: getDocHeaders(),
         });
         return handleResponse(response);
     },
 
-    getTodayQueue: async () => {
-        const response = await fetch(`${API_BASE_URL}/api/patients/today-queue`, {
+    getTodayQueue: async (doctorId?: string) => {
+        const url = doctorId
+            ? `${API_BASE_URL}/api/patients/today-queue?doctorId=${doctorId}`
+            : `${API_BASE_URL}/api/patients/today-queue`;
+        // Use whichever token is available (staff or doctor)
+        const token = localStorage.getItem('token') || localStorage.getItem('doc_token');
+        const response = await fetch(url, {
             method: 'GET',
+<<<<<<< HEAD
             headers: getHeaders(),
+=======
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+>>>>>>> b66bb86d8d591b4df8293b05d517ff204fb9758c
         });
         return handleResponse(response);
     },
-
     savePrescription: async (payload: any) => {
         const response = await fetch(`${API_BASE_URL}/api/patients/save-prescription`, {
             method: 'POST',
@@ -330,11 +369,9 @@ export const apiService = {
         return handleResponse(response);
     },
 
-    getAllPrescription: async (token: string) => {
-        if (!token) throw new Error("Token is required");
-
+    getAllPrescription: async () => {
         const response = await fetch(
-            `${API_BASE_URL}/api/patients/get-all-prescriptions-today?token=${encodeURIComponent(token)}`,
+            `${API_BASE_URL}/api/patients/get-all-prescriptions-today`,
             {
                 method: 'GET',
                 headers: getHeaders(),
@@ -343,7 +380,6 @@ export const apiService = {
 
         return handleResponse(response);
     },
-
     getLatestVitals: async (patientId: string, token: string) => {
         const res = await fetch(
             `${API_BASE_URL}/api/patients/latest-vitals/${patientId}/${token}`,
@@ -354,14 +390,21 @@ export const apiService = {
         );
         return handleResponse(res);
     },
+<<<<<<< HEAD
     getAssignedDoctor: async (kioskId: string) => {
         const response = await fetch(`${API_BASE_URL}/api/doctors/assigned-doctor/${kioskId}`, {
+=======
+
+    getAllDoctors: async () => {
+        const response = await fetch(`${API_BASE_URL}/api/doctors/all`, {
+>>>>>>> b66bb86d8d591b4df8293b05d517ff204fb9758c
             method: 'GET',
             headers: getHeaders(),
         });
         return handleResponse(response);
     },
 
+<<<<<<< HEAD
     getPatientByVitalsId: async (vitalsId: string) => {
         const response = await fetch(`${API_BASE_URL}/api/patients/patient-by-vitals/${vitalsId}`, {
             method: 'GET',
@@ -369,4 +412,6 @@ export const apiService = {
         });
         return handleResponse(response);
     },
+=======
+>>>>>>> b66bb86d8d591b4df8293b05d517ff204fb9758c
 };
