@@ -353,11 +353,9 @@ export const apiService = {
         return handleResponse(response);
     },
 
-    getAllPrescription: async (token: string) => {
-        if (!token) throw new Error("Token is required");
-
+    getAllPrescription: async () => {
         const response = await fetch(
-            `${API_BASE_URL}/api/patients/get-all-prescriptions-today?token=${encodeURIComponent(token)}`,
+            `${API_BASE_URL}/api/patients/get-all-prescriptions-today`,
             {
                 method: 'GET',
                 headers: getHeaders(),
@@ -366,7 +364,6 @@ export const apiService = {
 
         return handleResponse(response);
     },
-
     getLatestVitals: async (patientId: string, token: string) => {
         const res = await fetch(
             `${API_BASE_URL}/api/patients/latest-vitals/${patientId}/${token}`,

@@ -17,18 +17,21 @@ const Page = () => {
     const [isPrinting, setIsPrinting] = useState(false);
     const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
     const [isOpenPrescriptionSend, setIsOpenPrescriptionSend] = useState(false);
+    const [loadingQueue, setLoadingQueue] = useState(false);
+
+    const loadQueue = async () => {
+        setLoadingQueue(true);
+        try {
+            const res = await apiService.getAllPrescription();
+            setQueue(res.data || []);
+        } catch (err) {
+            console.error("Failed to load prescriptions", err);
+        } finally {
+            setLoadingQueue(false);
+        }
+    };
 
     useEffect(() => {
-        const loadQueue = async () => {
-            const token = localStorage.getItem("token");
-            if (!token) return console.log("User token not found");
-            try {
-                const res = await apiService.getAllPrescription(token);
-                setQueue(res.data || []);
-            } catch (err) {
-                console.error("Failed to load prescriptions", err);
-            }
-        };
         loadQueue();
     }, []);
 
@@ -160,6 +163,15 @@ const Page = () => {
                                 className="px-4 py-2 text-sm rounded-lg bg-slate-100 hover:bg-red-100 text-slate-600"
                             >
                                 Clear
+                            </button>
+                            <button
+                                onClick={loadQueue}
+                                disabled={loadingQueue}
+                                className="px-4 py-2 text-sm rounded-lg bg-[#0297d6] hover:bg-[#0286c2] disabled:opacity-50 text-white font-bold flex items-center gap-2"
+                            >
+                                {loadingQueue
+                                    ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />Loading</>
+                                    : 'Refresh'}
                             </button>
                         </div>
                     </div>
