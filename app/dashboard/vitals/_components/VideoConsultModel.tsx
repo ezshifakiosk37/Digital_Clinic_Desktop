@@ -40,19 +40,26 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId }: VideoConsultMod
         const storedKioskId = userObj.id;
 
         const fetchAssignedDoctor = async () => {
-          setLoadingDoctor(true);
-          setError(null);
-          try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/doctors/assigned-doctor/${storedKioskId}`);
-            const data = await res.json();
-            if (data.success) setDoctorId(data.doctorId);
-            else setError(data.error || "No doctor assigned");
-          } catch (err) {
-            setError("Connection failed");
-          } finally {
-            setLoadingDoctor(false);
-          }
-        };
+              setLoadingDoctor(true);
+              setError(null);
+              try {
+                const token = localStorage.getItem('token') || localStorage.getItem('doc_token');
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/doctors/assigned-doctor/${storedKioskId}`, {
+                  method: 'GET',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                  },
+                });
+                const data = await res.json();
+                if (data.success) setDoctorId(data.doctorId);
+                else setError(data.error || "No doctor assigned");
+              } catch (err) {
+                setError("Connection failed");
+              } finally {
+                setLoadingDoctor(false);
+              }
+            };
         fetchAssignedDoctor();
       } catch (e) { setError("Invalid session data."); }
     } else {
