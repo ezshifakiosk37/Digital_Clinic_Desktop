@@ -96,27 +96,8 @@ const OnlineConsultPage = () => {
 
   const onlineDocotrs = doctors.filter(d => d.doctorStatus === 'online')
 
-  const handleConsultClick = async (patient: PatientResult) => {
+  const handleConsultClick = (patient: PatientResult) => {
     if (!patient.vitalsId) return
-    try {
-      // Check if this specific patient+token already has a prescription today
-      const res = await apiService.getAllPrescription(patient.token)
-      if (res.success && res.data && res.data.length > 0) {
-        const alreadyConsulted = res.data.some(
-          (rx: any) => rx.token === patient.token && rx.patient_id === patient.id
-        )
-        if (alreadyConsulted) {
-          showToast(`Token #${patient.token} has already been consulted today.`)
-          return
-        }
-      }
-    } catch (err: any) {
-      // If error is not "not found", just proceed
-      const msg = err.message?.toLowerCase() || ''
-      if (!msg.includes('not found') && !msg.includes('no prescription')) {
-        console.error('Prescription check failed', err)
-      }
-    }
     setPickerPatient(patient)
   }
 
