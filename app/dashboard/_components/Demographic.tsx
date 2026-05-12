@@ -110,14 +110,24 @@ const DemographicPage: React.FC = () => {
       if (data && data.fields) {
         // Logic: Ensure backend fields map correctly to form keys
         // If backend returns 'stAddress', the input with value={form.stAddress} will now work
+        const clean = (val: any) => (!val || val === "null") ? "" : val;
+
         setForm({
           ...data.fields,
-          // Provide defaults for UI components that might break on null
-          phoneNumber: data.fields.phoneNumber || form.phoneNumber,
-          countryCode: data.fields.countryCode || form.countryCode,
-          country: data.fields.country || '',
-          province: data.fields.province || '',
-          city: data.fields.city || '',
+          phoneNumber: clean(data.fields.phoneNumber) || form.phoneNumber,
+          countryCode: clean(data.fields.countryCode) || form.countryCode,
+          firstName: clean(data.fields.firstName),
+          lastName: clean(data.fields.lastName),
+          father_husband: clean(data.fields.father_husband),
+          email: clean(data.fields.email),
+          cnic: clean(data.fields.cnic),
+          dob: clean(data.fields.dob),
+          age: clean(data.fields.age),
+          languages: clean(data.fields.languages),
+          stAddress: clean(data.fields.stAddress),
+          country: clean(data.fields.country),
+          province: clean(data.fields.province),
+          city: clean(data.fields.city),
           medicalHistory: Array.isArray(data.fields.medicalHistory) ? data.fields.medicalHistory : [],
           medicineHistory: Array.isArray(data.fields.medicineHistory) ? data.fields.medicineHistory : [],
           allergies: Array.isArray(data.fields.allergies) ? data.fields.allergies : [],
