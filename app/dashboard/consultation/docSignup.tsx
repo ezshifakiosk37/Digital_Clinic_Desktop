@@ -159,7 +159,7 @@ const DocSignup: React.FC<DocSignupProps> = ({ setActivePage }) => {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <input type="tel" placeholder="Phone Number" value={phone} onChange={e => setPhone(e.target.value)}
+              <input type="tel" placeholder="Phone Number" required value={phone} onChange={e => setPhone(e.target.value)}
                 className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none" />
               <select value={gender} onChange={e => setGender(e.target.value)}
                 className="px-3 py-2.5 bg-slate-50 rounded-2xl font-semibold text-md lg:text-sm border-2 border-transparent focus:border-[#0297d6] outline-none text-slate-500"

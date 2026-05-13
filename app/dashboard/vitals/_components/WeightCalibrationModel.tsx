@@ -18,7 +18,7 @@ const WeightCalibrationModal: React.FC<WeightCalibrationModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-100 p-4">
       <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-100">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-gray-800">Set Calibration Weight</h2>

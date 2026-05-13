@@ -15,19 +15,27 @@ import { apiService } from '@/app/_utils/apiService';
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge';
 
 export default function Sidebar() {
+  const isDoctor = !!localStorage.getItem('doc_token');
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState(pathname);
   const [isOpen, setIsOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const router = useRouter();
-  const menuItems: MenuItem[] = [
+
+  const staffMenuItems: MenuItem[] = [
     { name: "Demographic", path: "/dashboard/demographic", icon: <User size={20} /> },
     { name: "Vitals", path: "/dashboard/vitals", icon: <Activity size={20} /> },
     { name: "Online Consultation", path: "/dashboard/onlineConsult", icon: <Stethoscope size={20} /> },
-    { name: "Consultation", path: "/dashboard/consultation", icon: <LayoutDashboard size={20} /> },
-    { name: "Pharmacy", path: "/dashboard/pharmacy", icon: <BriefcaseMedical  size={20} /> },
+    // { name: "Consultation", path: "/dashboard/consultation", icon: <LayoutDashboard size={20} /> },
+    { name: "Pharmacy", path: "/dashboard/pharmacy", icon: <BriefcaseMedical size={20} /> },
   ];
 
+  const doctorMenuItems: MenuItem[] = [
+    { name: "Consultation", path: "/dashboard/consultation", icon: <LayoutDashboard size={20} /> },
+    { name: "Profile", path: "/dashboard/consultation/profile", icon: <User size={20} /> },
+  ];
+
+  const menuItems = isDoctor ? doctorMenuItems : staffMenuItems;
   // 2. Initialize Hardware Status Listener
   useEffect(() => {
     // We use the helper to set up the window.onUsbStatus listener
@@ -62,22 +70,51 @@ export default function Sidebar() {
 
 
   const handleSignOut = () => {
-    apiService.logout();
-    localStorage.removeItem('localClinic_entryId');
-    localStorage.removeItem('doctor');
-    localStorage.removeItem('doc_token');
-    router.push("/sign-in");
+    if (isDoctor) {
+      // Doctor logout — open reason modal in consultation/page.tsx
+      // Actual token removal happens in confirmLogout() after reason is selected
+      window.dispatchEvent(new CustomEvent('doctor-logout-requested'));
+      setIsOpen(false);
+    } else {
+      // Staff logout — only clear staff tokens, never touch doc_token
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('localClinic_entryId');
+      router.push("/sign-in");
+    }
   };
 
-  const handleRouteChange = (path: string) => {
+  const handleRouteChange = (path: string, name?: string) => {
+    if (isDoctor && name === 'Profile') {
+      window.dispatchEvent(new CustomEvent('doctor-show-profile'));
+      setActiveTab('/dashboard/consultation/profile');
+      setIsOpen(false);
+      return;
+    }
+    if (isDoctor && name === 'Consultation') {
+      window.dispatchEvent(new CustomEvent('doctor-show-dashboard'));
+      setActiveTab('/dashboard/consultation');
+      setIsOpen(false);
+      return;
+    }
     setActiveTab(path);
     router.push(path);
-    setIsOpen(false); // close sidebar on mobile after navigation
+    setIsOpen(false);
   };
 
   useEffect(() => {
-    setActiveTab(pathname);
-  }, [pathname]);
+    if (isDoctor) {
+      setActiveTab('/dashboard/consultation');
+    } else {
+      setActiveTab(pathname);
+    }
+  }, [pathname, isDoctor]);
+
+  useEffect(() => {
+    const handleMobileToggle = () => setIsOpen(prev => !prev);
+    window.addEventListener('toggle-mobile-sidebar', handleMobileToggle);
+    return () => window.removeEventListener('toggle-mobile-sidebar', handleMobileToggle);
+  }, []);
 
   return (
     <>
@@ -92,10 +129,10 @@ export default function Sidebar() {
       {/* ── Sidebar Panel ── */}
       <aside
         className={`
-    fixed top-0 left-0 h-screen z-60 bg-white border-r border-slate-200
+    fixed top-0 left-0 h-dvh z-60 bg-white border-r border-slate-200
     shadow-xl shadow-black/15 flex flex-col
     transition-all duration-300
-    ${isOpen ? 'w-64 px-6' : 'w-16 px-2'}
+    ${isOpen ? 'w-64 px-6' : 'w-0 md:w-16 px-0 md:px-2 overflow-hidden'}
   `}
       >
         {/* ── Logo + Hamburger Row ── */}
@@ -126,11 +163,13 @@ export default function Sidebar() {
         {/* ── Nav Items ── */}
         <nav className="flex-1 space-y-3">
           {menuItems.map((item) => {
-            const isActive = pathname.startsWith(item.path);
+            const isActive = isDoctor
+              ? activeTab === item.path
+              : pathname.startsWith(item.path);
             return (
               <button
-                key={item.path}
-                onClick={() => handleRouteChange(item.path)}
+                key={item.name}
+                onClick={() => handleRouteChange(item.path, item.name)}
                 title={item.name}
                 className={`w-full group flex cursor-pointer items-center justify-between gap-3 p-3 rounded-xl font-semibold transition-all duration-200 ${isActive
                   ? "bg-[#0297d6] text-white scale-[1.02]"
@@ -176,7 +215,7 @@ export default function Sidebar() {
         <button
           onClick={onReconnectPress}
           disabled={isConnecting}
-          className={`fixed bottom-6 right-6 z-50 p-4 bg-[#0297d6] text-white rounded-full shadow-2xl transition-all duration-200 group 
+          className={`hidden md:flex fixed bottom-6 right-6 z-50 p-4 bg-[#0297d6] text-white rounded-full shadow-2xl transition-all duration-200 group 
             ${isConnecting ? 'opacity-80 cursor-wait' : 'hover:bg-[#0286c2] hover:scale-110 active:scale-95'}
           `}
           title="Reconnect to ESP32"

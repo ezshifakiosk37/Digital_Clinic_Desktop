@@ -1,218 +1,506 @@
 'use client'
-import { Activity,RefreshCw } from 'lucide-react'
-import React, { useState, useEffect } from 'react'
+import { Activity, RefreshCw, Search, X, Phone, Hash, User, ChevronDown, ChevronUp } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
 import { apiService } from '@/app/_utils/apiService'
 import { VideoConsultModel } from '../vitals/_components/VideoConsultModel'
-import { QueueItem } from '@/app/_utils/types'
+import { PatientResult, Doctor, QueueItem } from '@/app/_utils/types'
 
-
+// ── Helpers ──────────────────────────────────────────────────────────────────
 const parseSymptoms = (raw: string | null | undefined): string[] => {
-    if (!raw) return []
-    try {
-        const parsed = JSON.parse(raw)
-        if (Array.isArray(parsed)) return parsed
-    } catch { }
-    return raw.split(',').map(s => s.trim()).filter(Boolean)
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed
+  } catch { }
+  return raw.split(',').map(s => s.trim()).filter(Boolean)
 }
 
+type SearchMode = 'name' | 'token' | 'phone'
+
+// ── Component ─────────────────────────────────────────────────────────────────
 const OnlineConsultPage = () => {
-    const [queue, setQueue] = useState<QueueItem[]>([])
-    const [search, setSearch] = useState("")
-    const [expandedToken, setExpandedToken] = useState<string | null>(null)
-    const [videoVitalsId, setVideoVitalsId] = useState<string | null>(null)
-    const [selectedPatient, setSelectedPatient] = useState<QueueItem | null>(null)
-    const [refreshing, setRefreshing] = useState(false)
 
-    const loadQueue = async (showSpinner = false) => {
-        if (showSpinner) setRefreshing(true)
-        try {
-            const res = await apiService.getTodayQueue()
-            const all: QueueItem[] = res.patients ?? []
-            setQueue(all.filter(p => p.patientType === 'Online Consultation'))
-        } catch (err) {
-            console.error("Failed to load queue", err)
-        } finally {
-            if (showSpinner) setRefreshing(false)
-        }
+  // ── State ──────────────────────────────────────────────────────────────────
+  const [searchMode, setSearchMode] = useState<SearchMode>('name')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<PatientResult[]>([])
+  const [searching, setSearching] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
+  const [expandedSymptoms, setExpandedSymptoms] = useState<string | null>(null)
+  const [queue, setQueue] = useState<QueueItem[]>([])
+  const [search, setSearch] = useState("")
+  const [expandedToken, setExpandedToken] = useState<string | null>(null)
+  const [selectedPatient, setSelectedPatient] = useState<QueueItem | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [loadingDoctors, setLoadingDoctors] = useState(true)
+
+  // Doctor picker: which patient triggered it
+  const [pickerPatient, setPickerPatient] = useState<PatientResult | null>(null)
+
+  // Video consult
+  const [videoVitalsId, setVideoVitalsId] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+
+  const loadQueue = async (showSpinner = false) => {
+    if (showSpinner) setRefreshing(true)
+    try {
+      const res = await apiService.getTodayQueue()
+      const all: QueueItem[] = res.patients ?? []
+      setQueue(all.filter(p => p.patientType === 'Online Consultation'))
+    } catch (err) {
+      console.error("Failed to load queue", err)
+    } finally {
+      if (showSpinner) setRefreshing(false)
     }
+  }
 
-    useEffect(() => { loadQueue() }, [])
+  useEffect(() => { loadQueue() }, [])
 
-    const filtered = queue.filter((p) => {
-        if (!search) return true
-        const q = search.toLowerCase()
-        const name = `${p.firstName} ${p.lastName}`.toLowerCase()
+  const filtered = queue.filter((p) => {
+    if (!search) return true
+    const q = search.toLowerCase()
+    const name = `${p.firstName} ${p.lastName}`.toLowerCase()
+    const rev = `${p.lastName} ${p.firstName}`.toLowerCase()
+    return name.includes(q) || rev.includes(q) || String(p.token).includes(q)
+  })
+
+  const showToast = (msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 3500)
+  }
+
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // ── Functions ──────────────────────────────────────────────────────────────
+  const loadDoctors = async () => {
+    setLoadingDoctors(true)
+    try {
+      const data = await apiService.getAllDoctors()
+      setDoctors(data.doctors || [])
+    } catch (err) {
+      console.error('Failed to load doctors', err)
+    } finally {
+      setLoadingDoctors(false)
+    }
+  }
+
+  console.log("Selected patient: " + selectedPatient)
+
+  const handleSearch = async () => {
+    const q = searchQuery.trim()
+    if (!q) return
+    setSearching(true)
+    setHasSearched(true)
+    try {
+      const res = await apiService.getTodayQueue()
+      const allPatients: PatientResult[] = res.patients ?? []
+      const lower = q.toLowerCase()
+      const filtered = allPatients.filter(p => {
+        if (searchMode === 'token') return String(p.token).toLowerCase().includes(lower)
+        if (searchMode === 'phone') return String(p.phoneNumber || '').toLowerCase().includes(lower)
+        const full = `${p.firstName} ${p.lastName}`.toLowerCase()
         const rev = `${p.lastName} ${p.firstName}`.toLowerCase()
-        return name.includes(q) || rev.includes(q) || String(p.token).includes(q)
-    })
+        return full.includes(lower) || rev.includes(lower)
+      })
+      setSearchResults(filtered)
+    } catch (err) {
+      console.error('Search failed', err)
+      setSearchResults([])
+    } finally {
+      setSearching(false)
+    }
+  }
 
-    return (
-        <main className="min-h-dvh bg-slate-50">
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSearch()
+  }
 
-            {/* Header */}
-            <div className="w-full bg-[#0297d6] py-6 px-4 text-white">
-                <div className="max-w-5xl mx-auto flex items-center gap-3">
-                    <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
-                        <Activity className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">EZShifa</h1>
-                        <span className="opacity-50 text-sm">|</span>
-                        <p className="opacity-80 text-md truncate">Online Consultation Queue</p>
-                    </div>
-                </div>
+  const clearSearch = () => {
+    setSearchQuery('')
+    setSearchResults([])
+    setHasSearched(false)
+    inputRef.current?.focus()
+  }
+
+  const onlineDocotrs = doctors.filter(d => d.doctorStatus === 'online')
+
+  const handleConsultClick = (patient: PatientResult) => {
+    console.log("Vitals id: "+patient.vitalsId)
+    if (!patient.vitalsId) return
+    setPickerPatient(patient)
+  }
+
+  const handleDoctorPick = (doctor: Doctor) => {
+    console.log("pikerPatient Vitals id: "+pickerPatient?.vitalsId)
+    if (!pickerPatient?.vitalsId) return
+    setPickerPatient(null)
+    setVideoVitalsId(pickerPatient.vitalsId)
+  }
+
+  const searchModeMeta: Record<SearchMode, { icon: React.ReactNode; placeholder: string }> = {
+    name: { icon: <User size={14} />, placeholder: 'e.g. Saad Kamal or just Saad' },
+    token: { icon: <Hash size={14} />, placeholder: 'e.g. 12' },
+    phone: { icon: <Phone size={14} />, placeholder: 'e.g. 03001234567' },
+  }
+
+  useEffect(() => { loadDoctors() }, [])
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  return (
+    <main className="min-h-screen bg-slate-50">
+
+      {/* Header */}
+      <div className="w-full bg-[#0297d6] py-5 px-4 text-white shadow-md">
+        <div className="max-w-6xl mx-auto flex items-center gap-3">
+          <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
+            <Activity className="w-5 h-5 text-white" />
+          </div>
+          <h1 className="text-xl font-bold tracking-tight">EZShifa</h1>
+          <span className="opacity-40 text-sm">|</span>
+          <p className="opacity-80 text-sm">Online Consultation</p>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+
+        {/* ── Patient Search Card ─────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-100">
+            <h2 className="font-bold text-lg text-slate-800">Find Patient for Today</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Search among today's patients whose vitals have been recorded</p>
+          </div>
+
+          <div className="px-6 py-5 space-y-4">
+
+            {/* Mode tabs */}
+            <div className="flex gap-2">
+              {(['name', 'token', 'phone'] as SearchMode[]).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => { setSearchMode(mode); setSearchQuery(''); setSearchResults([]); setHasSearched(false) }}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${searchMode === mode
+                    ? 'bg-[#0297d6] text-white border-[#0297d6]'
+                    : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-[#0297d6]/40'
+                    }`}
+                >
+                  {searchModeMeta[mode].icon}
+                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </button>
+              ))}
             </div>
 
-            <div className="max-w-6xl mx-auto px-4 py-8">
-                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-x-hidden overflow-y-auto">
+            {/* Search input */}
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={searchModeMeta[searchMode].placeholder}
+                  className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#0297d6] focus:ring-2 focus:ring-[#0297d6]/10"
+                />
+                {searchQuery && (
+                  <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={handleSearch}
+                disabled={searching || !searchQuery.trim()}
+                className="px-5 py-2.5 bg-[#0297d6] hover:bg-[#0286c2] disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors flex items-center gap-2"
+              >
+                {searching
+                  ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />Searching</>
+                  : <><Search size={14} />Search</>}
+              </button>
+            </div>
 
-                    {/* Table header bar */}
-                    <div className="px-8 py-4 border-b flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-                        <h2 className="font-bold text-xl text-slate-800">ONLINE CONSULTATION QUEUE</h2>
-                        <div className="flex gap-3 w-full md:w-auto">
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                placeholder="Search by token or name..."
-                                className="border border-slate-200 rounded-lg px-4 py-2 text-sm w-full md:w-64 focus:outline-none focus:border-[#0297d6]"
-                            />
-                            <button
-                                onClick={() => setSearch("")}
-                                className="px-4 py-2 text-sm rounded-lg bg-slate-100 hover:bg-red-100 text-slate-600"
-                            >
-                                Clear
-                            </button>
-                            <button
-                                onClick={() => loadQueue(true)}
-                                disabled={refreshing}
-                                title="Refresh queue"
-                                className="px-4 py-2 text-sm rounded-lg bg-[#0297d6] hover:bg-[#0288c2] disabled:opacity-60 text-white font-bold flex items-center gap-1.5"
-                            >
-                                <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-                                {refreshing ? 'Refreshing...' : 'Refresh'}
-                            </button>
+            {/* Results table */}
+            {hasSearched && (
+              <div className="mt-2">
+                {searchResults.length === 0 ? (
+                  <div className="py-10 text-center text-slate-400 text-sm">
+                    No patients found for today matching{' '}
+                    <span className="font-semibold text-slate-600">"{searchQuery}"</span>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-slate-400 font-semibold mb-3">
+                      {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
+                    </p>
+                    <div className="rounded-xl border border-slate-100 overflow-hidden">
+                      <table className="w-full text-left">
+                        <thead className="bg-slate-50 border-b border-slate-100">
+                          <tr className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                            <th className="px-4 py-3">Token</th>
+                            <th className="px-4 py-3">Name</th>
+                            <th className="px-4 py-3 hidden sm:table-cell">Phone</th>
+                            <th className="px-4 py-3">Symptoms</th>
+                            <th className="px-4 py-3 text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {searchResults.map(p => {
+                            const symptoms = parseSymptoms(p.symptoms)
+                            const isExpanded = expandedSymptoms === p.id
+                            return (
+                              <tr key={`${p.id}-${p.token}`} className="hover:bg-slate-50/60 transition-colors">
+
+                                {/* Token */}
+                                <td className="px-4 py-4">
+                                  <span className="bg-[#0297d6]/10 text-[#0297d6] font-black text-xs px-2.5 py-1 rounded-lg">
+                                    #{p.token}
+                                  </span>
+                                </td>
+
+                                {/* Name */}
+                                <td className="px-4 py-4">
+                                  <p className="font-bold text-slate-800 text-sm">{p.firstName} {p.lastName}</p>
+                                </td>
+
+                                {/* Phone */}
+                                <td className="px-4 py-4 hidden sm:table-cell">
+                                  <p className="text-sm text-slate-500">{p.phoneNumber || '—'}</p>
+                                </td>
+
+                                {/* Symptoms */}
+                                <td className="px-4 py-4 max-w-xs">
+                                  {symptoms.length === 0 ? (
+                                    <span className="text-slate-300 text-sm">—</span>
+                                  ) : (
+                                    <div>
+                                      <div className="flex flex-wrap gap-1">
+                                        {(isExpanded ? symptoms : symptoms.slice(0, 2)).map((s, i) => (
+                                          <span key={i} className="text-[10px] font-semibold bg-[#0297d6]/10 text-[#0297d6] px-2 py-0.5 rounded-full">
+                                            {s.startsWith('Other:') ? `Other: ${s.slice(6)}` : s}
+                                          </span>
+                                        ))}
+                                        {symptoms.length > 2 && (
+                                          <button
+                                            onClick={() => setExpandedSymptoms(isExpanded ? null : p.id)}
+                                            className="text-[10px] font-bold text-slate-400 hover:text-[#0297d6] flex items-center gap-0.5"
+                                          >
+                                            {isExpanded
+                                              ? <><ChevronUp size={11} />less</>
+                                              : <><ChevronDown size={11} />+{symptoms.length - 2} more</>}
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </td>
+
+                                {/* Action */}
+                                <td className="px-4 py-4 text-right">
+                                  <button
+                                    onClick={() => handleConsultClick(p)}
+                                    disabled={!p.vitalsId}
+                                    title={!p.vitalsId ? 'Vitals not recorded' : 'Select a doctor to consult'}
+                                    className={`text-sm font-bold px-4 py-2 rounded-xl transition-colors ${p.vitalsId
+                                      ? 'bg-[#0297d6] hover:bg-[#0286c2] text-white'
+                                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                      }`}
+                                  >
+                                    💻 Consult
+                                  </button>
+                                </td>
+
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Available Doctors Card ──────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h2 className="font-bold text-lg text-slate-800">Online Doctors</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {loadingDoctors ? 'Loading...' : `${onlineDocotrs.length} doctor${onlineDocotrs.length !== 1 ? 's' : ''} currently online`}
+              </p>
+            </div>
+            <button
+              onClick={loadDoctors}
+              disabled={loadingDoctors}
+              className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:border-[#0297d6] hover:text-[#0297d6] transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={13} className={loadingDoctors ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          </div>
+
+          <div className="p-6">
+            {loadingDoctors ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="rounded-2xl border border-slate-100 overflow-hidden animate-pulse">
+                    <div className="h-32 bg-slate-100" />
+                    <div className="p-4 space-y-2">
+                      <div className="h-4 bg-slate-100 rounded w-3/4" />
+                      <div className="h-3 bg-slate-50 rounded w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : onlineDocotrs.length === 0 ? (
+              <div className="py-12 text-center text-slate-400 text-sm">
+                No doctors are currently online
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {onlineDocotrs.map(doc => (
+                  <DoctorCard key={doc.id} doctor={doc} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Doctor Picker Modal ─────────────────────────────────────────────── */}
+      {pickerPatient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+
+            {/* Modal header */}
+            <div className="px-6 py-5 border-b border-slate-100 flex items-start justify-between">
+              <div>
+                <h3 className="font-bold text-slate-800 text-base">Select a Doctor</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Consulting for{' '}
+                  <span className="font-semibold text-slate-600">
+                    {pickerPatient.firstName} {pickerPatient.lastName}
+                  </span>
+                  {' '}— Token <span className="text-[#0297d6] font-black">#{pickerPatient.token}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setPickerPatient(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors mt-0.5"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Doctor grid inside modal */}
+            <div className="p-6">
+              {onlineDocotrs.length === 0 ? (
+                <div className="py-8 text-center text-slate-400 text-sm">
+                  No doctors are currently online
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {onlineDocotrs.map(doc => {
+                    const initials = `${doc.firstName[0]}${doc.lastName[0]}`.toUpperCase()
+                    const specs = Array.isArray(doc.specializations)
+                      ? doc.specializations.slice(0, 2).join(' • ')
+                      : typeof doc.specializations === 'string'
+                        ? doc.specializations : ''
+                    return (
+                      <button
+                        key={doc.id}
+                        onClick={() => handleDoctorPick(doc)}
+                        className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 hover:border-[#0297d6]/40 hover:bg-[#0297d6]/5 hover:shadow-sm transition-all text-left group"
+                      >
+                        {/* Photo / initials */}
+                        <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#0297d6]/10 flex items-center justify-center shrink-0">
+                          {doc.photo
+                            ? <img src={doc.photo} alt={doc.firstName} className="w-full h-full object-cover" />
+                            : <span className="text-lg font-black text-[#0297d6]/50">{initials}</span>}
                         </div>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-slate-50">
-                                <tr className="text-sm text-slate-500 font-semibold">
-                                    <th className="px-6 py-4 text-left">SR. NO</th>
-                                    <th className="px-6 py-4 text-left">TOKEN</th>
-                                    <th className="px-6 py-4 text-left">NAME</th>
-                                    <th className="px-6 py-4 text-left">PHONE</th>
-                                    <th className="px-6 py-4 text-left">SYMPTOMS</th>
-                                    <th className="px-6 py-4 text-right">ACTIONS</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {filtered.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} className="px-8 py-12 text-center text-slate-400 text-sm">
-                                            No online consultation patients found
-                                            {search && ` matching "${search}"`}
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filtered.map((p, i) => {
-                                        const symptoms = parseSymptoms(p.symptoms)
-                                        const isExpanded = expandedToken === p.token
-
-                                        return (
-                                            <React.Fragment key={p.id}>
-                                                <tr className="hover:bg-slate-50 transition-colors">
-
-                                                    <td className="px-6 py-5 text-slate-600 font-medium">{i + 1}</td>
-
-                                                    <td className="px-6 py-5 font-bold text-[#0297d6]">#{p.token}</td>
-
-                                                    <td className="px-6 py-5 text-slate-700 font-medium">
-                                                        {p.firstName} {p.lastName}
-                                                    </td>
-
-                                                    <td className="px-6 py-5 text-slate-700">
-                                                        {p.phoneNumber ?? '—'}
-                                                    </td>
-
-                                                    {/* Symptoms */}
-                                                    <td className="px-6 py-5">
-                                                        {symptoms.length > 0 ? (
-                                                            <div className="flex flex-wrap gap-1">
-                                                                {symptoms.slice(0, 2).map((s, idx) => (
-                                                                    <span key={idx} className="text-xs font-semibold bg-[#0297d6]/10 text-[#0297d6] px-2 py-0.5 rounded-full">
-                                                                        {s.startsWith('Other:') ? `Other: ${s.slice(6)}` : s}
-                                                                    </span>
-                                                                ))}
-                                                                {symptoms.length > 2 && (
-                                                                    <button
-                                                                        onClick={() => setExpandedToken(isExpanded ? null : p.token)}
-                                                                        className="text-xs font-semibold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full hover:bg-slate-200"
-                                                                    >
-                                                                        +{symptoms.length - 2} more
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-slate-400 text-sm">—</span>
-                                                        )}
-                                                    </td>
-
-                                                    {/* Actions */}
-                                                    <td className="px-6 py-5 text-right">
-                                                        <div className="flex gap-2 justify-end">
-                                                            <button
-                                                                onClick={() => p.vitalsId ? setSelectedPatient(p) : null}
-                                                                disabled={!p.vitalsId}
-                                                                title={!p.vitalsId ? "Add vitals first" : "Start online consult"}
-                                                                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-colors
-                                                                    ${p.vitalsId
-                                                                        ? 'bg-[#0297d6] hover:bg-[#0288c2] text-white'
-                                                                        : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                                                    }`}
-                                                            >
-                                                                💻 Consult
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-
-                                                {/* Expanded symptoms row */}
-                                                {isExpanded && symptoms.length > 2 && (
-                                                    <tr>
-                                                        <td colSpan={6} className="px-6 py-4 bg-slate-50">
-                                                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">All Symptoms</p>
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {symptoms.map((s, idx) => (
-                                                                    <span key={idx} className="text-xs font-semibold bg-[#0297d6]/10 text-[#0297d6] px-3 py-1 rounded-full border border-[#0297d6]/20">
-                                                                        {s.startsWith('Other:') ? `Other: ${s.slice(6)}` : s}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </React.Fragment>
-                                        )
-                                    })
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-slate-800 text-sm truncate">
+                            {doc.title} {doc.firstName} {doc.lastName}
+                          </p>
+                          {specs && <p className="text-[11px] text-[#0297d6] font-semibold mt-0.5 truncate">{specs}</p>}
+                          <p className="text-[10px] text-slate-400 mt-1">{doc.experience} yr{doc.experience !== 1 ? 's' : ''} experience</p>
+                        </div>
+                        <span className="text-xs font-bold text-[#0297d6] opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          Select →
+                        </span>
+                      </button>
+                    )
+                  })}
                 </div>
+              )}
             </div>
+          </div>
+        </div>
+      )}
 
-            {/* Reuse existing VideoConsultModel */}
-            <VideoConsultModel
-                isOpen={!!selectedPatient}
-                onClose={() => setSelectedPatient(null)}
-                vitalsId={selectedPatient?.vitalsId ?? null}
-                patientId={selectedPatient?.id ?? null}
-                patientToken={selectedPatient?.token ?? null}
-            />
-        </main>
-    )
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 `z-9999` bg-red-600 text-white text-sm font-bold px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-2 animate-fade-in">
+          <span>⚠</span> {toast}
+        </div>
+      )}
+
+      {/* Video consult modal */}
+      <VideoConsultModel
+        isOpen={!!videoVitalsId}
+        onClose={() => setSelectedPatient(null)}
+        vitalsId={videoVitalsId}
+        patientId={selectedPatient?.id ?? null}
+        patientToken={selectedPatient?.token ?? null}
+      />
+    </main>
+  )
+}
+
+// ── Doctor Card (display only, no action) ────────────────────────────────────
+const DoctorCard = ({ doctor }: { doctor: Doctor }) => {
+  const initials = `${doctor.firstName[0]}${doctor.lastName[0]}`.toUpperCase()
+  const specs = Array.isArray(doctor.specializations)
+    ? doctor.specializations.slice(0, 2).join(' • ')
+    : typeof doctor.specializations === 'string'
+      ? doctor.specializations : ''
+
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white overflow-hidden hover:shadow-md transition-all flex flex-col">
+      {/* Banner */}
+      <div className="relative h-32 bg-linear-to-br from-[#0297d6]/10 to-[#0297d6]/20 flex items-center justify-center">
+        {doctor.photo
+          ? <img src={doctor.photo} alt={doctor.firstName} className="w-full h-full object-cover" />
+          : <span className="text-5xl font-black text-[#0297d6]/30">{initials}</span>}
+        <span className="absolute top-2.5 right-2.5 flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+          Online
+        </span>
+      </div>
+      {/* Info */}
+      <div className="p-4 flex flex-col gap-1.5 flex-1">
+        <p className="font-bold text-slate-800 text-sm leading-tight">
+          {doctor.title} {doctor.firstName} {doctor.lastName}
+        </p>
+        {specs
+          ? <p className="text-[11px] text-[#0297d6] font-semibold">{specs}</p>
+          : <p className="text-[11px] text-slate-300 italic">No specialization</p>}
+        <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between">
+          <div>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Experience</p>
+            <p className="text-sm font-bold text-slate-700">{doctor.experience} yr{doctor.experience !== 1 ? 's' : ''}</p>
+          </div>
+          <div className="w-8 h-8 rounded-full bg-[#0297d6]/10 flex items-center justify-center text-xs font-black text-[#0297d6]">
+            {initials}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default OnlineConsultPage

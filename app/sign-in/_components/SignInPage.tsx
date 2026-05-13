@@ -1,3 +1,4 @@
+//signinpage.tsx
 "use client"
 import React, { useState } from 'react';
 import { LogIn, User, Lock, EyeOff, Eye, Loader } from 'lucide-react';
@@ -35,10 +36,21 @@ const SignInPage: React.FC = () => {
 
       if (data.success) {
         setLoading(false)
-        // Logic: Now that the token is in localStorage, 
-        // all future calls to demographics/vitals will work.
-        router.push('/dashboard/demographic');
+        if (data.role === 'doctor') {
+          router.push('/dashboard/consultation');
+        } else {
+          router.push('/dashboard/demographic');
+        }
       }
+
+      // if (data.success) {
+      //   setLoading(false)
+      //   // Logic: Now that the token is in localStorage, 
+      //   // all future calls to demographics/vitals will work.
+      //   router.push('/dashboard/demographic');
+      //}
+
+      
     } catch (error: any) {
       // Logic: apiService.handleResponse throws the actual error message from Express
       console.error('Login error:', error);

@@ -47,6 +47,7 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId, patientId, patien
           setError(null);
           try {
             // ✅ replaced raw fetch with apiService
+            const token = localStorage.getItem('token') || localStorage.getItem('doc_token');
             const data = await apiService.getAssignedDoctor(storedKioskId);
             if (data.success) setDoctorId(data.doctorId);
             else setError(data.error || "No doctor assigned");

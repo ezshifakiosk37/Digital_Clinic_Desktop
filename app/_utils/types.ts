@@ -185,3 +185,25 @@ export interface QueueItem {
   symptoms?: string | null;
   vitalsRecorded: boolean;
 }
+
+export interface PatientResult {
+  id: string
+  token: string
+  firstName: string
+  lastName: string
+  phoneNumber: string
+  symptoms: string | null
+  vitalsId: string | null
+  patientType: string
+}
+
+export interface Doctor {
+  id: string
+  title: string
+  firstName: string
+  lastName: string
+  photo: string | null
+  specializations: string[]
+  experience: number
+  doctorStatus: 'online' | 'offline'
+}
