@@ -386,7 +386,7 @@ const OnlineConsultPage = () => {
                         onClick={() => handleDoctorPick(doc)}
                         className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 hover:border-[#0297d6]/40 hover:bg-[#0297d6]/5 hover:shadow-sm transition-all text-left group"
                       >
-                        {/* Photo / initials */}
+                        {/* Photo / initial */}
                         <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#0297d6]/10 flex items-center justify-center shrink-0">
                           {doc.photo
                             ? <img src={doc.photo} alt={doc.firstName} className="w-full h-full object-cover" />

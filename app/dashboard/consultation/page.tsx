@@ -400,12 +400,6 @@ const EZShifaPortal = () => {
   };
 
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-  // ── Auth gates ──────────────────────────────────────────────────────────────
-  // if (!isLoggedIn) {
-  //   return activePage === 'login'
-  //     ? <DocSignin setActivePage={setActivePage} setIsLoggedIn={setIsLoggedIn} />
-  //     : <DocSignup setActivePage={setActivePage} />;
-  // }
   // ── Auth gate — doctor must be logged in via main sign-in ───────────────────
   if (!isLoggedIn) {
     return (
@@ -467,7 +461,7 @@ const EZShifaPortal = () => {
             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-6">
 
               {/* Queue header + tab switcher */}
-              <div className="px-3 md:px-8 py-5 border-b flex items-center justify-between flex-wrap gap-3">
+              <div className="px-3 md:px-8 py-5 flex items-center justify-between flex-wrap gap-3">
                 <h2 className="font-bold text-xl text-slate-800">CURRENT PATIENT QUEUE</h2>
                 <div className="flex bg-slate-100 rounded-xl p-1 gap-1">
                   {(['Walk-in', 'Online Consultation'] as const).map((tab) => (
