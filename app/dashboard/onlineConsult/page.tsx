@@ -451,8 +451,8 @@ const OnlineConsultPage = () => {
         isOpen={!!videoVitalsId}
         onClose={() => setVideoVitalsId(null)}
         vitalsId={videoVitalsId}
-        patientId={selectedPatient?.id ?? null}
-        patientToken={selectedPatient?.token ?? null}
+        patientId={pickerPatient?.id ?? null}
+        patientToken={pickerPatient?.token ?? null}
       />
     </main>
   )
