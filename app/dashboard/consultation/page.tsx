@@ -1,13 +1,10 @@
 // consultation/page.tsx
 "use client";
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, CheckCircle, Clock, Search, X, Video } from 'lucide-react';
-import { getMessaging, getToken, onMessage, deleteToken } from "firebase/messaging";
-import { firebaseApp } from "../../../lib/firebaseClient";
 
 import { apiService } from '@/app/_utils/apiService';
-import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge';
 
 import Navbar from './components/Navbar';
 import DocConsult from './doc_consult';
@@ -16,7 +13,6 @@ import DocLogout from './docLogout';
 
 import { DoctorProfile } from './doctor_registration';
 import { useCallQueue } from '@/app/_context/CallQueueContext';
-import GlobalCallSidebar from './components/GlobalCallSidebar';
 
 interface Vitals { temp: string; bp: string; pulse: string; weight: string; }
 interface Patient {
@@ -59,134 +55,18 @@ const EZShifaPortal = () => {
     experience: '', city: '', photo: '',
   });
 
-  // ── FCM refs ───────────────────────────────────────────────────────────────
-  const messagingRef = useRef<ReturnType<typeof getMessaging> | null>(null);
-  const fcmTokenRef = useRef<string | null>(null);
-  const fcmListenerRef = useRef<(() => void) | null>(null);
-  const fcmRegisteredRef = useRef(false);
+  // ── Call Queue Context (online queue display + accepting calls) ────────────
+  const { onlineQueue: fcmOnlineQueue, removeCall } = useCallQueue();
 
-  // ── Call Queue Context ─────────────────────────────────────────────────────
-  const { onlineQueue: fcmOnlineQueue, addCall, removeCall } = useCallQueue();
-
-  // Build call payload from incoming notification
-  const buildCallPayload = (payload: any) => {
-    const vitalsId = payload?.vitalsId || payload?.data?.vitalsId;
-    const patientId = payload?.patientId || payload?.data?.patientId;
-    const patientToken = payload?.patientToken || payload?.data?.patientToken || payload?.data?.token;
-
-    console.log("📦 [buildCallPayload] raw payload.data:", payload?.data);
-    console.log("📦 [buildCallPayload] token:", payload?.data?.token);
-
-    return {
-      vitalsId,
-      title: payload?.notification?.title || payload?.title || 'Incoming Call',
-      body: payload?.notification?.body || payload?.body || '',
-      callUrl: `/dashboard/video-call/${vitalsId}`,
-      token: payload?.data?.token,
-      symptoms: payload?.data?.symptoms,
-      patientId,
-      patientToken,
-      status: 'waiting' as const,
-    };
-  };
-
-  // ── FCM registration ───────────────────────────────────────────────────────
-  const registerFcm = useCallback(async () => {
-    if (fcmRegisteredRef.current) return;
-    const jwt = localStorage.getItem('doc_token');
-    if (!jwt) return;
-
-    const saveToken = async (token: string) => {
-      fcmTokenRef.current = token;
-      try {
-        const res = await apiService.saveDoctorFcmToken(token);
-        if (res.success) console.log("[FCM] Device registered.");
-      } catch (err: any) {
-        console.error("[FCM] Save failed:", err.message);
-      }
-    };
-
-    const handleIncomingCall = (payload: any) => {
-      const call = buildCallPayload(payload);
-      if (!call.vitalsId) return;
-      addCall(call);
-    };
-
-    if (typeof window === 'undefined') return;
-
-    if (window.AndroidNative) {
-      AndroidBridge.initFcmListener((token) => saveToken(token));
-      AndroidBridge.requestNativeFcmToken();
-      const androidHandler = (e: Event) => handleIncomingCall((e as CustomEvent).detail);
-      window.addEventListener('incoming-call', androidHandler);
-      fcmListenerRef.current = () => window.removeEventListener('incoming-call', androidHandler);
-    } else if ("Notification" in window) {
-      try {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') { console.warn("[FCM] Permission denied."); return; }
-
-        const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-        await navigator.serviceWorker.ready;
-
-        const messaging = getMessaging(firebaseApp);
-        messagingRef.current = messaging;
-
-        const token = await getToken(messaging, {
-          vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY,
-          serviceWorkerRegistration: reg,
-        });
-        if (token) await saveToken(token);
-
-        fcmListenerRef.current = onMessage(messaging, handleIncomingCall);
-      } catch (err) {
-        console.error("[FCM] Web setup error:", err);
-        return;
-      }
-    }
-
-    fcmRegisteredRef.current = true;
-  }, [addCall]);
-
-  // ── FCM unregistration ─────────────────────────────────────────────────────
-  const unregisterFcm = useCallback(async (shouldCleanup: boolean = true) => {
-    if (!fcmRegisteredRef.current) return;
-
-    if (fcmListenerRef.current) {
-      fcmListenerRef.current();
-      fcmListenerRef.current = null;
-    }
-
-    if (window.AndroidNative) {
-      try {
-        if (typeof window.AndroidNative.unregisterFcmDevice === 'function') {
-          window.AndroidNative.unregisterFcmDevice();
-        }
-      } catch { }
-    } else if (messagingRef.current && fcmTokenRef.current && shouldCleanup) {
-      try {
-        await deleteToken(messagingRef.current);
-        console.log("[FCM] Device unregistered.");
-      } catch (err) {
-        console.error("[FCM] Token deletion failed:", err);
-      }
-      messagingRef.current = null;
-      fcmTokenRef.current = null;
-    }
-
-    fcmRegisteredRef.current = false;
-  }, []);
-
-  // Gate FCM based on doctor's online status
+  // ── Notify layout whenever doctorStatus changes so it can gate FCM ─────────
   useEffect(() => {
-    if (!isLoggedIn || !authChecked) return;
-    if (doctorStatus === 'online') {
-      registerFcm();
-    } else {
-      unregisterFcm(true);
-    }
-  }, [isLoggedIn, authChecked, doctorStatus, registerFcm, unregisterFcm]);
+    if (!authChecked) return;
+    window.dispatchEvent(
+      new CustomEvent('doctor-status-changed', { detail: { status: doctorStatus } })
+    );
+  }, [doctorStatus, authChecked]);
 
-  // Auth check on mount
+  // ── Auth check on mount ────────────────────────────────────────────────────
   useEffect(() => {
     const token = localStorage.getItem('doc_token');
     if (token) { setIsLoggedIn(true); } else { setActivePage('login'); }
@@ -199,7 +79,7 @@ const EZShifaPortal = () => {
     setAuthChecked(true);
   }, []);
 
-  // Load dashboard data
+  // ── Load dashboard data ────────────────────────────────────────────────────
   useEffect(() => {
     const loadDashboardData = async () => {
       setLoadingQueue(true);
@@ -268,7 +148,7 @@ const EZShifaPortal = () => {
     }
   }, [isLoggedIn]);
 
-  // Doctor login event
+  // ── Doctor login event ─────────────────────────────────────────────────────
   useEffect(() => {
     const handleDoctorLogin = () => {
       const savedDoctor = apiService.getDoctor();
@@ -278,7 +158,7 @@ const EZShifaPortal = () => {
     return () => window.removeEventListener('doctorLoggedIn', handleDoctorLogin);
   }, []);
 
-  // Sidebar event listeners
+  // ── Sidebar event listeners ────────────────────────────────────────────────
   useEffect(() => {
     const handleSidebarLogout = () => { setLogoutModalMode('logout'); setShowLogoutModal(true); };
     window.addEventListener('doctor-logout-requested', handleSidebarLogout);
@@ -427,14 +307,12 @@ const EZShifaPortal = () => {
     try {
       if (logoutModalMode === 'offline') {
         await apiService.updateDoctorStatus('offline', selectedLogoutReason);
-        setDoctorStatus('offline');
+        setDoctorStatus('offline'); // triggers 'doctor-status-changed' event via useEffect
         setShowLogoutModal(false);
         setSelectedLogoutReason('');
       } else {
-        if (window.AndroidNative && typeof window.AndroidNative.unregisterFcmDevice === 'function') {
-          try { window.AndroidNative.unregisterFcmDevice(); } catch { }
-        }
-        await unregisterFcm(true);
+        // Notify layout to unregister FCM before clearing the token
+        window.dispatchEvent(new CustomEvent('doctor-logged-out'));
         await apiService.updateDoctorStatus('offline', selectedLogoutReason);
         await apiService.docLogoutWithReason(selectedLogoutReason);
         localStorage.removeItem('doc_token');
@@ -462,7 +340,7 @@ const EZShifaPortal = () => {
     setTogglingStatus(true);
     try {
       const data = await apiService.updateDoctorStatus('online');
-      if (data.success) setDoctorStatus(data.doctorStatus);
+      if (data.success) setDoctorStatus(data.doctorStatus); // triggers 'doctor-status-changed' via useEffect
     } catch (err) {
       console.error("Status toggle failed:", err);
     } finally {
@@ -804,8 +682,6 @@ const EZShifaPortal = () => {
         logoutLoading={logoutLoading}
         mode={logoutModalMode}
       />
-
-      
     </div>
   );
 };
