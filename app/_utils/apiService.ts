@@ -271,7 +271,10 @@ export const apiService = {
         const token = localStorage.getItem('token') || localStorage.getItem('doc_token');
         const response = await fetch(url, {
             method: 'GET',
-            headers: getHeaders(),
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
         });
         return handleResponse(response);
     },
