@@ -20,7 +20,7 @@ type SearchMode = 'name' | 'token' | 'phone'
 // ── Component ─────────────────────────────────────────────────────────────────
 const OnlineConsultPage = () => {
 
-  // ── State ──────────────────────────────────────────────────────────────────
+  // ── State ─────────────────────────────────────────────────────────────
   const [searchMode, setSearchMode] = useState<SearchMode>('name')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<PatientResult[]>([])
