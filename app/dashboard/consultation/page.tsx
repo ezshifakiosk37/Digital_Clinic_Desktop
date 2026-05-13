@@ -16,6 +16,7 @@ import DocLogout from './docLogout';
 
 import { DoctorProfile } from './doctor_registration';
 import { useCallQueue } from '@/app/_context/CallQueueContext';
+import GlobalCallSidebar from './components/GlobalCallSidebar';
 
 interface Vitals { temp: string; bp: string; pulse: string; weight: string; }
 interface Patient {
@@ -884,6 +885,8 @@ const EZShifaPortal = () => {
         logoutLoading={logoutLoading}
         mode={logoutModalMode}
       />
+
+      <GlobalCallSidebar />
     </div >
 
   );
