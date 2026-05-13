@@ -86,7 +86,6 @@ const OnlineConsultPage = () => {
     }
   }
 
-  console.log("Selected patient: " + selectedPatient)
 
   const handleSearch = async () => {
     const q = searchQuery.trim()
@@ -127,13 +126,11 @@ const OnlineConsultPage = () => {
   const onlineDocotrs = doctors.filter(d => d.doctorStatus === 'online')
 
   const handleConsultClick = (patient: PatientResult) => {
-    console.log("Vitals id: "+patient.vitalsId)
     if (!patient.vitalsId) return
     setPickerPatient(patient)
   }
 
   const handleDoctorPick = (doctor: Doctor) => {
-    console.log("pikerPatient Vitals id: "+pickerPatient?.vitalsId)
     if (!pickerPatient?.vitalsId) return
     setPickerPatient(null)
     setVideoVitalsId(pickerPatient.vitalsId)
