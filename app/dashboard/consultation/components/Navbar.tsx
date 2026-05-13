@@ -46,8 +46,8 @@ const Navbar: React.FC<NavbarProps> = ({
       <div className="flex items-center gap-2 md:gap-4 shrink-0">
 
         {/* Doctor name — always visible */}
-        <div className="text-right">
-          <p className="text-[12px] font-semibold uppercase tracking-wide leading-tight">{fullName}</p>
+        <div className="text-right hidden md:block">
+          <p className="text-[12px] font-semibold uppercase tracking-wide leading-tight max-w-[120px] truncate">{fullName}</p>
         </div>
 
         {/* Status label — always visible */}

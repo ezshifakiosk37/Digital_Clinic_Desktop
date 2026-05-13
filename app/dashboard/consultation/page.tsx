@@ -65,7 +65,7 @@ const EZShifaPortal = () => {
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [queueTab, setQueueTab] = useState<'Walk-in' | 'Online Consultation'>('Walk-in');
   const [logoutModalMode, setLogoutModalMode] = useState<'offline' | 'logout'>('logout');
-
+  
   // ── Call Queue Context ──────────────────────────────────────────────────────
   const { onlineQueue: fcmOnlineQueue, removeCall } = useCallQueue();
   const router = useRouter();
@@ -425,7 +425,7 @@ const EZShifaPortal = () => {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-dvh bg-white text-sm">
+    <div className="min-h-dvh bg-white text-sm overflow-x-hidden">
       <Navbar
         fullName={fullName}
         doctorPhoto={doctor.photo}
@@ -467,7 +467,7 @@ const EZShifaPortal = () => {
             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-6">
 
               {/* Queue header + tab switcher */}
-              <div className="px-8 py-5 border-b flex items-center justify-between flex-wrap gap-3">
+              <div className="px-3 md:px-8 py-5 border-b flex items-center justify-between flex-wrap gap-3">
                 <h2 className="font-bold text-xl text-slate-800">CURRENT PATIENT QUEUE</h2>
                 <div className="flex bg-slate-100 rounded-xl p-1 gap-1">
                   {(['Walk-in', 'Online Consultation'] as const).map((tab) => (
@@ -489,7 +489,7 @@ const EZShifaPortal = () => {
 
               {/* Walk-in: token lookup from DB */}
               {queueTab === 'Walk-in' && (
-                <div className="px-8 py-5 border-b border-slate-100 space-y-4">
+                <div className="px-3 md:px-8 py-5 border-b border-slate-100 space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="relative w-full max-w-sm">
                       <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -592,12 +592,12 @@ const EZShifaPortal = () => {
               {queueTab === 'Online Consultation' && <table className="w-full">
                 <thead className="bg-slate-50">
                   <tr className="text-xs text-slate-500 font-black uppercase tracking-widest">
-                    <th className="px-8 py-4 text-left">Sr.</th>
-                    <th className="px-8 py-4 text-left">Token</th>
-                    <th className="px-8 py-4 text-left">Name</th>
-                    <th className="px-8 py-4 text-left hidden md:table-cell">Phone</th>
-                    <th className="px-8 py-4 text-left">Symptoms</th>
-                    <th className="px-8 py-4 text-right">Action</th>
+                    <th className="px-3 md:px-8 py-4 text-left">Sr.</th>
+                    <th className="px-3 md:px-8 py-4 text-left">Token</th>
+                    <th className="px-3 md:px-8 py-4 text-left">Name</th>
+                    <th className="px-3 md:px-8 py-4 text-left hidden md:table-cell">Phone</th>
+                    <th className="px-3 md:px-8 py-4 text-left">Symptoms</th>
+                    <th className="px-3 md:px-8 py-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -622,10 +622,10 @@ const EZShifaPortal = () => {
                         className={`hover:bg-slate-50 transition-colors ${p._isFcmCall ? 'bg-blue-50/40' : ''}`}
                       >
                         {/* Sr */}
-                        <td className="px-8 py-5 text-sm font-medium text-slate-400">{i + 1}</td>
+                        <td className="px-3 md:px-8 py-5 text-sm font-medium text-slate-400">{i + 1}</td>
 
                         {/* Token */}
-                        <td className="px-8 py-5">
+                        <td className="px-3 md:px-8 py-5">
                           <div className="flex items-center gap-2">
                             <span className="font-black text-[#0297d6] text-sm">#{p.token}</span>
                             {p._isFcmCall && (
@@ -639,13 +639,13 @@ const EZShifaPortal = () => {
 
                         {/* Name */}
                         <td className="px-8 py-5">
-                          <p className="font-bold text-slate-800 text-sm">
+                          <p className="font-bold text-slate-800 text-sm whitespace-nowrap">
                             {p.firstName} {p.lastName}
                           </p>
                         </td>
 
                         {/* Phone */}
-                        <td className="px-8 py-5 hidden md:table-cell">
+                        <td className="px-3 md:px-8 py-5 hidden md:table-cell">
                           <p className="text-sm text-slate-500">{p.phoneNumber || '—'}</p>
                         </td>
 
@@ -655,7 +655,7 @@ const EZShifaPortal = () => {
                         </td>
 
                         {/* Action */}
-                        <td className="px-8 py-5 text-right">
+                        <td className="px-3 md:px-8 py-5 text-right">
                           {p._isFcmCall ? (
                             <button
                               onClick={() => handleStartConsult(p)}
@@ -683,7 +683,7 @@ const EZShifaPortal = () => {
             {/* Completed Today */}
             {doneQueue.length > 0 && (
               <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mt-6">
-                <div className="px-8 py-5 border-b flex items-center gap-3">
+                <div className="px-3 md:px-8 py-5 border-b flex items-center gap-3">
                   <CheckCircle size={20} className="text-blue-700" />
                   <h2 className="font-bold text-xl text-slate-800">COMPLETED TODAY</h2>
                   <span className="ml-auto bg-blue-200 text-blue-700 text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest">
@@ -693,20 +693,20 @@ const EZShifaPortal = () => {
                 <table className="w-full">
                   <thead className="bg-slate-50">
                     <tr className="text-sm text-slate-500 font-semibold uppercase tracking-wide">
-                      <th className="px-8 py-4 text-left">Sr. No</th>
-                      <th className="px-8 py-4 text-left">Token</th>
-                      <th className="px-8 py-4 text-left">Patient</th>
-                      <th className="px-8 py-4 text-left">Symptoms</th>
-                      <th className="px-8 py-4 text-right">Status</th>
+                      <th className="px-3 md:px-8 py-4 text-left">Sr. No</th>
+                      <th className="px-3 md:px-8 py-4 text-left">Token</th>
+                      <th className="px-3 md:px-8 py-4 text-left">Patient</th>
+                      <th className="px-3 md:px-8 py-4 text-left">Symptoms</th>
+                      <th className="px-3 md:px-8 py-4 text-right">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {doneQueue.map((p, i) => (
                       <tr key={`done-${p.prescriptionId}`} className="bg-emerald-50/30">
-                        <td className="px-8 py-4 font-medium text-slate-400">{i + 1}</td>
-                        <td className="px-8 py-4 font-bold text-slate-400">#{p.token}</td>
-                        <td className="px-8 py-4 text-slate-600 font-semibold">{p.firstName} {p.lastName}</td>
-                        <td className="px-8 py-4 text-slate-500 text-sm">{p.symptoms || '—'}</td>
+                        <td className="px-3 md:px-8 py-4 font-medium text-slate-400">{i + 1}</td>
+                        <td className="px-3 md:px-8 py-4 font-bold text-slate-400">#{p.token}</td>
+                        <td className="px-3 md:px-8 py-4 text-slate-600 font-semibold whitespace-nowrap">{p.firstName} {p.lastName}</td>
+                        <td className="px-3 md:px-8 py-4 text-slate-500 text-sm">{p.symptoms || '—'}</td>
                         <td className="px-4 py-4 text-right">
                           <span className="bg-blue-200 text-blue-700 text-xs font-black px-3 py-1.5 rounded-xl uppercase tracking-widest">
                             ✓ Done
