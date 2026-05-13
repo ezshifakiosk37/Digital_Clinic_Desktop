@@ -51,7 +51,7 @@ const EZShifaPortal = () => {
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [queueTab, setQueueTab] = useState<'Walk-in' | 'Online Consultation'>('Walk-in');
   const [logoutModalMode, setLogoutModalMode] = useState<'offline' | 'logout'>('logout');
-  const router = useRouter()
+  const router = useRouter();
 
   const [doctor, setDoctor] = useState<DoctorProfile>({
     title: '', firstName: '', lastName: '', email: '', password: '',
@@ -65,9 +65,8 @@ const EZShifaPortal = () => {
   const fcmListenerRef = useRef<(() => void) | null>(null);
   const fcmRegisteredRef = useRef(false);
 
-
   // ── Call Queue Context ─────────────────────────────────────────────────────
-  const { onlineQueue: fcmOnlineQueue, addCall, removeCall, updateCallStatus } = useCallQueue();
+  const { onlineQueue: fcmOnlineQueue, addCall, removeCall } = useCallQueue();
 
   // Build call payload from incoming notification
   const buildCallPayload = (payload: any) => {
@@ -200,7 +199,7 @@ const EZShifaPortal = () => {
     setAuthChecked(true);
   }, []);
 
-  // Load dashboard data (walk-in queue)
+  // Load dashboard data
   useEffect(() => {
     const loadDashboardData = async () => {
       setLoadingQueue(true);
@@ -210,7 +209,6 @@ const EZShifaPortal = () => {
           const profileRes = await apiService.docGetProfile();
           if (profileRes.success && profileRes.doctor) {
             setDoctorStatus(profileRes.doctor.doctorStatus as 'online' | 'offline');
-            // Also keep local doctor state fresh (but don't write to localStorage)
             setDoctor(prev => ({ ...prev, ...profileRes.doctor }));
           }
         } catch (profileErr) {
@@ -240,9 +238,6 @@ const EZShifaPortal = () => {
               if (seen.has(key)) return false; seen.add(key); return true;
             });
           };
-          setQueue(dedupeById((data.patients || []).filter((p: any) =>
-            !p.patientType || p.patientType === 'Walk-in'
-          )));
 
           // Build a set of tokens that are fully done globally (any doctor)
           const globallyDoneTokens = new Set<string>(
@@ -283,43 +278,21 @@ const EZShifaPortal = () => {
     return () => window.removeEventListener('doctorLoggedIn', handleDoctorLogin);
   }, []);
 
-  // ── Derived data ───────────────────────────────────────────────────────────
-
-  // const activeOnlineCalls = fcmOnlineQueue.filter(
-  //   call => call.status === 'waiting' || call.status === 'not_responding'
-  // );
-
-  const updateMedicine = (id: number, field: string, value: any) => {
-    setMedicines(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
-  };
-
-  // ── Handlers ───────────────────────────────────────────────────────────────
-  // ── Sidebar sign-out event (doctor) ────────────────────────────────────────
-  React.useEffect(() => {
-    const handleSidebarLogout = () => {
-      setLogoutModalMode('logout');
-      setShowLogoutModal(true);
-    };
+  // Sidebar event listeners
+  useEffect(() => {
+    const handleSidebarLogout = () => { setLogoutModalMode('logout'); setShowLogoutModal(true); };
     window.addEventListener('doctor-logout-requested', handleSidebarLogout);
     return () => window.removeEventListener('doctor-logout-requested', handleSidebarLogout);
   }, []);
 
-  // ── Sidebar profile event (doctor) ─────────────────────────────────────────
-  React.useEffect(() => {
-    const handleSidebarProfile = () => {
-      setActivePage('profile');
-      setSelectedPatient(null);
-    };
+  useEffect(() => {
+    const handleSidebarProfile = () => { setActivePage('profile'); setSelectedPatient(null); };
     window.addEventListener('doctor-show-profile', handleSidebarProfile);
     return () => window.removeEventListener('doctor-show-profile', handleSidebarProfile);
   }, []);
 
-  // ── Sidebar dashboard event (doctor) ───────────────────────────────────────
-  React.useEffect(() => {
-    const handleSidebarDashboard = () => {
-      setActivePage('dashboard');
-      setSelectedPatient(null);
-    };
+  useEffect(() => {
+    const handleSidebarDashboard = () => { setActivePage('dashboard'); setSelectedPatient(null); };
     window.addEventListener('doctor-show-dashboard', handleSidebarDashboard);
     return () => window.removeEventListener('doctor-show-dashboard', handleSidebarDashboard);
   }, []);
@@ -327,8 +300,7 @@ const EZShifaPortal = () => {
   // ── Derived data ────────────────────────────────────────────────────────────
   const fullName = `${doctor.title} ${doctor.firstName} ${doctor.lastName}`;
 
-  // Merge API queue with live FCM online calls (deduped by vitalsId)
-  // Walk-in queue: DB patients only, strip out any online patientType records
+  // Walk-in queue: DB patients only
   const walkInQueue = queue.filter(
     (p: any) => !p.patientType || p.patientType === 'Walk-in'
   );
@@ -353,18 +325,22 @@ const EZShifaPortal = () => {
   const walkInCount = mergedQueue.filter(p => !p.patientType || p.patientType === 'Walk-in').length;
   const onlineCount = mergedQueue.filter(p => p.patientType === 'Online Consultation').length;
 
-  console.log(activePage)
+  // const activeOnlineCalls = fcmOnlineQueue.filter(
+  //   call => call.status === 'waiting' || call.status === 'not_responding'
+  // );
 
   const filteredQueue = mergedQueue.filter(p => {
     const type = p.patientType as string | undefined;
-    const matchesTab =
-      queueTab === 'Online Consultation'
-        ? type === 'Online Consultation'
-        : !type || type === 'Walk-in';
-    return matchesTab;
+    return queueTab === 'Online Consultation'
+      ? type === 'Online Consultation'
+      : !type || type === 'Walk-in';
   });
 
   // ── Handlers ────────────────────────────────────────────────────────────────
+  const updateMedicine = (id: number, field: string, value: any) => {
+    setMedicines(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
+  };
+
   const handleWalkinTokenSearch = async () => {
     const token = walkinSearchInput.trim();
     if (!token) return;
@@ -372,7 +348,6 @@ const EZShifaPortal = () => {
     setWalkinSearchError('');
     setWalkinSearchResult(null);
     try {
-      // ✅ Use already-loaded globalDoneTokens — no extra API call needed
       if (globalDoneTokens.has(String(token))) {
         setWalkinSearchError('This token has already been consulted today.');
         return;
@@ -382,7 +357,7 @@ const EZShifaPortal = () => {
       if (res.success) {
         const queueRes = await apiService.getTodayQueue();
 
-        // ✅ Also re-check against freshly fetched completed list
+        // Re-check against freshly fetched completed list
         const freshDoneTokens = new Set<string>(
           (queueRes.completed || []).map((p: any) => String(p.token))
         );
@@ -442,29 +417,20 @@ const EZShifaPortal = () => {
     } catch (err) { console.error("Failed to refresh stats:", err); }
   };
 
-  const handleLogoutClick = () => {
-    setLogoutModalMode('logout');
-    setShowLogoutModal(true);
-  };
+  const handleLogoutClick = () => { setLogoutModalMode('logout'); setShowLogoutModal(true); };
 
-  const cancelLogout = () => {
-    setShowLogoutModal(false);
-    setSelectedLogoutReason('');
-  };
+  const cancelLogout = () => { setShowLogoutModal(false); setSelectedLogoutReason(''); };
 
   const confirmLogout = async () => {
     if (!selectedLogoutReason) return;
     setLogoutLoading(true);
-
     try {
       if (logoutModalMode === 'offline') {
-        // Just going offline — stay logged in
         await apiService.updateDoctorStatus('offline', selectedLogoutReason);
         setDoctorStatus('offline');
         setShowLogoutModal(false);
         setSelectedLogoutReason('');
       } else {
-        // Full logout
         if (window.AndroidNative && typeof window.AndroidNative.unregisterFcmDevice === 'function') {
           try { window.AndroidNative.unregisterFcmDevice(); } catch { }
         }
@@ -483,7 +449,7 @@ const EZShifaPortal = () => {
     } catch (err) {
       console.error("Logout/offline error:", err);
     } finally {
-      setLogoutLoading(false);  // ✅ always resets
+      setLogoutLoading(false);
     }
   };
 
@@ -504,6 +470,7 @@ const EZShifaPortal = () => {
     }
   };
 
+  // ── Session expired guard ──────────────────────────────────────────────────
   if (!isLoggedIn) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white">
@@ -534,54 +501,57 @@ const EZShifaPortal = () => {
         onMenuClick={() => window.dispatchEvent(new CustomEvent('toggle-mobile-sidebar'))}
       />
 
-      {activePage === 'dashboard' && <main className="max-w-7xl mx-auto p-3 md:p-6 pb-6">
+      {/* ── Dashboard ── */}
+      {activePage === 'dashboard' && (
+        <main className="max-w-7xl mx-auto p-3 md:p-6 pb-6">
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
-          {[
-            { label: 'TODAY PATIENTS', val: todayStats.todayPatients, icon: User, color: 'text-blue-600', bg: 'bg-blue-50' },
-            { label: 'IN QUEUE', val: todayStats.inQueue, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
-            { label: 'COMPLETED', val: todayStats.completed, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          ].map((s, i) => (
-            <div key={i} className="bg-white rounded-2xl md:rounded-3xl p-3 md:p-6 flex flex-col md:flex-row items-center gap-2 md:gap-5 shadow-sm border border-slate-100">
-              <div className={`w-8 h-8 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center ${s.bg} ${s.color}`}>
-                <s.icon size={18} className="md:hidden" />
-                <s.icon size={32} className="hidden md:block" />
+          {/* Stats Cards */}
+          <div className="grid grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
+            {[
+              { label: 'TODAY PATIENTS', val: todayStats.todayPatients, icon: User, color: 'text-blue-600', bg: 'bg-blue-50' },
+              { label: 'IN QUEUE', val: todayStats.inQueue, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
+              { label: 'COMPLETED', val: todayStats.completed, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            ].map((s, i) => (
+              <div key={i} className="bg-white rounded-2xl md:rounded-3xl p-3 md:p-6 flex flex-col md:flex-row items-center gap-2 md:gap-5 shadow-sm border border-slate-100">
+                <div className={`w-8 h-8 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center ${s.bg} ${s.color}`}>
+                  <s.icon size={18} className="md:hidden" />
+                  <s.icon size={32} className="hidden md:block" />
+                </div>
+                <div className="text-center md:text-left">
+                  <p className="text-[9px] md:text-sm font-semibold text-slate-500 tracking-widest uppercase leading-tight">{s.label}</p>
+                  <h3 className="text-2xl md:text-4xl font-black text-slate-800 mt-0.5 md:mt-1">{s.val}</h3>
+                </div>
               </div>
-              <div className="text-center md:text-left">
-                <p className="text-[9px] md:text-sm font-semibold text-slate-500 tracking-widest uppercase leading-tight">{s.label}</p>
-                <h3 className="text-2xl md:text-4xl font-black text-slate-800 mt-0.5 md:mt-1">{s.val}</h3>
+            ))}
+          </div>
+
+          {/* Current Patient Queue */}
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-6">
+
+            {/* Queue header + tab switcher */}
+            <div className="px-8 py-5 flex items-center justify-between flex-wrap gap-3">
+              <h2 className="font-bold text-xl text-slate-800">CURRENT PATIENT QUEUE</h2>
+              <div className="flex bg-slate-100 rounded-xl p-1 gap-1">
+                {(['Walk-in', 'Online Consultation'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setQueueTab(tab)}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${queueTab === tab
+                      ? 'bg-white text-[#0297d6] shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                  >
+                    {tab === 'Walk-in'
+                      ? `🏥 Walk-in (${walkInCount})`
+                      : `💻 Online (${onlineCount})`}
+                  </button>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
 
-        {/* Current Patient Queue */}
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-6">
-
-          {/* Queue header + tab switcher */}
-          <div className="px-8 py-5 flex items-center justify-between flex-wrap gap-3">
-            <h2 className="font-bold text-xl text-slate-800">CURRENT PATIENT QUEUE</h2>
-            <div className="flex bg-slate-100 rounded-xl p-1 gap-1">
-              {(['Walk-in', 'Online Consultation'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setQueueTab(tab)}
-                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${queueTab === tab
-                    ? 'bg-white text-[#0297d6] shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                >
-                  {tab === 'Walk-in'
-                    ? `🏥 Walk-in (${walkInCount})`
-                    : `💻 Online (${onlineCount})`}
-                </button>
-              ))}
-            </div>
-
-            {/* Walk-in: token lookup from DB */}
+            {/* Walk-in: token lookup */}
             {queueTab === 'Walk-in' && (
-              <div className="px-8 py-5 border-b border-slate-100 space-y-4">
+              <div className="px-8 py-5 border-t border-slate-100 space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="relative w-full max-w-sm">
                     <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -599,11 +569,7 @@ const EZShifaPortal = () => {
                     />
                     {walkinSearchInput && (
                       <button
-                        onClick={() => {
-                          setWalkinSearchInput('');
-                          setWalkinSearchResult(null);
-                          setWalkinSearchError('');
-                        }}
+                        onClick={() => { setWalkinSearchInput(''); setWalkinSearchResult(null); setWalkinSearchError(''); }}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                       >
                         <X size={14} />
@@ -621,14 +587,12 @@ const EZShifaPortal = () => {
                   </button>
                 </div>
 
-                {/* Error */}
                 {walkinSearchError && (
                   <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 px-4 py-3 rounded-xl">
                     <span className="font-bold">⚠</span> {walkinSearchError}
                   </div>
                 )}
 
-                {/* Result row */}
                 {walkinSearchResult && (
                   <div className="rounded-xl border border-[#0297d6]/20 bg-[#0297d6]/5 overflow-hidden">
                     <table className="w-full text-left">
@@ -655,9 +619,7 @@ const EZShifaPortal = () => {
                             <p className="text-sm text-slate-500">{walkinSearchResult.phoneNumber || '—'}</p>
                           </td>
                           <td className="px-5 py-4">
-                            <p className="text-sm text-slate-600 max-w-xs truncate">
-                              {walkinSearchResult.symptoms || '—'}
-                            </p>
+                            <p className="text-sm text-slate-600 max-w-xs truncate">{walkinSearchResult.symptoms || '—'}</p>
                           </td>
                           <td className="px-5 py-4 text-right">
                             <button
@@ -680,9 +642,9 @@ const EZShifaPortal = () => {
               </div>
             )}
 
-
-
-            {queueTab === 'Online Consultation' && <table className="w-full">
+            {/* Online Consultation: live FCM queue table */}
+            {queueTab === 'Online Consultation' && (
+              <table className="w-full">
                 <thead className="bg-slate-50">
                   <tr className="text-xs text-slate-500 font-black uppercase tracking-widest">
                     <th className="px-3 md:px-8 py-4 text-left">Sr.</th>
@@ -703,9 +665,7 @@ const EZShifaPortal = () => {
                   ) : filteredQueue.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-8 py-12 text-center text-slate-400 text-sm">
-                        {queueTab === ('Online Consultation' as string)
-                          ? 'No online calls yet — patients will appear here when they call.'
-                          : 'No patients in walk-in queue.'}
+                        No online calls yet — patients will appear here when they call.
                       </td>
                     </tr>
                   ) : (
@@ -714,10 +674,7 @@ const EZShifaPortal = () => {
                         key={`${p.id}-${p.token || i}`}
                         className={`hover:bg-slate-50 transition-colors ${p._isFcmCall ? 'bg-blue-50/40' : ''}`}
                       >
-                        {/* Sr */}
                         <td className="px-3 md:px-8 py-5 text-sm font-medium text-slate-400">{i + 1}</td>
-
-                        {/* Token */}
                         <td className="px-3 md:px-8 py-5">
                           <div className="flex items-center gap-2">
                             <span className="font-black text-[#0297d6] text-sm">#{p.token}</span>
@@ -729,25 +686,17 @@ const EZShifaPortal = () => {
                             )}
                           </div>
                         </td>
-
-                        {/* Name */}
                         <td className="px-8 py-5">
                           <p className="font-bold text-slate-800 text-sm whitespace-nowrap">
                             {p.firstName} {p.lastName}
                           </p>
                         </td>
-
-                        {/* Phone */}
                         <td className="px-3 md:px-8 py-5 hidden md:table-cell">
                           <p className="text-sm text-slate-500">{p.phoneNumber || '—'}</p>
                         </td>
-
-                        {/* Symptoms */}
                         <td className="px-8 py-5">
                           <p className="text-sm text-slate-600 max-w-xs truncate">{p.symptoms || '—'}</p>
                         </td>
-
-                        {/* Action */}
                         <td className="px-3 md:px-8 py-5 text-right">
                           {p._isFcmCall ? (
                             <button
@@ -770,13 +719,12 @@ const EZShifaPortal = () => {
                     ))
                   )}
                 </tbody>
-              </table>}
+              </table>
+            )}
           </div>
-        </div>
 
-        {/* Completed Today */}
-        {
-          doneQueue.length > 0 && (
+          {/* Completed Today */}
+          {doneQueue.length > 0 && (
             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mt-6">
               <div className="px-8 py-5 border-b flex items-center gap-3">
                 <CheckCircle size={20} className="text-blue-700" />
@@ -785,95 +733,66 @@ const EZShifaPortal = () => {
                   {doneQueue.length} Done
                 </span>
               </div>
-
-              {/* Completed Today */}
-              {doneQueue.length > 0 && (
-                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-x-hidden overflow-y-auto mt-6">
-                  <div className="px-8 py-5 border-b flex items-center gap-3">
-                    <CheckCircle size={20} className="text-blue-700" />
-                    <h2 className="font-bold text-xl text-slate-800">COMPLETED TODAY</h2>
-                    <span className="ml-auto bg-blue-200 text-blue-700 text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest">{doneQueue.length} Done</span>
-                  </div>
-                  <table className="w-full">
-                    <thead className="bg-slate-50">
-                      <tr className="text-sm text-slate-500 font-semibold uppercase tracking-wide">
-                        <th className="px-8 py-4 text-left">Sr. No</th>
-                        <th className="px-8 py-4 text-left">Token</th>
-                        <th className="px-8 py-4 text-left">Patient</th>
-                        <th className="px-8 py-4 text-left">Symptoms</th>
-                        <th className="px-8 py-4 text-right">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {doneQueue.map((p, i) => (
-                        <tr key={`done-${p.prescriptionId}`} className="bg-emerald-50/30">
-                          <td className="px-8 py-4 font-medium text-slate-400">{i + 1}</td>
-                          <td className="px-8 py-4 font-bold text-slate-400">#{p.token}</td>
-                          <td className="px-8 py-4 text-slate-600 font-semibold">{p.firstName} {p.lastName}</td>
-                          <td className="px-8 py-4 text-slate-500 text-sm">{p.symptoms || '—'}</td>
-                          <td className="px-4 py-4 text-right">
-                            <span className="bg-blue-200 text-blue-700 text-xs font-black px-3 py-1.5 rounded-xl uppercase tracking-widest">✓ Done</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <table className="w-full">
+                <thead className="bg-slate-50">
+                  <tr className="text-sm text-slate-500 font-semibold uppercase tracking-wide">
+                    <th className="px-8 py-4 text-left">Sr. No</th>
+                    <th className="px-8 py-4 text-left">Token</th>
+                    <th className="px-8 py-4 text-left">Patient</th>
+                    <th className="px-8 py-4 text-left">Symptoms</th>
+                    <th className="px-8 py-4 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {doneQueue.map((p, i) => (
+                    <tr key={`done-${p.prescriptionId}`} className="bg-emerald-50/30">
+                      <td className="px-8 py-4 font-medium text-slate-400">{i + 1}</td>
+                      <td className="px-8 py-4 font-bold text-slate-400">#{p.token}</td>
+                      <td className="px-8 py-4 text-slate-600 font-semibold">{p.firstName} {p.lastName}</td>
+                      <td className="px-8 py-4 text-slate-500 text-sm">{p.symptoms || '—'}</td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="bg-blue-200 text-blue-700 text-xs font-black px-3 py-1.5 rounded-xl uppercase tracking-widest">✓ Done</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )
-        }
+          )}
 
-        {/* Patient Consultation (walk‑in) */}
-        {
-          selectedPatient && activePage === 'dashboard' && (
+          {/* Patient Consultation (walk-in) */}
+          {selectedPatient && (
             <DocConsult
-              selectedPatient={selectedPatient} setSelectedPatient={setSelectedPatient}
-              medicines={medicines} setMedicines={setMedicines}
-              notes={notes} setNotes={setNotes}
-              prescriptionGenerated={prescriptionGenerated} setPrescriptionGenerated={setPrescriptionGenerated}
-              doctor={doctor} updateMedicine={updateMedicine} fullName={fullName}
-              onSessionEnd={handleSessionEnd} endingSession={endingSession} setEndingSession={setEndingSession}
+              selectedPatient={selectedPatient}
+              setSelectedPatient={setSelectedPatient}
+              medicines={medicines}
+              setMedicines={setMedicines}
+              notes={notes}
+              setNotes={setNotes}
+              prescriptionGenerated={prescriptionGenerated}
+              setPrescriptionGenerated={setPrescriptionGenerated}
+              doctor={doctor}
+              updateMedicine={updateMedicine}
+              fullName={fullName}
+              onSessionEnd={handleSessionEnd}
+              endingSession={endingSession}
+              setEndingSession={setEndingSession}
             />
-          )
-        }
+          )}
 
-      </main >}
+        </main>
+      )}
 
-      {/* ── Patient Consultation — full width, outside main padding ── */}
-      {
-        selectedPatient && activePage === 'dashboard' && (
-          <DocConsult
-            selectedPatient={selectedPatient}
-            setSelectedPatient={setSelectedPatient}
-            medicines={medicines}
-            setMedicines={setMedicines}
-            notes={notes}
-            setNotes={setNotes}
-            prescriptionGenerated={prescriptionGenerated}
-            setPrescriptionGenerated={setPrescriptionGenerated}
-            doctor={doctor}
-            updateMedicine={updateMedicine}
-            fullName={fullName}
-            onSessionEnd={handleSessionEnd}
-            endingSession={endingSession}
-            setEndingSession={setEndingSession}
-          />
-        )
-      }
-
-      {/* ── Profile — full width, outside main padding ── */}
-      {
-        activePage === 'profile' && (
-          <DocProfile
-            setActivePage={setActivePage}
-            doctor={doctor}
-            setDoctor={setDoctor}
-            editMode={editMode}
-            setEditMode={setEditMode}
-          />
-        )
-      }
+      {/* Profile — full width */}
+      {activePage === 'profile' && (
+        <DocProfile
+          setActivePage={setActivePage}
+          doctor={doctor}
+          setDoctor={setDoctor}
+          editMode={editMode}
+          setEditMode={setEditMode}
+        />
+      )}
 
       <DocLogout
         showLogoutModal={showLogoutModal}
@@ -887,8 +806,7 @@ const EZShifaPortal = () => {
       />
 
       <GlobalCallSidebar />
-    </div >
-
+    </div>
   );
 };
 
