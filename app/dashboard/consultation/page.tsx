@@ -805,7 +805,7 @@ const EZShifaPortal = () => {
         mode={logoutModalMode}
       />
 
-      <GlobalCallSidebar />
+      
     </div>
   );
 };
