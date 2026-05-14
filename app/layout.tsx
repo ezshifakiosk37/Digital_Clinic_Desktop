@@ -2,7 +2,6 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Outfit } from "next/font/google";
 import { CallQueueProvider } from "./_context/CallQueueContext";
-import KeyboardFix from "./keyboardFix"; // ← create this file
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,15 +40,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${quicksand.variable} antialiased`}
       >
         <CallQueueProvider>
-          {/* This wrapper is CRITICAL */}
-          <div
-            style={{
-              minHeight: "100dvh", // ← dynamic viewport height (fixes keyboard)
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <KeyboardFix />
+          <div>
             {children}
           </div>
         </CallQueueProvider>
