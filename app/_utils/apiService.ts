@@ -22,6 +22,19 @@ const getDocHeaders = () => ({
     'Authorization': `Bearer ${localStorage.getItem('doc_token')}`,
 });
 
+const getAvailableHeaders = () => {
+    const token = localStorage.getItem('token');
+    const docToken = localStorage.getItem('doc_token');
+    const resolved = token ?? docToken;
+
+    if (!resolved) throw new Error("No active session. Please log in.");
+
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${resolved}`,
+    };
+};
+
 export const apiService = {
 
     login: async (credentials: Record<string, any>) => {
@@ -339,7 +352,7 @@ export const apiService = {
     getCallStatus: async (vitalsId: string) => {
         const response = await fetch(`${API_BASE_URL}/api/notifications/call-status/${vitalsId}`, {
             method: 'GET',
-            headers: getHeaders(),
+            headers: getAvailableHeaders(),
         });
 
         return handleResponse(response);
