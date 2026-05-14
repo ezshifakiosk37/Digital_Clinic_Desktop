@@ -247,6 +247,7 @@ const EZShifaPortal = () => {
   const onlineCount = onlineFcmQueue.length;
 
   const filteredQueue = queueTab === 'Online Consultation' ? onlineFcmQueue : walkInQueue;
+  console.log(filteredQueue)
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const updateMedicine = (id: number, field: string, value: any) => {
@@ -396,21 +397,21 @@ const EZShifaPortal = () => {
   };
 
   // ── Session expired guard ──────────────────────────────────────────────────
-  // if (!isLoggedIn) {
-  //   return (
-  //     <div className="flex items-center justify-center min-h-screen bg-white">
-  //       <div className="text-center space-y-4">
-  //         <p className="text-slate-500 font-medium">Session expired. Please sign in again.</p>
-  //         <button
-  //           onClick={() => { window.location.href = '/sign-in'; }}
-  //           className="px-6 py-2.5 bg-[#0297d6] text-white rounded-xl font-bold"
-  //         >
-  //           Go to Sign In
-  //         </button>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  if (!isLoggedIn) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <div className="text-center space-y-4">
+          <p className="text-slate-500 font-medium">Session expired. Please sign in again.</p>
+          <button
+            onClick={() => { window.location.href = '/sign-in'; }}
+            className="px-6 py-2.5 bg-[#0297d6] text-white rounded-xl font-bold"
+          >
+            Go to Sign In
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
