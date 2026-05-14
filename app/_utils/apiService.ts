@@ -344,7 +344,6 @@ export const apiService = {
     endCall: async (vitalsId: string, reason?: string) => {
         const response = await fetch(`${API_BASE_URL}/api/notifications/end-call`, {
             method: 'POST',
-            headers: getHeaders(),
             body: JSON.stringify({ vitalsId, reason }),
         });
 
