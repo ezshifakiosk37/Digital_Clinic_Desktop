@@ -337,13 +337,18 @@ export const apiService = {
     },
 
     getCallStatus: async (vitalsId: string) => {
-        const response = await fetch(`${API_BASE_URL}/api/notifications/call-status/${vitalsId}`);
+        const response = await fetch(`${API_BASE_URL}/api/notifications/call-status/${vitalsId}`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+
         return handleResponse(response);
     },
 
     endCall: async (vitalsId: string, reason?: string) => {
         const response = await fetch(`${API_BASE_URL}/api/notifications/end-call`, {
             method: 'POST',
+            headers: getHeaders(),
             body: JSON.stringify({ vitalsId, reason }),
         });
 
