@@ -158,7 +158,11 @@ export default function ConsultationLayout({ children }: { children: React.React
     <>
       {children}
       {/* GlobalCallSidebar lives here so incoming call notifications work on every page */}
-      <GlobalCallSidebar />
+      <div className="fixed bottom-0 left-0 right-0 z-999 pointer-events-none">
+        <div className="pointer-events-auto">
+          <GlobalCallSidebar />
+        </div>
+      </div>
     </>
   );
 }

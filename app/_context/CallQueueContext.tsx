@@ -1,6 +1,15 @@
 "use client";
 import { createContext, useContext, useState, ReactNode } from 'react';
 
+export type CallStatus =
+  | 'waiting'
+  | 'pending'
+  | 'accepted'
+  | 'declined_by_patient'
+  | 'declined_by_doctor'
+  | 'not_responding'
+  | 'completed';
+
 export interface CallPayload {
   vitalsId: string;
   title: string;
@@ -10,7 +19,7 @@ export interface CallPayload {
   patientId?: string;
   patientToken?: string;
   symptoms?: string;
-  status?: 'waiting' | 'accepted' | 'declined' | 'not_responding';
+  status?: CallStatus;
 }
 
 interface CallQueueContextType {
@@ -18,7 +27,7 @@ interface CallQueueContextType {
   activeCall: CallPayload | null;
   addCall: (call: CallPayload) => void;
   removeCall: (vitalsId: string) => void;
-  updateCallStatus: (vitalsId: string, status: CallPayload['status']) => void;
+  updateCallStatus: (vitalsId: string, status: CallStatus) => void;
   setActiveCall: (call: CallPayload | null) => void;
 }
 
@@ -29,8 +38,7 @@ export function CallQueueProvider({ children }: { children: ReactNode }) {
   const [activeCall, setActiveCall] = useState<CallPayload | null>(null);
 
   const addCall = (call: CallPayload) => {
-    // Set default status if not provided
-    const newCall = { ...call, status: call.status || 'waiting' };
+    const newCall: CallPayload = { ...call, status: call.status ?? 'waiting' };
     setOnlineQueue(prev =>
       prev.find(c => c.vitalsId === newCall.vitalsId) ? prev : [...prev, newCall]
     );
@@ -39,14 +47,12 @@ export function CallQueueProvider({ children }: { children: ReactNode }) {
 
   const removeCall = (vitalsId: string) => {
     setOnlineQueue(prev => prev.filter(c => c.vitalsId !== vitalsId));
-    setActiveCall(prev => prev?.vitalsId === vitalsId ? null : prev);
+    setActiveCall(prev => (prev?.vitalsId === vitalsId ? null : prev));
   };
 
-  const updateCallStatus = (vitalsId: string, status: CallPayload['status']) => {
+  const updateCallStatus = (vitalsId: string, status: CallStatus) => {
     setOnlineQueue(prev =>
-      prev.map(call =>
-        call.vitalsId === vitalsId ? { ...call, status } : call
-      )
+      prev.map(c => (c.vitalsId === vitalsId ? { ...c, status } : c))
     );
     setActiveCall(prev =>
       prev?.vitalsId === vitalsId ? { ...prev, status } : prev
