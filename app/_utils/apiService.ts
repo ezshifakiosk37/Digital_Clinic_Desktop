@@ -337,11 +337,7 @@ export const apiService = {
     },
 
     getCallStatus: async (vitalsId: string) => {
-        const response = await fetch(`${API_BASE_URL}/api/notifications/call-status/${vitalsId}`, {
-            method: 'GET',
-            headers: getHeaders(),
-        });
-
+        const response = await fetch(`${API_BASE_URL}/api/notifications/call-status/${vitalsId}`);
         return handleResponse(response);
     },
 
