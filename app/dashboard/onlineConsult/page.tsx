@@ -15,13 +15,13 @@ const parseSymptoms = (raw: string | null | undefined): string[] => {
   return raw.split(',').map(s => s.trim()).filter(Boolean)
 }
 
-type SearchMode = 'name' | 'token' | 'phone'
+type SearchMode = 'token' | 'name' | 'phone'
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const OnlineConsultPage = () => {
 
   // ── State ─────────────────────────────────────────────────────────────
-  const [searchMode, setSearchMode] = useState<SearchMode>('name')
+  const [searchMode, setSearchMode] = useState<SearchMode>('token')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<PatientResult[]>([])
   const [searching, setSearching] = useState(false)

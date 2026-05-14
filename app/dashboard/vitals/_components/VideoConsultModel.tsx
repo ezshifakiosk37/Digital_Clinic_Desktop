@@ -146,6 +146,13 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId, patientId, patien
 
   const handleStartConsult = async () => {
     if (!vitalsId || !doctorId) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert("Session expired. Please log in again.");
+      return;
+    }
+
     setIsConnecting(true);
     try {
       await apiService.alertDoctor(doctorId, vitalsId);
@@ -153,7 +160,13 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId, patientId, patien
     } catch (err: any) {
       setIsConnecting(false);
       console.error("Alert doctor failed:", err.message || err);
-      alert(err.message || "Failed to start consultation");
+
+      // ✅ Specific message for stale doctor token (410)
+      if (err.status === 410) {
+        alert("The doctor is currently unavailable. Please ask them to reopen their app and try again.");
+      } else {
+        alert(err.message || "Failed to start consultation");
+      }
     }
   };
 

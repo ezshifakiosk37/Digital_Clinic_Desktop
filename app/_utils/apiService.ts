@@ -2,17 +2,15 @@
 const API_BASE_URL = "https://bifurcation-clinic-api.vercel.app";
 // const API_BASE_URL = "http://localhost:5000";
 
-const handleResponse = async (response: Response) => {
-    const data = await response.json();
+async function handleResponse(response: Response) {
     if (!response.ok) {
-        if (response.status === 401) {
-            console.warn("Unauthorized: Clearing token and redirecting.");
-            localStorage.removeItem('token');
-        }
-        throw new Error(data.error || data.details || "Request failed");
+        const body = await response.json().catch(() => ({}));
+        const error: any = new Error(body.error || "Request failed");
+        error.status = response.status; // ✅ attach status so callers can branch on it
+        throw error;
     }
-    return data;
-};
+    return response.json();
+}
 
 const getHeaders = () => ({
     'Content-Type': 'application/json',
@@ -321,7 +319,7 @@ export const apiService = {
     alertDoctor: async (doctorId: string, vitalsId: string) => {
         const response = await fetch(`${API_BASE_URL}/api/notifications/alert-doctor`, {
             method: 'POST',
-            headers: getHeaders(), // patient token
+            headers: getHeaders(), // ✅ patient token — must NOT use getDocHeaders() here
             body: JSON.stringify({ doctorId, vitalsId }),
         });
 

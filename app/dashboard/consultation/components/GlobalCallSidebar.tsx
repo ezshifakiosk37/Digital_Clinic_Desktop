@@ -71,7 +71,7 @@ export default function GlobalCallSidebar() {
           patientToken: activeCall.patientToken,
         });
       } else {
-        console.warn('⚠️ No patient data in activeCall – cannot store metadata');
+        console.warn('⚠️ No patient data in activeCall cannot store metadata');
       }
 
       removeCall(activeCall.vitalsId);
