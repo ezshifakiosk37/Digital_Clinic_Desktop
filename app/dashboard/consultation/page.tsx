@@ -52,6 +52,8 @@ const EZShifaPortal = () => {
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [queueTab, setQueueTab] = useState<'Walk-in' | 'Online Consultation'>('Walk-in');
 
+  const [docToken, setDocToken] = useState<string>()
+
   const [doctor, setDoctor] = useState<DoctorProfile>({
     title: '', firstName: '', lastName: '', email: '', password: '',
     phone: '', gender: '', specializations: [], qualifications: [],
@@ -74,29 +76,24 @@ const EZShifaPortal = () => {
   useEffect(() => {
     const token = localStorage.getItem('doc_token');
     console.log("[Auth] doc_token present:", !!token);
-    if (token) {
-      setIsLoggedIn(true);
-    } else {
+
+    if (!token) {
       setActivePage('dashboard'); // will hit the session-expired guard
+      setAuthChecked(true);
+      return;
     }
+
+    console.log("Doc Token:", token);
+    setIsLoggedIn(true);
+
     const savedDoctor = apiService.getDoctor();
     if (savedDoctor) setDoctor(savedDoctor);
     setAuthChecked(true);
-  }, []);
-
-  // ── Load dashboard data ────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!isLoggedIn || !localStorage.getItem('doc_token')) {
-      console.warn("[Dashboard] Not logged in, skipping data load.");
-      setIsLoggedIn(false);
-      return;
-    }
 
     const loadDashboardData = async () => {
       console.log("[Dashboard] Loading dashboard data...");
       setLoadingQueue(true);
       try {
-        // Fetch live doctor profile + status
         try {
           const profileRes = await apiService.docGetProfile();
           if (profileRes.success && profileRes.doctor) {
@@ -108,14 +105,13 @@ const EZShifaPortal = () => {
           console.error("[Dashboard] Failed to fetch live doctor profile:", profileErr);
         }
 
-        const savedDoctor = apiService.getDoctor();
         const docId = savedDoctor?.id as string | undefined;
         console.log("[Dashboard] Doctor ID:", docId);
 
         const [stats, globalData, data] = await Promise.all([
           apiService.getTodayStats(docId),
-          apiService.getTodayQueue(),           // all doctors — to build global done set
-          apiService.getTodayQueue(docId),      // this doctor's queue
+          apiService.getTodayQueue(),
+          apiService.getTodayQueue(docId),
         ]);
 
         console.log("[Dashboard] Stats:", stats);
@@ -163,7 +159,7 @@ const EZShifaPortal = () => {
     };
 
     loadDashboardData();
-  }, [isLoggedIn]);
+  }, []);
 
   // ── Doctor login event (fired after login flow completes) ─────────────────
   useEffect(() => {
