@@ -284,6 +284,15 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
               <User size={20} />
             </Button>
           )}
+          {isDoctor && (
+            <Button
+              onClick={() => setIsPrescriptionOpen(true)}
+              className="rounded-full h-14 w-14 bg-[#0297d6] hover:bg-[#0288c2] text-white shadow-lg shadow-[#0297d6]/40 border-2 border-white/20 transition-all active:scale-95"
+              title="Write Prescription"
+            >
+              <ClipboardList size={20} />
+            </Button>
+          )}
         </div>
       )}
     </div>
