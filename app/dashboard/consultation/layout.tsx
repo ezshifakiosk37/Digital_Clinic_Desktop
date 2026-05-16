@@ -142,7 +142,7 @@ const unregisterFcm = useCallback(async (shouldCleanup: boolean = true) => {
     const cachedToken = fcmTokenRef.current || localStorage.getItem(FCM_CACHE_KEY);
     if (cachedToken) {
       try {
-        await <apiService className="removeDoctorFcmToken"></apiService>(cachedToken); // add this endpoint
+        await apiService.removeDoctorFcmToken(cachedToken); // add this endpoint
         console.log("[FCM] Old token removed from backend DB.");
       } catch (err) {
         console.error("[FCM] Failed to remove token from backend:", err);
