@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, CheckCircle, Clock, Search, X, Video } from 'lucide-react';
 
@@ -51,8 +51,9 @@ const EZShifaPortal = () => {
   const [doctorStatus, setDoctorStatus] = useState<'online' | 'offline'>('online');
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [queueTab, setQueueTab] = useState<'Walk-in' | 'Online Consultation'>('Walk-in');
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
-  const [docToken, setDocToken] = useState<string>()
+  const isFirstStatusDispatch = useRef(true);
 
   const [doctor, setDoctor] = useState<DoctorProfile>({
     title: '', firstName: '', lastName: '', email: '', password: '',
@@ -64,23 +65,15 @@ const EZShifaPortal = () => {
   const { onlineQueue: fcmOnlineQueue, removeCall, updateCallStatus } = useCallQueue();
 
   // ── Notify layout whenever doctorStatus changes ────────────────────────────
-  useEffect(() => {
-    if (!authChecked) return;
-    console.log("[DoctorStatus] Dispatching status change:", doctorStatus);
-    window.dispatchEvent(
-      new CustomEvent('doctor-status-changed', { detail: { status: doctorStatus } })
-    );
-  }, [doctorStatus, authChecked]);
-
-  // ── Auth check on mount ────────────────────────────────────────────────────
+  // ── Notify layout whenever doctorStatus changes ────────────────────────────
+  // ── Auth + dashboard data load ─────────────────────────────────────────────
   useEffect(() => {
     const token = localStorage.getItem('doc_token');
     console.log("[Auth] doc_token present:", !!token);
 
     if (!token) {
-      setActivePage('dashboard'); // will hit the session-expired guard
       setAuthChecked(true);
-      return;
+      return; // isLoggedIn stays false → session expired screen
     }
 
     console.log("Doc Token:", token);
@@ -94,6 +87,8 @@ const EZShifaPortal = () => {
       console.log("[Dashboard] Loading dashboard data...");
       setLoadingQueue(true);
       try {
+        // Profile MUST resolve before anything else so the dispatch
+        // useEffect fires with the real status, not the default 'online'
         try {
           const profileRes = await apiService.docGetProfile();
           if (profileRes.success && profileRes.doctor) {
@@ -103,6 +98,8 @@ const EZShifaPortal = () => {
           }
         } catch (profileErr) {
           console.error("[Dashboard] Failed to fetch live doctor profile:", profileErr);
+        } finally {
+          setProfileLoaded(true); // ← unblocks dispatch useEffect with real status
         }
 
         const docId = savedDoctor?.id as string | undefined;
@@ -161,7 +158,19 @@ const EZShifaPortal = () => {
     loadDashboardData();
   }, []);
 
-  // ── Doctor login event (fired after login flow completes) ─────────────────
+  // ── Dispatch real doctor status to layout (FCM registration) ──────────────
+  // Gated on BOTH authChecked AND profileLoaded so the layout never receives
+  // the default 'online' value — it always gets the real API value first.
+  useEffect(() => {
+    if (!authChecked || !profileLoaded) return;
+
+    console.log("[DoctorStatus] Dispatching real status to layout:", doctorStatus);
+    window.dispatchEvent(
+      new CustomEvent('doctor-status-changed', { detail: { status: doctorStatus } })
+    );
+  }, [doctorStatus, authChecked, profileLoaded]);
+
+  // ── Doctor login event (fired after login flow completes) ──────────────────
   useEffect(() => {
     const handleDoctorLogin = () => {
       console.log("[Auth] doctorLoggedIn event received");
@@ -391,6 +400,16 @@ const EZShifaPortal = () => {
       setTogglingStatus(false);
     }
   };
+
+  // ── Loading guard (while auth is being checked) ───────────────────────────
+  // ── Loading guard ──────────────────────────────────────────────────────────
+  if (!authChecked) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <span className="w-7 h-7 border-[3px] border-[#0297d6] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   // ── Session expired guard ──────────────────────────────────────────────────
   if (!isLoggedIn) {

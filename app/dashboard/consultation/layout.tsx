@@ -1,4 +1,3 @@
-// consultation/layout.tsx
 "use client";
 import { useEffect, useRef, useCallback } from 'react';
 import { getMessaging, getToken, onMessage, deleteToken } from "firebase/messaging";
@@ -8,8 +7,9 @@ import { apiService } from '@/app/_utils/apiService';
 import { useCallQueue } from '@/app/_context/CallQueueContext';
 import GlobalCallSidebar from "./components/GlobalCallSidebar";
 
+const FCM_CACHE_KEY = 'fcm_token';
+
 export default function ConsultationLayout({ children }: { children: React.ReactNode }) {
-  // ── FCM refs ───────────────────────────────────────────────────────────────
   const messagingRef = useRef<ReturnType<typeof getMessaging> | null>(null);
   const fcmTokenRef = useRef<string | null>(null);
   const fcmListenerRef = useRef<(() => void) | null>(null);
@@ -17,15 +17,10 @@ export default function ConsultationLayout({ children }: { children: React.React
 
   const { addCall } = useCallQueue();
 
-  // ── Build call payload from incoming notification ──────────────────────────
   const buildCallPayload = (payload: any) => {
     const vitalsId = payload?.vitalsId || payload?.data?.vitalsId;
     const patientId = payload?.patientId || payload?.data?.patientId;
     const patientToken = payload?.patientToken || payload?.data?.patientToken || payload?.data?.token;
-
-    console.log("📦 [buildCallPayload] raw payload.data:", payload?.data);
-    console.log("📦 [buildCallPayload] token:", payload?.data?.token);
-
     return {
       vitalsId,
       title: payload?.notification?.title || payload?.title || 'Incoming Call',
@@ -39,17 +34,20 @@ export default function ConsultationLayout({ children }: { children: React.React
     };
   };
 
-  // ── FCM registration ───────────────────────────────────────────────────────
   const registerFcm = useCallback(async () => {
+    console.log("[FCM] registerFcm() called, already registered:", fcmRegisteredRef.current);
     if (fcmRegisteredRef.current) return;
+
     const jwt = localStorage.getItem('doc_token');
+    console.log("[FCM] doc_token present:", !!jwt);
     if (!jwt) return;
 
     const saveToken = async (token: string) => {
+      console.log("[FCM] saveToken() called with token length:", token?.length);
       fcmTokenRef.current = token;
       try {
         const res = await apiService.saveDoctorFcmToken(token);
-        if (res.success) console.log("[FCM] Device registered.");
+        console.log("[FCM] saveDoctorFcmToken response:", res); // ← full response
       } catch (err: any) {
         console.error("[FCM] Save failed:", err.message);
       }
@@ -69,24 +67,51 @@ export default function ConsultationLayout({ children }: { children: React.React
       const androidHandler = (e: Event) => handleIncomingCall((e as CustomEvent).detail);
       window.addEventListener('incoming-call', androidHandler);
       fcmListenerRef.current = () => window.removeEventListener('incoming-call', androidHandler);
+
     } else if ("Notification" in window) {
       try {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') { console.warn("[FCM] Permission denied."); return; }
+        const cachedToken = localStorage.getItem(FCM_CACHE_KEY);
+        console.log("[FCM] Cached token present:", !!cachedToken, "| length:", cachedToken?.length);
 
-        const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-        await navigator.serviceWorker.ready;
+        if (cachedToken) {
+          console.log("[FCM] Cached token found — syncing with DB and setting up listener...");
+          // ✅ Always re-sync DB even with cached token
+          // Covers the case where DB was wiped by a previous unregister
+          await saveToken(cachedToken);
 
-        const messaging = getMessaging(firebaseApp);
-        messagingRef.current = messaging;
+          const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+          await navigator.serviceWorker.ready;
+          const messaging = getMessaging(firebaseApp);
+          messagingRef.current = messaging;
+          fcmListenerRef.current = onMessage(messaging, handleIncomingCall);
 
-        const token = await getToken(messaging, {
-          vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY,
-          serviceWorkerRegistration: reg,
-        });
-        if (token) await saveToken(token);
+        } else {
+          console.log("[FCM] No cached token — requesting permission and generating...");
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') {
+            console.warn("[FCM] Permission denied.");
+            return;
+          }
 
-        fcmListenerRef.current = onMessage(messaging, handleIncomingCall);
+          const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+          await navigator.serviceWorker.ready;
+
+          const messaging = getMessaging(firebaseApp);
+          messagingRef.current = messaging;
+
+          const token = await getToken(messaging, {
+            vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY,
+            serviceWorkerRegistration: reg,
+          });
+
+          if (token) {
+            localStorage.setItem(FCM_CACHE_KEY, token);
+            await saveToken(token);
+          }
+
+          fcmListenerRef.current = onMessage(messaging, handleIncomingCall);
+        }
+
       } catch (err) {
         console.error("[FCM] Web setup error:", err);
         return;
@@ -96,7 +121,6 @@ export default function ConsultationLayout({ children }: { children: React.React
     fcmRegisteredRef.current = true;
   }, [addCall]);
 
-  // ── FCM unregistration ─────────────────────────────────────────────────────
   const unregisterFcm = useCallback(async (shouldCleanup: boolean = true) => {
     if (!fcmRegisteredRef.current) return;
 
@@ -114,7 +138,8 @@ export default function ConsultationLayout({ children }: { children: React.React
     } else if (messagingRef.current && fcmTokenRef.current && shouldCleanup) {
       try {
         await deleteToken(messagingRef.current);
-        console.log("[FCM] Device unregistered.");
+        localStorage.removeItem(FCM_CACHE_KEY); // ✅ clear cache so next registerFcm() re-saves fresh
+        console.log("[FCM] Token deleted, cache cleared.");
       } catch (err) {
         console.error("[FCM] Token deletion failed:", err);
       }
@@ -125,16 +150,14 @@ export default function ConsultationLayout({ children }: { children: React.React
     fcmRegisteredRef.current = false;
   }, []);
 
-  // ── Listen for status/logout events dispatched by any child page ───────────
   useEffect(() => {
-    // Register on mount if a session already exists (e.g. page refresh)
-    if (localStorage.getItem('doc_token')) {
-      registerFcm();
-    }
+    // ✅ No eager registerFcm() on mount
+    // Layout waits for dashboard to dispatch real status from profile API
+    // This prevents the race: layout saves token → dashboard gets 'offline' → wipes it
 
-    // Page dispatches this whenever doctorStatus changes
     const handleStatusChange = (e: Event) => {
       const { status } = (e as CustomEvent<{ status: 'online' | 'offline' }>).detail;
+      console.log("[Layout] Received doctor-status-changed:", status);
       if (status === 'online') {
         registerFcm();
       } else {
@@ -142,8 +165,10 @@ export default function ConsultationLayout({ children }: { children: React.React
       }
     };
 
-    // Page dispatches this on full logout
-    const handleLogout = () => unregisterFcm(true);
+    const handleLogout = () => {
+      console.log("[Layout] Received doctor-logged-out");
+      unregisterFcm(true);
+    };
 
     window.addEventListener('doctor-status-changed', handleStatusChange);
     window.addEventListener('doctor-logged-out', handleLogout);
@@ -157,7 +182,6 @@ export default function ConsultationLayout({ children }: { children: React.React
   return (
     <>
       {children}
-      {/* GlobalCallSidebar lives here so incoming call notifications work on every page */}
       <div className="fixed bottom-0 left-0 right-0 z-999 pointer-events-none">
         <div className="pointer-events-auto">
           <GlobalCallSidebar />

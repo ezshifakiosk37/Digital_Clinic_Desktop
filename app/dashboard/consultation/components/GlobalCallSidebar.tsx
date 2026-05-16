@@ -36,11 +36,14 @@ export default function GlobalCallSidebar() {
         const data = await apiService.getCallStatus(activeCall.vitalsId);
         const status = data?.status;
         // Inside the polling useEffect
-        if (status === 'declined_by_patient' || status === 'doctor_not_responding') {
+        if (status === 'declined_by_patient') {
           stopAudio();
           // Update the call status in the queue, don't remove it
-          updateCallStatus(activeCall.vitalsId, 'not_responding');
+          updateCallStatus(activeCall.vitalsId, 'declined_by_patient');
           setActiveCall(null);   // hide the toast
+        } else if (status === "doctor_not_responding") {
+          stopAudio()
+          updateCallStatus(activeCall.vitalsId, "doctor_not_responding")
         }
       } catch { }
     }, 2000);

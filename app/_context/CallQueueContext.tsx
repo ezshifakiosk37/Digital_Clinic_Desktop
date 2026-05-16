@@ -7,7 +7,7 @@ export type CallStatus =
   | 'accepted'
   | 'declined_by_patient'
   | 'declined_by_doctor'
-  | 'not_responding'
+  | 'doctor_not_responding'
   | 'completed';
 
 export interface CallPayload {
