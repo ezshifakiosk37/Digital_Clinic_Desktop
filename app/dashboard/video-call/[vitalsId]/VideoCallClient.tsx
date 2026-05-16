@@ -9,10 +9,12 @@ import AgoraRTC, {
 import { Button } from "@/components/ui/button";
 import {
   Mic, MicOff, Video, VideoOff, PhoneOff, Loader2,
-  CameraOff, AlertCircle, ClipboardList
+  CameraOff, AlertCircle, ClipboardList,
+  User
 } from "lucide-react";
 import { apiService } from '@/app/_utils/apiService';
 import { PrescriptionModal } from './PrescriptionModel';
+import { PatientInfoModal } from './PatientInfoModal';
 
 interface VideoCallClientProps {
   vitalsId: string;
@@ -32,6 +34,8 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
   const [patientId, setPatientId] = useState<string | undefined>();
   const [patientToken, setPatientToken] = useState<string | undefined>();
   const [fetchingPatient, setFetchingPatient] = useState(true);
+  const [isPatientInfoOpen, setIsPatientInfoOpen] = useState(false);
+  const [patientInfo, setPatientInfo] = useState<any | null>(null);
 
   const client = useRef<IAgoraRTCClient | null>(null);
   const initialized = useRef(false);
@@ -40,9 +44,9 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
   const remoteRef = useRef<HTMLDivElement>(null);
   const localRef = useRef<HTMLDivElement>(null);
   const isDoctor = typeof window !== 'undefined' && !!localStorage.getItem('doc_token');
-  // 1. Fetch patient data using vitalsId
+
   useEffect(() => {
-    if (!vitalsId || !isDoctor) return;  // ✅ skip entirely for patients
+    if (!vitalsId || !isDoctor) return;
     const fetchPatientData = async () => {
       try {
         console.log('🔍 Fetching patient data for vitalsId:', vitalsId);
@@ -50,6 +54,7 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
         console.log('✅ Fetched patient data:', data);
         setPatientId(data.patientId);
         setPatientToken(data.token || data.patientToken);
+        setPatientInfo(data); // ← store full object for the info modal
       } catch (err: any) {
         console.error('❌ Failed to fetch patient data:', err);
       } finally {
@@ -196,6 +201,13 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
           patientToken={patientToken}
         />
       )}
+      {isPatientInfoOpen && (
+        <PatientInfoModal
+          onClose={() => setIsPatientInfoOpen(false)}
+          patient={patientInfo}
+          loading={fetchingPatient}
+        />
+      )}
 
       {/* Loading */}
       {loading && (
@@ -265,11 +277,11 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
 
           {isDoctor && (
             <Button
-              onClick={() => setIsPrescriptionOpen(true)}
-              className="rounded-full h-14 w-14 bg-[#0297d6] hover:bg-[#0288c2] text-white shadow-lg shadow-[#0297d6]/40 border-2 border-white/20 transition-all active:scale-95"
-              title="Write Prescription"
+              onClick={() => setIsPatientInfoOpen(true)}
+              className="rounded-full h-14 w-14 bg-slate-700 hover:bg-slate-600 text-white border-2 border-white/20 transition-all active:scale-95"
+              title="Patient Info"
             >
-              <ClipboardList size={20} />
+              <User size={20} />
             </Button>
           )}
         </div>
