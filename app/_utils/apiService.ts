@@ -420,4 +420,13 @@ export const apiService = {
         });
         return handleResponse(response);
     },
+
+    removeDoctorFcmToken: async (token: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/notifications/remove-fcm-token`, {
+            method: 'DELETE',
+            headers: getDocHeaders(),
+            body: JSON.stringify({ fcmToken: token }),
+        });
+        return handleResponse(response);
+    },
 };
