@@ -21,7 +21,7 @@ interface Patient {
 const EZShifaPortal = () => {
 
   // ── State ──────────────────────────────────────────────────────────────────
-  const [activePage, setActivePage] = useState<'login' | 'signup' | 'dashboard' | 'profile'>('dashboard');
+  const [activePage, setActivePage] = useState<'login' | 'signup' | 'dashboard' | 'profile' | 'consult'>('dashboard');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
@@ -334,6 +334,7 @@ const EZShifaPortal = () => {
     }
     console.log("[WalkIn] Starting consult for patient:", patient.firstName, patient.lastName);
     setSelectedPatient(patient);
+    setActivePage('consult');
   };
 
   const handleSessionEnd = async (completedPatient: any) => {
@@ -341,6 +342,7 @@ const EZShifaPortal = () => {
     setQueue(prev => prev.filter(p => p.id !== completedPatient.id));
     setDoneQueue(prev => [...prev, completedPatient]);
     setSelectedPatient(null);
+    setActivePage('dashboard'); 
     setMedicines([]);
     setNotes('');
     setPrescriptionGenerated(false);
@@ -576,7 +578,7 @@ const EZShifaPortal = () => {
                             <p className="text-sm text-slate-500">{walkinSearchResult.phoneNumber || '—'}</p>
                           </td>
                           <td className="px-5 py-4">
-                            <p className="text-sm text-slate-600 max-w-xs truncate">{walkinSearchResult.symptoms || '—'}</p>
+                            <p className="text-sm text-slate-600 max-w-[160px] line-clamp-2 leading-snug">{walkinSearchResult.symptoms || '—'}</p>
                           </td>
                           <td className="px-5 py-4 text-right">
                             <button
@@ -678,7 +680,7 @@ const EZShifaPortal = () => {
               <table className="w-full">
                 <thead className="bg-slate-50">
                   <tr className="text-sm text-slate-500 font-semibold uppercase tracking-wide">
-                    <th className="px-3 md:px-8 py-4 text-left">Sr. No</th>
+                    {/* <th className="px-3 md:px-8 py-4 text-left">Sr. No</th> */}
                     <th className="px-3 md:px-8 py-4 text-left">Token</th>
                     <th className="px-3 md:px-8 py-4 text-left">Patient</th>
                     <th className="px-3 md:px-8 py-4 text-left">Symptoms</th>
@@ -688,10 +690,12 @@ const EZShifaPortal = () => {
                 <tbody className="divide-y divide-slate-100">
                   {doneQueue.map((p, i) => (
                     <tr key={`done-${p.prescriptionId}`} className="bg-emerald-50/30">
-                      <td className="px-3 md:px-8 py-4 font-medium text-slate-400">{i + 1}</td>
+                      {/* <td className="px-3 md:px-8 py-4 font-medium text-slate-400">{i + 1}</td> */}
                       <td className="px-3 md:px-8 py-4 font-bold text-slate-400">#{p.token}</td>
                       <td className="px-3 md:px-8 py-4 text-slate-600 font-semibold whitespace-nowrap">{p.firstName} {p.lastName}</td>
-                      <td className="px-3 md:px-8 py-4 text-slate-500 text-sm">{p.symptoms || '—'}</td>
+                      <td className="px-3 md:px-8 py-4 text-slate-500 text-sm max-w-[160px]">
+                        <span className="line-clamp-2 leading-snug">{p.symptoms || '—'}</span>
+                      </td>
                       <td className="px-4 py-4 text-right">
                         <span className="bg-blue-200 text-blue-700 text-xs font-black px-3 py-1.5 rounded-xl uppercase tracking-widest">
                           ✓ Done
@@ -704,28 +708,30 @@ const EZShifaPortal = () => {
             </div>
           )}
 
-          {/* Walk-in Consultation Panel */}
-          {selectedPatient && (
-            <DocConsult
-              selectedPatient={selectedPatient}
-              setSelectedPatient={setSelectedPatient}
-              medicines={medicines}
-              setMedicines={setMedicines}
-              notes={notes}
-              setNotes={setNotes}
-              prescriptionGenerated={prescriptionGenerated}
-              setPrescriptionGenerated={setPrescriptionGenerated}
-              doctor={doctor}
-              updateMedicine={updateMedicine}
-              fullName={fullName}
-              onSessionEnd={handleSessionEnd}
-              endingSession={endingSession}
-              setEndingSession={setEndingSession}
-            />
-          )}
+          
 
         </main>
       )}
+
+      {/* Consultation Page */}
+{activePage === 'consult' && selectedPatient && (
+  <DocConsult
+    selectedPatient={selectedPatient}
+    setSelectedPatient={(p) => { setSelectedPatient(p); if (!p) setActivePage('dashboard'); }}
+    medicines={medicines}
+    setMedicines={setMedicines}
+    notes={notes}
+    setNotes={setNotes}
+    prescriptionGenerated={prescriptionGenerated}
+    setPrescriptionGenerated={setPrescriptionGenerated}
+    doctor={doctor}
+    updateMedicine={updateMedicine}
+    fullName={fullName}
+    onSessionEnd={handleSessionEnd}
+    endingSession={endingSession}
+    setEndingSession={setEndingSession}
+  />
+)}
 
       {/* Profile */}
       {activePage === 'profile' && (

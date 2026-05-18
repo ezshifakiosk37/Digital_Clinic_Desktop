@@ -449,10 +449,10 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                 className="w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-[#0297d6] focus:bg-white outline-none transition-all font-medium text-slate-700 text-sm mb-6" />
 
                             <div className="flex gap-3 print:hidden">
-                                <button onClick={() => setPrescriptionGenerated(true)}
+                                {/* <button onClick={() => setPrescriptionGenerated(true)}
                                     className="flex-1 bg-[#0297d6] text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-[#0297d6]/80 transition-all">
                                     <Pill size={16} /> Generate Prescription
-                                </button>
+                                </button> */}
                                 <button disabled={endingSession}
                                     onClick={async () => {
                                         if (!selectedPatient) return;
