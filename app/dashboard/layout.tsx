@@ -70,10 +70,23 @@ export default function DashboardLayout({
   return (
     <div className="flex min-h-screen bg-[#0296d610]">
       <Sidebar />
+
+      {/* ✅ Floating hamburger — mobile only, outside sidebar so always visible */}
+      <button
+        onClick={() => window.dispatchEvent(new CustomEvent('toggle-mobile-sidebar'))}
+        className="fixed top-3 left-3 z-50 md:hidden bg-white border border-slate-200 shadow-md p-2 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors"
+        aria-label="Open menu"
+      >
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
       <main className="flex-1 min-h-screen pl-0 md:pl-16 transition-all duration-300">
         {children}
       </main>
     </div>
   );
+
 }
 
