@@ -2,17 +2,15 @@
 const API_BASE_URL = "https://bifurcation-clinic-api.vercel.app";
 // const API_BASE_URL = "http://localhost:5000";
 
-const handleResponse = async (response: Response) => {
-    const data = await response.json();
+async function handleResponse(response: Response) {
     if (!response.ok) {
-        if (response.status === 401) {
-            console.warn("Unauthorized: Clearing token and redirecting.");
-            localStorage.removeItem('token');
-        }
-        throw new Error(data.error || data.details || "Request failed");
+        const body = await response.json().catch(() => ({}));
+        const error: any = new Error(body.error || "Request failed");
+        error.status = response.status; // ✅ attach status so callers can branch on it
+        throw error;
     }
-    return data;
-};
+    return response.json();
+}
 
 const getHeaders = () => ({
     'Content-Type': 'application/json',
@@ -23,6 +21,19 @@ const getDocHeaders = () => ({
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${localStorage.getItem('doc_token')}`,
 });
+
+const getAvailableHeaders = () => {
+    const token = localStorage.getItem('token');
+    const docToken = localStorage.getItem('doc_token');
+    const resolved = token ?? docToken;
+
+    if (!resolved) throw new Error("No active session. Please log in.");
+
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${resolved}`,
+    };
+};
 
 export const apiService = {
 
@@ -204,6 +215,18 @@ export const apiService = {
         window.location.href = '/consultation';
     },
 
+    // In apiService.ts — add inside the apiService object
+    docLogoutWithReason: async (reason: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/doctors/logout`, {
+            method: 'POST',
+            headers: getDocHeaders(),
+            body: JSON.stringify({ reason }),
+        });
+        localStorage.removeItem('doc_token');
+        localStorage.removeItem('doctor');
+        return handleResponse(response);
+    },
+
     getDoctor: () => {
         const doc = localStorage.getItem('doctor');
         return doc ? JSON.parse(doc) : null;
@@ -309,7 +332,7 @@ export const apiService = {
     alertDoctor: async (doctorId: string, vitalsId: string) => {
         const response = await fetch(`${API_BASE_URL}/api/notifications/alert-doctor`, {
             method: 'POST',
-            headers: getHeaders(), // patient token
+            headers: getHeaders(), // ✅ patient token — must NOT use getDocHeaders() here
             body: JSON.stringify({ doctorId, vitalsId }),
         });
 
@@ -329,7 +352,7 @@ export const apiService = {
     getCallStatus: async (vitalsId: string) => {
         const response = await fetch(`${API_BASE_URL}/api/notifications/call-status/${vitalsId}`, {
             method: 'GET',
-            headers: getHeaders(),
+            headers: getAvailableHeaders(),
         });
 
         return handleResponse(response);
@@ -338,7 +361,7 @@ export const apiService = {
     endCall: async (vitalsId: string, reason?: string) => {
         const response = await fetch(`${API_BASE_URL}/api/notifications/end-call`, {
             method: 'POST',
-            headers: getHeaders(),
+            headers: getAvailableHeaders(),
             body: JSON.stringify({ vitalsId, reason }),
         });
 
@@ -374,6 +397,13 @@ export const apiService = {
         );
         return handleResponse(res);
     },
+    getAssignedDoctor: async (kioskId: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/doctors/assigned-doctor/${kioskId}`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+        return handleResponse(response);
+    },
 
     getAllDoctors: async () => {
         const response = await fetch(`${API_BASE_URL}/api/doctors/all`, {
@@ -383,4 +413,20 @@ export const apiService = {
         return handleResponse(response);
     },
 
+    getPatientByVitalsId: async (vitalsId: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/patients/patient-by-vitals/${vitalsId}`, {
+            method: 'GET',
+            headers: getDocHeaders(),  // doctor token
+        });
+        return handleResponse(response);
+    },
+
+    removeDoctorFcmToken: async (token: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/notifications/remove-fcm-token`, {
+            method: 'DELETE',
+            headers: getHeaders(),
+            body: JSON.stringify({ fcmToken: token }),
+        });
+        return handleResponse(response);
+    },
 };

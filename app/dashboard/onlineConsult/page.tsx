@@ -3,7 +3,7 @@ import { Activity, RefreshCw, Search, X, Phone, Hash, User, ChevronDown, Chevron
 import React, { useState, useEffect, useRef } from 'react'
 import { apiService } from '@/app/_utils/apiService'
 import { VideoConsultModel } from '../vitals/_components/VideoConsultModel'
-import { PatientResult, Doctor } from '@/app/_utils/types'
+import { PatientResult, Doctor, QueueItem } from '@/app/_utils/types'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const parseSymptoms = (raw: string | null | undefined): string[] => {
@@ -11,32 +11,60 @@ const parseSymptoms = (raw: string | null | undefined): string[] => {
   try {
     const parsed = JSON.parse(raw)
     if (Array.isArray(parsed)) return parsed
-  } catch {}
+  } catch { }
   return raw.split(',').map(s => s.trim()).filter(Boolean)
 }
 
-type SearchMode = 'name' | 'token' | 'phone'
+type SearchMode = 'token' | 'name' | 'phone'
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const OnlineConsultPage = () => {
 
-  // ── State ──────────────────────────────────────────────────────────────────
-  const [searchMode, setSearchMode]         = useState<SearchMode>('name')
-  const [searchQuery, setSearchQuery]       = useState('')
-  const [searchResults, setSearchResults]   = useState<PatientResult[]>([])
-  const [searching, setSearching]           = useState(false)
-  const [hasSearched, setHasSearched]       = useState(false)
+  // ── State ─────────────────────────────────────────────────────────────
+  const [searchMode, setSearchMode] = useState<SearchMode>('token')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<PatientResult[]>([])
+  const [searching, setSearching] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
   const [expandedSymptoms, setExpandedSymptoms] = useState<string | null>(null)
+  const [queue, setQueue] = useState<QueueItem[]>([])
+  const [search, setSearch] = useState("")
+  const [expandedToken, setExpandedToken] = useState<string | null>(null)
+  const [selectedPatient, setSelectedPatient] = useState<QueueItem | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
-  const [doctors, setDoctors]               = useState<Doctor[]>([])
+  const [doctors, setDoctors] = useState<Doctor[]>([])
   const [loadingDoctors, setLoadingDoctors] = useState(true)
 
   // Doctor picker: which patient triggered it
-  const [pickerPatient, setPickerPatient]   = useState<PatientResult | null>(null)
+  const [pickerPatient, setPickerPatient] = useState<PatientResult | null>(null)
 
   // Video consult
-  const [videoVitalsId, setVideoVitalsId]   = useState<string | null>(null)
-  const [toast, setToast]                   = useState<string | null>(null)
+  const [videoVitalsId, setVideoVitalsId] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+
+  const loadQueue = async (showSpinner = false) => {
+    if (showSpinner) setRefreshing(true)
+    try {
+      const res = await apiService.getTodayQueue()
+      const all: QueueItem[] = res.patients ?? []
+      setQueue(all.filter(p => p.patientType === 'Online Consultation'))
+    } catch (err) {
+      console.error("Failed to load queue", err)
+    } finally {
+      if (showSpinner) setRefreshing(false)
+    }
+  }
+
+  useEffect(() => { loadQueue() }, [])
+
+  const filtered = queue.filter((p) => {
+    if (!search) return true
+    const q = search.toLowerCase()
+    const name = `${p.firstName} ${p.lastName}`.toLowerCase()
+    const rev = `${p.lastName} ${p.firstName}`.toLowerCase()
+    return name.includes(q) || rev.includes(q) || String(p.token).includes(q)
+  })
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -58,6 +86,7 @@ const OnlineConsultPage = () => {
     }
   }
 
+
   const handleSearch = async () => {
     const q = searchQuery.trim()
     if (!q) return
@@ -71,7 +100,7 @@ const OnlineConsultPage = () => {
         if (searchMode === 'token') return String(p.token).toLowerCase().includes(lower)
         if (searchMode === 'phone') return String(p.phoneNumber || '').toLowerCase().includes(lower)
         const full = `${p.firstName} ${p.lastName}`.toLowerCase()
-        const rev  = `${p.lastName} ${p.firstName}`.toLowerCase()
+        const rev = `${p.lastName} ${p.firstName}`.toLowerCase()
         return full.includes(lower) || rev.includes(lower)
       })
       setSearchResults(filtered)
@@ -108,8 +137,8 @@ const OnlineConsultPage = () => {
   }
 
   const searchModeMeta: Record<SearchMode, { icon: React.ReactNode; placeholder: string }> = {
-    name:  { icon: <User size={14} />,  placeholder: 'e.g. Saad Kamal or just Saad' },
-    token: { icon: <Hash size={14} />,  placeholder: 'e.g. 12' },
+    name: { icon: <User size={14} />, placeholder: 'e.g. Saad Kamal or just Saad' },
+    token: { icon: <Hash size={14} />, placeholder: 'e.g. 12' },
     phone: { icon: <Phone size={14} />, placeholder: 'e.g. 03001234567' },
   }
 
@@ -148,11 +177,10 @@ const OnlineConsultPage = () => {
                 <button
                   key={mode}
                   onClick={() => { setSearchMode(mode); setSearchQuery(''); setSearchResults([]); setHasSearched(false) }}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${
-                    searchMode === mode
-                      ? 'bg-[#0297d6] text-white border-[#0297d6]'
-                      : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-[#0297d6]/40'
-                  }`}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${searchMode === mode
+                    ? 'bg-[#0297d6] text-white border-[#0297d6]'
+                    : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-[#0297d6]/40'
+                    }`}
                 >
                   {searchModeMeta[mode].icon}
                   {mode.charAt(0).toUpperCase() + mode.slice(1)}
@@ -271,11 +299,10 @@ const OnlineConsultPage = () => {
                                     onClick={() => handleConsultClick(p)}
                                     disabled={!p.vitalsId}
                                     title={!p.vitalsId ? 'Vitals not recorded' : 'Select a doctor to consult'}
-                                    className={`text-sm font-bold px-4 py-2 rounded-xl transition-colors ${
-                                      p.vitalsId
-                                        ? 'bg-[#0297d6] hover:bg-[#0286c2] text-white'
-                                        : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                    }`}
+                                    className={`text-sm font-bold px-4 py-2 rounded-xl transition-colors ${p.vitalsId
+                                      ? 'bg-[#0297d6] hover:bg-[#0286c2] text-white'
+                                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                      }`}
                                   >
                                     💻 Consult
                                   </button>
@@ -379,7 +406,7 @@ const OnlineConsultPage = () => {
                     const specs = Array.isArray(doc.specializations)
                       ? doc.specializations.slice(0, 2).join(' • ')
                       : typeof doc.specializations === 'string'
-                      ? doc.specializations : ''
+                        ? doc.specializations : ''
                     return (
                       <button
                         key={doc.id}
@@ -424,6 +451,8 @@ const OnlineConsultPage = () => {
         isOpen={!!videoVitalsId}
         onClose={() => setVideoVitalsId(null)}
         vitalsId={videoVitalsId}
+        patientId={pickerPatient?.id ?? null}
+        patientToken={pickerPatient?.token ?? null}
       />
     </main>
   )
@@ -435,7 +464,7 @@ const DoctorCard = ({ doctor }: { doctor: Doctor }) => {
   const specs = Array.isArray(doctor.specializations)
     ? doctor.specializations.slice(0, 2).join(' • ')
     : typeof doctor.specializations === 'string'
-    ? doctor.specializations : ''
+      ? doctor.specializations : ''
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-white overflow-hidden hover:shadow-md transition-all flex flex-col">

@@ -775,8 +775,6 @@ const VitalsPage = () => {
                   </div>
                 </div>
 
-                <VideoConsultModel isOpen={isVideoModalOpen} onClose={() => setIsVideoModalOpen(false)} vitalsId={vitalsId} />
-
                 {/* ── HISTORY (Step 2 only) ── */}
                 <div className="mt-8 md:mt-12">
                   <Button onClick={() => setShowHistory(p => !p)} variant="outline">
