@@ -599,80 +599,50 @@ const EZShifaPortal = () => {
               </div>
             )}
 
-            {/* Online Consultation: live FCM queue */}
+           {/* Online Consultation: live FCM queue */}
             {queueTab === 'Online Consultation' && (
               <table className="w-full">
                 <thead className="bg-slate-50">
-                  {/* ✅ Using HEAD version: Sr. + Symptoms columns kept; responsive px-3 md:px-8 */}
                   <tr className="text-xs text-slate-500 font-black uppercase tracking-widest">
-                    <th className="px-3 md:px-8 py-4 text-left">Sr.</th>
-                    <th className="px-3 md:px-8 py-4 text-left">Token</th>
-                    <th className="px-3 md:px-8 py-4 text-left">Name</th>
-                    <th className="px-3 md:px-8 py-4 text-left hidden md:table-cell">Phone</th>
-                    <th className="px-3 md:px-8 py-4 text-left">Symptoms</th>
-                    <th className="px-3 md:px-8 py-4 text-right">Action</th>
+                    <th className="px-4 md:px-8 py-4 text-left">Token</th>
+                    <th className="px-4 md:px-8 py-4 text-left">Name</th>
+                    <th className="px-4 md:px-8 py-4 text-left hidden md:table-cell">Phone</th>
+                    <th className="px-4 md:px-8 py-4 text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {loadingQueue ? (
                     <tr>
-                      <td colSpan={6} className="px-8 py-12 text-center text-slate-400 text-sm">
+                      <td colSpan={4} className="px-8 py-12 text-center text-slate-400 text-sm">
                         Loading queue...
                       </td>
                     </tr>
                   ) : filteredQueue.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-8 py-12 text-center text-slate-400 text-sm">
+                      <td colSpan={4} className="px-8 py-12 text-center text-slate-400 text-sm">
                         No online calls yet — patients will appear here when they call.
                       </td>
                     </tr>
                   ) : (
                     filteredQueue.map((p, i) => (
-                      <tr
-                        key={`${p.id}-${p.token || i}`}
-                        className={`hover:bg-slate-50 transition-colors ${p._isFcmCall ? 'bg-blue-50/40' : ''}`}
-                      >
-                        {/* Sr */}
-                        <td className="px-3 md:px-8 py-5 text-sm font-medium text-slate-400">{i + 1}</td>
+                      <tr key={`${p.id}-${p.token || i}`} className="hover:bg-slate-50 transition-colors bg-blue-50/40">
 
-                        {/* Token */}
-                        <td className="px-3 md:px-8 py-5">
-                          <div className="flex items-center gap-2">
-                            <span className="font-black text-[#0297d6] text-sm">#{p.token}</span>
-                            {p._isFcmCall && (
-                              <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse">
-                                <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                                Live
-                              </span>
-                            )}
-                          </div>
+                        <td className="px-4 md:px-8 py-5">
+                          <span className="font-black text-[#0297d6] text-sm">#{p.token}</span>
                         </td>
 
-                        {/* Name */}
-                        <td className="px-3 md:px-8 py-5">
+                        <td className="px-4 md:px-8 py-5">
                           <p className="font-bold text-slate-800 text-sm whitespace-nowrap">
                             {p.firstName} {p.lastName}
                           </p>
                         </td>
 
-                        {/* Phone */}
-                        <td className="px-3 md:px-8 py-5 hidden md:table-cell">
+                        <td className="px-4 md:px-8 py-5 hidden md:table-cell">
                           <p className="text-sm text-slate-500">{p.phoneNumber || '—'}</p>
                         </td>
 
-                        {/* Symptoms */}
-                        <td className="px-3 md:px-8 py-5">
-                          <p className="text-sm text-slate-600 max-w-xs truncate">{p.symptoms || '—'}</p>
-                        </td>
-
-                        {/* Action — ✅ MERGED LOGIC:
-                            HEAD used `p._isFcmCall` to show JOIN.
-                            32c8f8a used `p.status === 'waiting'` to show JOIN.
-                            Both are correct; using status check (32c8f8a) is more precise
-                            since all FCM calls have _isFcmCall=true but may have different statuses.
-                            Keeping _isFcmCall check commented for reference. */}
-                        <td className="px-3 md:px-8 py-5 text-right">
-                          {/* Original HEAD check: p._isFcmCall */}
+                        {/* Status: JOIN button if waiting, badge otherwise */}
+                        <td className="px-4 md:px-8 py-5 text-right">
                           {p.status === 'waiting' ? (
                             <button
                               onClick={() => handleStartConsult(p)}
