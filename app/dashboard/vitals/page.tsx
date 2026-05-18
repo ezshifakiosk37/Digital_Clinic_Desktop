@@ -19,6 +19,7 @@ import WeightCalibrationModal from './_components/WeightCalibrationModel';
 import TokenDialog from './_components/TokenDialog';
 import { useRouter } from 'next/navigation';
 import { VideoConsultModel } from './_components/VideoConsultModel';
+import HeightCameraModal from './_components/HeightCameraModal';
 
 
 const VitalsPage = () => {
@@ -61,6 +62,8 @@ const VitalsPage = () => {
   const [vitalsQueue, setVitalsQueue] = useState<any[]>([]);
   const [loadingQueue, setLoadingQueue] = useState(false);
   const [vitalsSearch, setVitalsSearch] = useState("");
+  const [isHeightCameraOpen, setIsHeightCameraOpen] = useState(false);
+  const [heightUnit, setHeightUnit] = useState<'ft' | 'cm'>('ft');
 
   const router = useRouter()
 
@@ -214,8 +217,19 @@ const VitalsPage = () => {
       let result;
 
       // ALWAYS INSERT NEW ROW
+      // Always save height in feet.inches format regardless of display unit
+      const heightForSave = heightUnit === 'cm'
+        ? (() => {
+          const totalInches = parseFloat(vitals.Height) / 2.54;
+          const ft = Math.floor(totalInches / 12);
+          const inch = Math.round(totalInches % 12);
+          return `${ft}.${inch}`;
+        })()
+        : vitals.Height;
+
       result = await apiService.saveVitals(patientId, {
         ...vitals,
+        Height: heightForSave,
         bmi: bmi?.value ?? null,
         patientType: 'walk-in',
       });
@@ -461,8 +475,47 @@ const VitalsPage = () => {
     return { value: value.toFixed(1), label, color };
   }, [vitals.Weight, vitals.Height]);
 
+  // Convert "feet.inches" string → total inches
+  const feetDotInchesToInches = (val: string): number => {
+    const [f, i] = val.split('.');
+    return (parseInt(f) || 0) * 12 + (parseInt(i) || 0);
+  };
+  // Convert total inches → "feet.inches"
+  const inchesToFeetDot = (totalInches: number): string => {
+    const ft = Math.floor(totalInches / 12);
+    const inch = Math.round(totalInches % 12);
+    return `${ft}.${inch}`;
+  };
+  // Convert "feet.inches" → cm string (rounded to 1 decimal)
+  const feetDotToCm = (val: string): string => {
+    const totalInches = feetDotInchesToInches(val);
+    return (totalInches * 2.54).toFixed(1);
+  };
+  // Convert cm string → "feet.inches"
+  const cmToFeetDot = (val: string): string => {
+    const totalInches = parseFloat(val) / 2.54;
+    return inchesToFeetDot(totalInches);
+  };
+  // Toggle unit and convert current height value
+  const toggleHeightUnit = () => {
+    setHeightUnit(prev => {
+      if (prev === 'ft') {
+        // ft → cm: convert stored "feet.inches" to cm
+        const cm = feetDotToCm(vitals.Height || '0.0');
+        handleUpdate('Height', cm);
+        return 'cm';
+      } else {
+        // cm → ft: convert stored cm back to "feet.inches"
+        const ftDot = cmToFeetDot(vitals.Height || '0');
+        handleUpdate('Height', ftDot);
+        return 'ft';
+      }
+    });
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
+
       {/* ── NAVBAR ── */}
       <nav className="bg-[#0297d6] text-white px-4 py-3 shadow-md top-0 z-40">
         <div className="max-w-full mx-auto flex items-center justify-between">
@@ -608,17 +661,65 @@ const VitalsPage = () => {
                   <VitalCard
                     type={VitalType.HEIGHT}
                     customContent={
-                      <div className="flex items-baseline gap-1 w-full">
-                        <input type="text" placeholder="--" value={vitals.Height?.split('.')[0] || ''}
-                          onChange={(e) => { const inches = vitals.Height?.split('.')[1] || '0'; handleUpdate('Height', `${e.target.value}.${inches}`); }}
-                          className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-12 md:w-14 rounded px-1"
-                        />
-                        <span className="text-slate-400 font-medium">ft</span>
-                        <input type="text" placeholder="--" value={vitals.Height?.split('.')[1] || ''}
-                          onChange={(e) => { const feet = vitals.Height?.split('.')[0] || '0'; handleUpdate('Height', `${feet}.${e.target.value}`); }}
-                          className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-12 md:w-14 rounded px-1"
-                        />
-                        <span className="text-slate-400 font-medium">in</span>
+                      <div className="flex flex-col gap-2 w-full">
+                        {/* Unit toggle + camera button */}
+                        <div className="flex items-center gap-2">
+                          {/* ft/cm toggle */}
+                          <button
+                            onClick={toggleHeightUnit}
+                            className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5 text-xs font-bold shrink-0"
+                          >
+                            <span className={`px-2 py-1 rounded-md transition-colors ${heightUnit === 'ft' ? 'bg-[#0297d6] text-white' : 'text-slate-400'}`}>ft</span>
+                            <span className={`px-2 py-1 rounded-md transition-colors ${heightUnit === 'cm' ? 'bg-[#0297d6] text-white' : 'text-slate-400'}`}>cm</span>
+                          </button>
+                          {/* Camera measure button */}
+                          <button
+                            onClick={() => setIsHeightCameraOpen(true)}
+                            className="flex items-center gap-1 text-[10px] font-bold text-[#0297d6] bg-[#0297d6]/10 hover:bg-[#0297d6]/20 px-2 py-1 rounded-lg transition-colors"
+                          >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Camera
+                          </button>
+                        </div>
+
+                        {/* Input fields */}
+                        {heightUnit === 'ft' ? (
+                          <div className="flex items-baseline gap-1">
+                            <input
+                              type="text" placeholder="--"
+                              value={vitals.Height?.split('.')[0] || ''}
+                              onChange={(e) => {
+                                const inches = vitals.Height?.split('.')[1] || '0';
+                                handleUpdate('Height', `${e.target.value}.${inches}`);
+                              }}
+                              className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-12 md:w-14 rounded px-1"
+                            />
+                            <span className="text-slate-400 font-medium">ft</span>
+                            <input
+                              type="text" placeholder="--"
+                              value={vitals.Height?.split('.')[1] || ''}
+                              onChange={(e) => {
+                                const feet = vitals.Height?.split('.')[0] || '0';
+                                handleUpdate('Height', `${feet}.${e.target.value}`);
+                              }}
+                              className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-12 md:w-14 rounded px-1"
+                            />
+                            <span className="text-slate-400 font-medium">in</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-baseline gap-1">
+                            <input
+                              type="text" placeholder="--"
+                              value={vitals.Height || ''}
+                              onChange={(e) => handleUpdate('Height', e.target.value)}
+                              className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-24 md:w-28 rounded px-1"
+                            />
+                            <span className="text-slate-400 font-medium">cm</span>
+                          </div>
+                        )}
                       </div>
                     }
                   />
@@ -857,6 +958,22 @@ const VitalsPage = () => {
               </>
             )}
 
+            {/* Height Camera Modal */}
+            <HeightCameraModal
+              isOpen={isHeightCameraOpen}
+              onClose={() => setIsHeightCameraOpen(false)}
+              onConfirm={(heightFeetDot) => {
+                // Camera always returns "feet.inches" format
+                if (heightUnit === 'ft') {
+                  handleUpdate('Height', heightFeetDot);
+                } else {
+                  // Convert to cm since toggle is currently in cm mode
+                  const [f, i] = heightFeetDot.split('.');
+                  const totalInches = (parseInt(f) || 0) * 12 + (parseInt(i) || 0);
+                  handleUpdate('Height', (totalInches * 2.54).toFixed(1));
+                }
+              }}
+            />
           </section>
         </div>
         <div className="mt-6">
