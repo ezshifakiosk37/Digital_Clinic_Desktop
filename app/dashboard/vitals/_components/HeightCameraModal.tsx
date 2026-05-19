@@ -1,5 +1,6 @@
 'use client';
 import React, { useRef, useState, useCallback, useEffect } from 'react';
+import Webcam from 'react-webcam';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PHYSICAL SETUP — adjust these to match your real-world installation
@@ -81,42 +82,9 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
     }, [isOpen]);
 
     // ── Camera ───────────────────────────────────────────────────────────────
-    const startCamera = useCallback(async () => {
-        try {
-            setCameraError('');
-            let stream: MediaStream | null = null;
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: { ideal: 'user' },
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 },
-                    }
-                });
-            } catch {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: { ideal: 1280 }, height: { ideal: 720 } }
-                });
-            }
-            streamRef.current = stream;
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                videoRef.current.setAttribute('playsinline', 'true');
-                videoRef.current.muted = true;
-                await new Promise<void>((resolve) => {
-                    if (!videoRef.current) return resolve();
-                    videoRef.current.onloadedmetadata = () => resolve();
-                });
-                await videoRef.current.play();
-            }
-            setStep('camera');
-        } catch (err: any) {
-            setCameraError(
-                err?.name === 'NotAllowedError'
-                    ? 'Camera permission denied. Please allow camera access in your browser settings.'
-                    : 'Could not access camera. Make sure no other app is using it.'
-            );
-        }
+     const startCamera = useCallback(async () => {
+        setCameraError('');
+        setStep('camera');
     }, []);
 
     const stopCamera = useCallback(() => {
@@ -295,66 +263,40 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
 
             {/* ── STEP: CAMERA ── */}
             {step === 'camera' && (
-                <div style={{ flex: 1, position: 'relative', minHeight: 0, overflow: 'hidden' }}>
-                    <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            display: 'block',
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                        }}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#000' }}>
+                    <canvas ref={canvasRef} style={{ display: 'none' }} />
+                    <Webcam
+                        ref={videoRef as any}
+                        audio={false}
+                        screenshotFormat="image/jpeg"
+                        videoConstraints={{ facingMode: 'user' }}
+                        style={{ width: '100%', flex: 1, objectFit: 'cover', display: 'block' }}
                     />
-                    <canvas ref={canvasRef} className="hidden" />
-
-                    {/* Overlay UI */}
-                    <div className="absolute inset-0 flex flex-col">
-                        {/* Top bar */}
-                        <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-b from-black/70 to-transparent">
-                            <button
-                                onClick={() => { stopCamera(); setStep('intro'); }}
-                                className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white"
-                            >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                                </svg>
-                            </button>
-                            <span className="text-white font-semibold text-sm bg-black/40 backdrop-blur-sm px-4 py-2 rounded-full">
-                                Full body must be in frame
-                            </span>
-                            <div className="w-10" /> {/* spacer */}
-                        </div>
-
-                        <div className="flex-1" />
-
-                        {/* Bottom — capture button */}
-                        <div className="pb-10 flex flex-col items-center gap-4 bg-gradient-to-t from-black/80 to-transparent pt-8">
-                            <p className="text-white/60 text-xs">Floor should be visible at bottom</p>
-                            <button
-                                onClick={capturePhoto}
-                                className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-2xl active:scale-95 transition-transform"
-                            >
-                                <div className="w-16 h-16 rounded-full bg-white border-4 border-slate-200 flex items-center justify-center">
-                                    <div className="w-10 h-10 rounded-full bg-[#0297d6]" />
-                                </div>
-                            </button>
-                            <span className="text-white/50 text-xs">Tap to capture</span>
-                        </div>
+                    <div style={{ background: '#111', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                        <p style={{ color: '#888', fontSize: 12, margin: 0 }}>Floor visible at bottom · Stand 6 ft away</p>
+                        <button
+                            onClick={() => {
+                                const imageSrc = (videoRef.current as any).getScreenshot();
+                                setCapturedImage(imageSrc);
+                                stopCamera();
+                                setStep('adjust');
+                            }}
+                            style={{ width: 76, height: 76, borderRadius: '50%', background: '#fff', border: 'none', cursor: 'pointer', padding: 6 }}
+                        >
+                            <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#0297d6' }} />
+                        </button>
+                        <button onClick={() => { stopCamera(); setStep('intro'); }} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: 13 }}>
+                            ← Back
+                        </button>
                     </div>
                 </div>
             )}
 
             {/* ── STEP: ADJUST BAR ── */}
             {step === 'adjust' && capturedImage && (
-                <div className="flex-1 flex flex-col bg-black">
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#000', padding: '16px', overflow: 'auto' }}>
                     {/* Top instruction bar */}
-                    <div className="flex items-center justify-between px-5 py-4 bg-black/80 backdrop-blur-sm z-10 shrink-0">
+                    <div style={{ width: '100%', maxWidth: 480, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                         <button
                             onClick={() => { setCapturedImage(null); startCamera(); }}
                             className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
@@ -370,26 +312,17 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
                         <div className="w-10" />
                     </div>
 
-                    {/* Image fills remaining space */}
+                    {/* Image — fixed aspect ratio, same as working app */}
                     <div
                         ref={containerRef}
-                        className="flex-1 relative overflow-hidden select-none"
-                        style={{ touchAction: 'none' }}
+                        style={{ position: 'relative', width: '100%', maxWidth: 480, aspectRatio: '3/4', background: '#111', borderRadius: 24, overflow: 'hidden', touchAction: 'none', userSelect: 'none' }}
                     >
                         <img
                             ref={imgRef}
                             src={capturedImage}
                             alt="Captured"
                             onLoad={onImgLoad}
-                            style={{
-                                position: 'absolute',
-                                inset: 0,
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'contain',
-                                objectPosition: 'center',
-                                display: 'block',
-                            }}
+                            className="w-full h-full object-cover"
                             draggable={false}
                         />
 
