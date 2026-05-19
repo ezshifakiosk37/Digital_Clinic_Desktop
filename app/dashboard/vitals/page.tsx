@@ -660,69 +660,66 @@ const VitalsPage = () => {
                   />
                   <VitalCard
                     type={VitalType.HEIGHT}
+                    toggleHeightUnit={toggleHeightUnit}
+                    heightUnit={heightUnit}
                     customContent={
                       <div className="flex flex-col gap-2 w-full">
                         {/* Unit toggle + camera button */}
                         <div className="flex items-center gap-2">
-                          {/* ft/cm toggle */}
+                          {/* ft/cm toggle
                           <button
                             onClick={toggleHeightUnit}
                             className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5 text-xs font-bold shrink-0"
                           >
                             <span className={`px-2 py-1 rounded-md transition-colors ${heightUnit === 'ft' ? 'bg-[#0297d6] text-white' : 'text-slate-400'}`}>ft</span>
                             <span className={`px-2 py-1 rounded-md transition-colors ${heightUnit === 'cm' ? 'bg-[#0297d6] text-white' : 'text-slate-400'}`}>cm</span>
-                          </button>
+                          </button> */}
                           {/* Camera measure button */}
-                          <button
-                            onClick={() => setIsHeightCameraOpen(true)}
-                            className="flex items-center gap-1 text-[12px] font-bold text-[#0297d6] bg-[#0297d6]/10 hover:bg-[#0297d6]/20 px-2 py-1 rounded-lg transition-colors"
-                          >
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            Measure Height
-                          </button>
-                        </div>
 
-                        {/* Input fields */}
-                        {heightUnit === 'ft' ? (
-                          <div className="flex items-baseline gap-1">
-                            <input
-                              type="text" placeholder="--"
-                              value={vitals.Height?.split('.')[0] || ''}
-                              onChange={(e) => {
-                                const inches = vitals.Height?.split('.')[1] || '0';
-                                handleUpdate('Height', `${e.target.value}.${inches}`);
-                              }}
-                              className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-12 md:w-14 rounded px-1"
-                            />
-                            <span className="text-slate-400 font-medium">ft</span>
-                            <input
-                              type="text" placeholder="--"
-                              value={vitals.Height?.split('.')[1] || ''}
-                              onChange={(e) => {
-                                const feet = vitals.Height?.split('.')[0] || '0';
-                                handleUpdate('Height', `${feet}.${e.target.value}`);
-                              }}
-                              className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-12 md:w-14 rounded px-1"
-                            />
-                            <span className="text-slate-400 font-medium">in</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-baseline gap-1">
-                            <input
-                              type="text" placeholder="--"
-                              value={vitals.Height || ''}
-                              onChange={(e) => {
-                                const val = e.target.value.replace(/[^0-9]/g, '');
-                                handleUpdate('Height', val);
-                              }}
-                              className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-24 md:w-28 rounded px-1"
-                            />
-                            <span className="text-slate-400 font-medium">cm</span>
-                          </div>
-                        )}
+
+                        </div>
+                        <div className='flex w-full justify-between'>
+                          {/* Input fields */}
+                          {heightUnit === 'ft' ? (
+                            <div className="flex items-baseline gap-1">
+                              <input
+                                type="text" placeholder="--"
+                                value={vitals.Height?.split('.')[0] || ''}
+                                onChange={(e) => {
+                                  const inches = vitals.Height?.split('.')[1] || '0';
+                                  handleUpdate('Height', `${e.target.value}.${inches}`);
+                                }}
+                                className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-12 md:w-14 rounded px-1"
+                              />
+                              <span className="text-slate-400 font-medium">ft</span>
+                              <input
+                                type="text" placeholder="--"
+                                value={vitals.Height?.split('.')[1] || ''}
+                                onChange={(e) => {
+                                  const feet = vitals.Height?.split('.')[0] || '0';
+                                  handleUpdate('Height', `${feet}.${e.target.value}`);
+                                }}
+                                className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-12 md:w-14 rounded px-1"
+                              />
+                              <span className="text-slate-400 font-medium">in</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-baseline gap-1">
+                              <input
+                                type="text" placeholder="--"
+                                value={Math.round(parseFloat(vitals.Height)).toString() || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/[^0-9]/g, '');
+                                  handleUpdate('Height', val);
+                                }}
+                                className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-24 md:w-28 rounded px-1"
+                              />
+                              <span className="text-slate-400 font-medium">cm</span>
+                            </div>
+                          )}
+
+                          <Button onClick={() => setIsHeightCameraOpen(true)} className='px-3 scale-70 lg:scale-90 '>Measure Height</Button>
+                        </div>
                       </div>
                     }
                   />

@@ -16,6 +16,8 @@ interface VitalCardProps {
   timestamp?: string | number | Date;
   isDualValue?: boolean;
   customContent?: React.ReactNode;
+  toggleHeightUnit?: () => void,
+  heightUnit?: string
 }
 
 const VitalCard: React.FC<VitalCardProps> = ({
@@ -30,6 +32,8 @@ const VitalCard: React.FC<VitalCardProps> = ({
   customContent,
   isEditable = true,
   timestamp,
+  toggleHeightUnit,
+  heightUnit,
   isDualValue = false
 }) => {
   const config = VITAL_CONFIGS[type];
@@ -39,13 +43,20 @@ const VitalCard: React.FC<VitalCardProps> = ({
       <div className="flex justify-between items-center w-full mb-2">
         <h3 className="text-primary tracking-wider text-sm font-semibold mb-1 uppercase">{type}</h3>
         {/* Conditional Calibration Button */}
-        {/* {type === VitalType.WEIGHT && (
-          <Button onClick={onCalibrate} >
-            Calibrate
-          </Button>
-        )} */}
-        <div className="p-3 rounded-xl bg-slate-100 group-hover:bg-primary/10 transition-colors">
-          {config.icon("w-6 h-6 text-primary")}
+        <div className={`flex gap-2`}>
+
+          {type === VitalType.HEIGHT && (
+            <button
+              onClick={toggleHeightUnit}
+              className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5 text-xs font-bold shrink-0"
+            >
+              <span className={`px-2 py-1 rounded-md transition-colors ${heightUnit === 'ft' ? 'bg-[#0297d6] text-white' : 'text-slate-400'}`}>ft</span>
+              <span className={`px-2 py-1 rounded-md transition-colors ${heightUnit === 'cm' ? 'bg-[#0297d6] text-white' : 'text-slate-400'}`}>cm</span>
+            </button>
+          )}
+          <div className="p-3 rounded-xl bg-slate-100 group-hover:bg-primary/10 transition-colors">
+            {config.icon("w-6 h-6 text-primary")}
+          </div>
         </div>
       </div>
 

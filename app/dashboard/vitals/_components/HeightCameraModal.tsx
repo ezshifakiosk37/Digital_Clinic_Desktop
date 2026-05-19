@@ -219,7 +219,7 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
                     {/* Instruction text */}
                     <div style={{ textAlign: 'center', padding: '20px 24px 8px' }}>
                         <p style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', margin: 0 }}>
-                            Please <span style={{ color: '#0297d6' }}>Hold Still</span> — Device will take your height
+                            Please <span style={{ color: '#0297d6' }}>hold still</span> while standing six feet from the kiosk.
                         </p>
                         <p style={{ fontSize: 14, fontWeight: 600, color: '#334155', marginTop: 6 }}>
                             TAP <span style={{ color: '#0297d6' }}>"Measure Height"</span> to open camera
