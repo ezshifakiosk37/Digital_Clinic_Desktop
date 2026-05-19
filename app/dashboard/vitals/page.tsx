@@ -958,22 +958,31 @@ const VitalsPage = () => {
               </>
             )}
 
-            </section>
+          </section>
 
-            {/* Height Camera Modal — OUTSIDE section to avoid blur/pointer-events issues */}
-            <HeightCameraModal
-              isOpen={isHeightCameraOpen}
-              onClose={() => setIsHeightCameraOpen(false)}
-              onConfirm={(heightFeetDot) => {
-                if (heightUnit === 'ft') {
-                  handleUpdate('Height', heightFeetDot);
-                } else {
-                  const [f, i] = heightFeetDot.split('.');
-                  const totalInches = (parseInt(f) || 0) * 12 + (parseInt(i) || 0);
-                  handleUpdate('Height', (totalInches * 2.54).toFixed(1));
-                }
-              }}
-            />
+          {/* Height Camera Modal — OUTSIDE section to avoid blur/pointer-events issues */}
+          <HeightCameraModal
+            isOpen={isHeightCameraOpen}
+            onClose={() => setIsHeightCameraOpen(false)}
+            onConfirm={(heightFeetDot) => {
+              if (heightUnit === 'ft') {
+                handleUpdate('Height', heightFeetDot);
+              } else {
+                const [f, i] = heightFeetDot.split('.');
+                const totalInches = Math.round((parseInt(f) || 0) * 12 + (parseInt(i) || 0));
+                handleUpdate('Height', (totalInches * 2.54).toFixed(1));
+              }
+            }}
+          // onConfirm={(heightFeetDot) => {
+          //   if (heightUnit === 'ft') {
+          //     handleUpdate('Height', heightFeetDot);
+          //   } else {
+          //     const [f, i] = heightFeetDot.split('.');
+          //     const totalInches = (parseInt(f) || 0) * 12 + (parseInt(i) || 0);
+          //     handleUpdate('Height', (totalInches * 2.54).toFixed(1));
+          //   }
+          // }}
+          />
         </div>
         <div className="mt-6">
           {/* Header with Search */}
