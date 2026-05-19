@@ -25,14 +25,25 @@ import Webcam from 'react-webcam';
 //  So height = fraction of frame from head to floor × total visible height.
 //
 // ─────────────────────────────────────────────────────────────────────────────
-const CAMERA_HEIGHT_FT = 4;           // Camera mounted at 4 ft
-const PATIENT_DISTANCE_FT = 6;        // Patient stands 6 ft away
-const CAMERA_VFOV_DEG = 60;           // Vertical FOV of tablet camera (degrees)
+const PATIENT_DISTANCE_FT = 6;
+const CAMERA_VFOV_DEG = 60;
 
-// Derived visible height at patient's distance
 const halfFovRad = (CAMERA_VFOV_DEG / 2) * (Math.PI / 180);
 const VISIBLE_HEIGHT_INCHES = 2 * (PATIENT_DISTANCE_FT * 12) * Math.tan(halfFovRad);
-// ≈ 83.1 inches at 6 ft with 60° FOV
+
+// ── CALIBRATION ──────────────────────────────────────────────────────────────
+// Step 1: Ek banda jo exactly 5ft 8in (68 inches) ka ho, 6ft pe khara karo
+// Step 2: Bar uske sir pe lagao, Calculate karo
+// Step 3: Jo result aaye usse 68 se divide karo → ye tera CALIBRATION_FACTOR hai
+// Step 4: Neeche wali value adjust karo jab tak result 68 inches na aaye
+//
+// Example: app ne 74 inches bataya, actual 68 hai
+// CALIBRATION_FACTOR = 68 / 74 = 0.918
+//
+// Agar app chhota bata raha hai: factor 1 se bada karo (e.g. 1.08)
+// Agar app bada bata raha hai:  factor 1 se chhota karo (e.g. 0.92)
+// ─────────────────────────────────────────────────────────────────────────────
+const CALIBRATION_FACTOR = 1.0; // ← SIRF YE EK NUMBER CHANGE KARO
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -162,7 +173,7 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
         if (!displayH) return;
 
         const pixelsFromHeadToFloor = displayH - barY;
-        const heightInches = Math.round((pixelsFromHeadToFloor / displayH) * VISIBLE_HEIGHT_INCHES);
+        const heightInches = Math.round((pixelsFromHeadToFloor / displayH) * VISIBLE_HEIGHT_INCHES * CALIBRATION_FACTOR);
 
         const feet = Math.floor(heightInches / 12);
         const inches = heightInches % 12;
