@@ -958,23 +958,22 @@ const VitalsPage = () => {
               </>
             )}
 
-            {/* Height Camera Modal */}
+            </section>
+
+            {/* Height Camera Modal — OUTSIDE section to avoid blur/pointer-events issues */}
             <HeightCameraModal
               isOpen={isHeightCameraOpen}
               onClose={() => setIsHeightCameraOpen(false)}
               onConfirm={(heightFeetDot) => {
-                // Camera always returns "feet.inches" format
                 if (heightUnit === 'ft') {
                   handleUpdate('Height', heightFeetDot);
                 } else {
-                  // Convert to cm since toggle is currently in cm mode
                   const [f, i] = heightFeetDot.split('.');
                   const totalInches = (parseInt(f) || 0) * 12 + (parseInt(i) || 0);
                   handleUpdate('Height', (totalInches * 2.54).toFixed(1));
                 }
               }}
             />
-          </section>
         </div>
         <div className="mt-6">
           {/* Header with Search */}

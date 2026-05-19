@@ -2,17 +2,36 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CONSTANTS — adjust these to match your physical setup
+// PHYSICAL SETUP — adjust these to match your real-world installation
 // ─────────────────────────────────────────────────────────────────────────────
-const CAMERA_HEIGHT_INCHES = 48;        // Camera is exactly 4 ft = 48 inches from floor
-const PATIENT_DISTANCE_INCHES = 102;    // Patient stands ~8 ft 6 in = 102 inches away
-// Typical tablet camera vertical FoV ≈ 60°. Half-angle = 30°.
-// Visible height at distance D = 2 * D * tan(halfFovRad)
-const CAMERA_VFOV_DEG = 60;            // Vertical field of view in degrees (adjust if needed)
+//
+//  GEOMETRY EXPLAINED:
+//
+//  Camera is mounted at 4 ft, tilted so the floor is visible at
+//  the bottom edge of the frame at the standing mark (6 ft away).
+//
+//  Visible vertical scene height at distance D:
+//    visibleH = 2 × D × tan(FOV/2)
+//
+//  At D = 6 ft, FOV = 60°:
+//    visibleH = 2 × 6 × tan(30°) = 2 × 6 × 0.5774 ≈ 6.93 ft = 83.1 inches
+//
+//  Person's real height:
+//    realHeight = (pixelsFromBarToBottom / totalDisplayPixels) × visibleH
+//
+//  The bottom of the frame = floor level (camera tilted to ensure this).
+//  The red bar = top of person's head.
+//  So height = fraction of frame from head to floor × total visible height.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+const CAMERA_HEIGHT_FT = 4;           // Camera mounted at 4 ft
+const PATIENT_DISTANCE_FT = 6;        // Patient stands 6 ft away
+const CAMERA_VFOV_DEG = 60;           // Vertical FOV of tablet camera (degrees)
 
-// Derived: total real-world height visible in frame at patient distance
+// Derived visible height at patient's distance
 const halfFovRad = (CAMERA_VFOV_DEG / 2) * (Math.PI / 180);
-const VISIBLE_HEIGHT_INCHES = 2 * PATIENT_DISTANCE_INCHES * Math.tan(halfFovRad);
+const VISIBLE_HEIGHT_INCHES = 2 * (PATIENT_DISTANCE_FT * 12) * Math.tan(halfFovRad);
+// ≈ 83.1 inches at 6 ft with 60° FOV
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -28,19 +47,18 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
-
-    const [step, setStep] = useState<Step>('intro');
-    const [capturedImage, setCapturedImage] = useState<string | null>(null);
-    const [imgNaturalSize, setImgNaturalSize] = useState({ w: 1, h: 1 });
-    const [imgDisplayRect, setImgDisplayRect] = useState({ top: 0, height: 1 });
-    const [barY, setBarY] = useState<number>(100);          // px from top of the displayed image
-    const [isDragging, setIsDragging] = useState(false);
-    const [calculatedHeight, setCalculatedHeight] = useState<string>('');
-    const [cameraError, setCameraError] = useState<string>('');
     const imgRef = useRef<HTMLImageElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // ── Reset when modal opens ──────────────────────────────────────────────────
+    const [step, setStep] = useState<Step>('intro');
+    const [capturedImage, setCapturedImage] = useState<string | null>(null);
+    const [barY, setBarY] = useState<number>(100);
+    const [isDragging, setIsDragging] = useState(false);
+    const [calculatedHeight, setCalculatedHeight] = useState<string>('');
+    const [cameraError, setCameraError] = useState<string>('');
+    const [imgDisplayH, setImgDisplayH] = useState(1);
+
+    // ── Reset on open/close ──────────────────────────────────────────────────
     useEffect(() => {
         if (isOpen) {
             setStep('intro');
@@ -52,22 +70,52 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
         }
     }, [isOpen]);
 
-    // ── Camera lifecycle ────────────────────────────────────────────────────────
+    // ── Lock body scroll when open ───────────────────────────────────────────
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => { document.body.style.overflow = ''; };
+    }, [isOpen]);
+
+    // ── Camera ───────────────────────────────────────────────────────────────
     const startCamera = useCallback(async () => {
         try {
             setCameraError('');
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
-            });
+            let stream: MediaStream | null = null;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: 'user' },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                    }
+                });
+            } catch {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 } }
+                });
+            }
             streamRef.current = stream;
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
+                videoRef.current.setAttribute('playsinline', 'true');
+                videoRef.current.muted = true;
+                await new Promise<void>((resolve) => {
+                    if (!videoRef.current) return resolve();
+                    videoRef.current.onloadedmetadata = () => resolve();
+                });
                 await videoRef.current.play();
             }
             setStep('camera');
         } catch (err: any) {
-            setCameraError('Camera access denied. Please allow camera permission and try again.');
-            console.error('Camera error:', err);
+            setCameraError(
+                err?.name === 'NotAllowedError'
+                    ? 'Camera permission denied. Please allow camera access in your browser settings.'
+                    : 'Could not access camera. Make sure no other app is using it.'
+            );
         }
     }, []);
 
@@ -76,41 +124,30 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
         streamRef.current = null;
     }, []);
 
-    // ── Capture photo ───────────────────────────────────────────────────────────
+    // ── Capture ──────────────────────────────────────────────────────────────
     const capturePhoto = useCallback(() => {
         const video = videoRef.current;
         const canvas = canvasRef.current;
         if (!video || !canvas) return;
-
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d')!;
-        ctx.drawImage(video, 0, 0);
-
+        canvas.getContext('2d')!.drawImage(video, 0, 0);
         const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
         setCapturedImage(dataUrl);
-        setImgNaturalSize({ w: video.videoWidth, h: video.videoHeight });
         stopCamera();
         setStep('adjust');
     }, [stopCamera]);
 
-    // ── After image renders, measure its displayed size ─────────────────────────
+    // ── Image load — measure displayed height, init bar near top ────────────
     const onImgLoad = useCallback(() => {
         if (!imgRef.current) return;
-        const rect = imgRef.current.getBoundingClientRect();
-        setImgDisplayRect({ top: rect.top, height: rect.height });
-        // Start bar at ~20% from top (near head region)
-        setBarY(rect.height * 0.2);
+        const h = imgRef.current.getBoundingClientRect().height;
+        setImgDisplayH(h);
+        setBarY(h * 0.18); // start near top (head region)
     }, []);
 
-    // ── Drag handlers ───────────────────────────────────────────────────────────
-    const clampBarY = (y: number, displayH: number) => Math.max(0, Math.min(displayH - 1, y));
-
-    const getRelativeY = (clientY: number) => {
-        if (!imgRef.current) return 0;
-        const rect = imgRef.current.getBoundingClientRect();
-        return clientY - rect.top;
-    };
+    // ── Drag ─────────────────────────────────────────────────────────────────
+    const clamp = (y: number, max: number) => Math.max(0, Math.min(max - 2, y));
 
     const onMouseDown = (e: React.MouseEvent) => { e.preventDefault(); setIsDragging(true); };
     const onTouchStart = (e: React.TouchEvent) => { setIsDragging(true); };
@@ -118,14 +155,14 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
     const onMouseMove = useCallback((e: MouseEvent) => {
         if (!isDragging || !imgRef.current) return;
         const rect = imgRef.current.getBoundingClientRect();
-        setBarY(clampBarY(e.clientY - rect.top, rect.height));
+        setBarY(clamp(e.clientY - rect.top, rect.height));
     }, [isDragging]);
 
     const onTouchMove = useCallback((e: TouchEvent) => {
         if (!isDragging || !imgRef.current) return;
         e.preventDefault();
         const rect = imgRef.current.getBoundingClientRect();
-        setBarY(clampBarY(e.touches[0].clientY - rect.top, rect.height));
+        setBarY(clamp(e.touches[0].clientY - rect.top, rect.height));
     }, [isDragging]);
 
     const onDragEnd = useCallback(() => setIsDragging(false), []);
@@ -143,32 +180,29 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
         };
     }, [onMouseMove, onTouchMove, onDragEnd]);
 
-    // ── Height calculation ──────────────────────────────────────────────────────
-    // barY = pixels from top of displayed image to the red bar (top of patient's head)
-    // displayH = total displayed image height in pixels
-    // The image represents VISIBLE_HEIGHT_INCHES of real height.
-    // pixelsPerInch = displayH / VISIBLE_HEIGHT_INCHES
-    // The bottom of the image = floor level.
-    // Patient height in inches = (displayH - barY) / (displayH / VISIBLE_HEIGHT_INCHES)
+    // ── Height calculation ───────────────────────────────────────────────────
+    //
+    //  realHeight (inches) = (pixelsFromBarToBottom / totalDisplayPixels) × VISIBLE_HEIGHT_INCHES
+    //
+    //  pixelsFromBarToBottom = displayH - barY
+    //  (because barY is measured from the top of the image,
+    //   and the bottom of the image = floor level)
+    //
     const calculateHeight = useCallback(() => {
         if (!imgRef.current) return;
         const displayH = imgRef.current.getBoundingClientRect().height;
         if (!displayH) return;
 
-        const pixelsPerInch = displayH / VISIBLE_HEIGHT_INCHES;
-        const heightInches = Math.round((displayH - barY) / pixelsPerInch);
+        const pixelsFromHeadToFloor = displayH - barY;
+        const heightInches = Math.round((pixelsFromHeadToFloor / displayH) * VISIBLE_HEIGHT_INCHES);
 
-        // Convert total inches → feet and inches
         const feet = Math.floor(heightInches / 12);
         const inches = heightInches % 12;
-
-        // Store as "feet.inches" format (e.g. "5.10")
-        const formatted = `${feet}.${inches}`;
-        setCalculatedHeight(formatted);
+        setCalculatedHeight(`${feet}.${inches}`);
         setStep('confirm');
     }, [barY]);
 
-    // ── Display helper ──────────────────────────────────────────────────────────
+    // ── Display helper ───────────────────────────────────────────────────────
     const displayHeight = (val: string) => {
         if (!val) return '—';
         const [f, i] = val.split('.');
@@ -177,171 +211,303 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
 
     if (!isOpen) return null;
 
+    // ── FULLSCREEN WRAPPER ────────────────────────────────────────────────────
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div
+            style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 9999,
+                background: '#000',
+                display: 'flex',
+                flexDirection: 'column',
+                width: '100vw',
+                height: '100dvh',
+                touchAction: 'none',
+            }}
+        >
 
-                {/* ── STEP: INTRO ── */}
-                {step === 'intro' && (
-                    <div className="p-6 text-center">
-                        <div className="w-16 h-16 bg-[#0297d6]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg className="w-8 h-8 text-[#0297d6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            {/* ── STEP: INTRO ── */}
+            {step === 'intro' && (
+                <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-900">
+                    {/* Header */}
+                    <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 py-4 bg-black/40 backdrop-blur-sm">
+                        <span className="text-white font-bold text-lg tracking-tight">Height Measurement</span>
+                        <button
+                            onClick={onClose}
+                            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
+                        </button>
+                    </div>
+
+                    {/* Icon */}
+                    <div className="w-24 h-24 rounded-3xl bg-[#0297d6]/20 border border-[#0297d6]/30 flex items-center justify-center mb-6">
+                        <svg className="w-12 h-12 text-[#0297d6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </div>
+
+                    <h2 className="text-2xl font-extrabold text-white mb-2 text-center">Measure Height</h2>
+                    <p className="text-slate-400 text-center text-sm mb-8 max-w-xs leading-relaxed">
+                        Stand <strong className="text-white">6 ft away</strong> from the camera so your full body — head to feet — is visible in frame.
+                    </p>
+
+                    {/* Setup info cards */}
+                    <div className="grid grid-cols-2 gap-3 w-full max-w-xs mb-8">
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                            <div className="text-[#0297d6] text-2xl font-black mb-1">4 ft</div>
+                            <div className="text-slate-400 text-xs">Camera height</div>
                         </div>
-                        <h2 className="text-xl font-bold text-slate-800 mb-2">Measure Height</h2>
-                        <p className="text-sm text-slate-500 mb-1">Please hold still.</p>
-                        <p className="text-sm text-slate-500 mb-4">
-                            Stand <strong>~8½ ft</strong> away so your <strong>full body</strong> is visible in the frame, then tap <strong>Capture</strong>.
-                        </p>
-                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-6 text-xs text-amber-700 text-left">
-                            <span className="font-bold">📐 Setup:</span> Camera is mounted at <strong>4 ft</strong> height. Patient must stand fully in frame for accurate reading.
-                        </div>
-                        {cameraError && (
-                            <p className="text-red-500 text-sm mb-4">{cameraError}</p>
-                        )}
-                        <div className="flex gap-3">
-                            <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50">
-                                Cancel
-                            </button>
-                            <button onClick={startCamera} className="flex-1 py-3 rounded-xl bg-[#0297d6] text-white font-bold text-sm hover:bg-[#0286c2]">
-                                Open Camera
-                            </button>
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                            <div className="text-[#0297d6] text-2xl font-black mb-1">6 ft</div>
+                            <div className="text-slate-400 text-xs">Stand here</div>
                         </div>
                     </div>
-                )}
 
-                {/* ── STEP: CAMERA ── */}
-                {step === 'camera' && (
-                    <div className="flex flex-col">
-                        <div className="relative bg-black">
-                            <video
-                                ref={videoRef}
-                                autoPlay
-                                playsInline
-                                muted
-                                className="w-full h-[65vh] object-cover"
+                    {/* Floor marker reminder */}
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl px-4 py-3 w-full max-w-xs mb-8">
+                        <div className="flex items-start gap-2">
+                            <span className="text-amber-400 text-base mt-0.5">📐</span>
+                            <p className="text-amber-300 text-xs leading-relaxed">
+                                Ensure the <strong>floor is visible</strong> at the bottom of the frame. Camera should be tilted slightly downward.
+                            </p>
+                        </div>
+                    </div>
+
+                    {cameraError && (
+                        <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 w-full max-w-xs mb-4">
+                            <p className="text-red-400 text-xs text-center">{cameraError}</p>
+                        </div>
+                    )}
+
+                    <button
+                        onClick={startCamera}
+                        className="w-full max-w-xs py-4 rounded-2xl bg-[#0297d6] hover:bg-[#0286c2] text-white font-bold text-base transition-colors shadow-lg shadow-[#0297d6]/30"
+                    >
+                        Open Camera
+                    </button>
+                </div>
+            )}
+
+            {/* ── STEP: CAMERA ── */}
+            {step === 'camera' && (
+                <div style={{ flex: 1, position: 'relative', minHeight: 0, overflow: 'hidden' }}>
+                    <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            display: 'block',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                        }}
+                    />
+                    <canvas ref={canvasRef} className="hidden" />
+
+                    {/* Overlay UI */}
+                    <div className="absolute inset-0 flex flex-col">
+                        {/* Top bar */}
+                        <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-b from-black/70 to-transparent">
+                            <button
+                                onClick={() => { stopCamera(); setStep('intro'); }}
+                                className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white"
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </button>
+                            <span className="text-white font-semibold text-sm bg-black/40 backdrop-blur-sm px-4 py-2 rounded-full">
+                                Full body must be in frame
+                            </span>
+                            <div className="w-10" /> {/* spacer */}
+                        </div>
+
+                        <div className="flex-1" />
+
+                        {/* Bottom — capture button */}
+                        <div className="pb-10 flex flex-col items-center gap-4 bg-gradient-to-t from-black/80 to-transparent pt-8">
+                            <p className="text-white/60 text-xs">Floor should be visible at bottom</p>
+                            <button
+                                onClick={capturePhoto}
+                                className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-2xl active:scale-95 transition-transform"
+                            >
+                                <div className="w-16 h-16 rounded-full bg-white border-4 border-slate-200 flex items-center justify-center">
+                                    <div className="w-10 h-10 rounded-full bg-[#0297d6]" />
+                                </div>
+                            </button>
+                            <span className="text-white/50 text-xs">Tap to capture</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── STEP: ADJUST BAR ── */}
+            {step === 'adjust' && capturedImage && (
+                <div className="flex-1 flex flex-col bg-black">
+                    {/* Top instruction bar */}
+                    <div className="flex items-center justify-between px-5 py-4 bg-black/80 backdrop-blur-sm z-10 shrink-0">
+                        <button
+                            onClick={() => { setCapturedImage(null); startCamera(); }}
+                            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <div className="text-center">
+                            <p className="text-white font-bold text-sm">Drag to top of head</p>
+                            <p className="text-white/50 text-xs">Red line = crown of head</p>
+                        </div>
+                        <div className="w-10" />
+                    </div>
+
+                    {/* Image fills remaining space */}
+                    <div
+                        ref={containerRef}
+                        className="flex-1 relative overflow-hidden select-none"
+                        style={{ touchAction: 'none' }}
+                    >
+                        <img
+                            ref={imgRef}
+                            src={capturedImage}
+                            alt="Captured"
+                            onLoad={onImgLoad}
+                            style={{
+                                position: 'absolute',
+                                inset: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain',
+                                objectPosition: 'center',
+                                display: 'block',
+                            }}
+                            draggable={false}
+                        />
+
+                        {/* Floor indicator — bottom of image */}
+                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-400/70 z-10" />
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-blue-500/80 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1 rounded-full z-10">
+                            ↓ Floor Level
+                        </div>
+
+                        {/* Red draggable bar */}
+                        <div
+                            className="absolute left-0 right-0 z-20 cursor-row-resize"
+                            style={{ top: barY - 16, height: 32, touchAction: 'none' }}
+                            onMouseDown={onMouseDown}
+                            onTouchStart={onTouchStart}
+                        >
+                            {/* Line */}
+                            <div
+                                className="absolute left-0 right-0"
+                                style={{
+                                    top: 15,
+                                    height: 2,
+                                    background: '#ef4444',
+                                    boxShadow: '0 0 8px rgba(239,68,68,0.9), 0 0 20px rgba(239,68,68,0.4)',
+                                }}
                             />
-                            {/* Guide overlay */}
-                            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-between py-4">
-                                <div className="bg-black/60 text-white text-xs font-bold px-3 py-1.5 rounded-full">
-                                    Make sure full body is visible ↕
-                                </div>
-                                <div className="border-2 border-white/40 border-dashed rounded-xl mx-6 flex-1 mt-2 mb-2 w-[calc(100%-3rem)]" />
-                                <div className="bg-black/60 text-white text-xs px-3 py-1.5 rounded-full">
-                                    Floor should be at the bottom
-                                </div>
+                            {/* Drag handle — center */}
+                            <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-10 h-10 bg-red-500 rounded-full border-3 border-white shadow-xl flex items-center justify-center">
+                                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l4-4 4 4M8 15l4 4 4-4" />
+                                </svg>
+                            </div>
+                            {/* Left label */}
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded">
+                                HEAD
                             </div>
                         </div>
-                        <canvas ref={canvasRef} className="hidden" />
-                        <div className="p-4 flex gap-3">
-                            <button onClick={() => { stopCamera(); setStep('intro'); }} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm">
-                                ← Back
-                            </button>
-                            <button onClick={capturePhoto} className="flex-1 py-3 rounded-xl bg-[#0297d6] text-white font-bold text-sm hover:bg-[#0286c2]">
-                                📸 Capture
-                            </button>
-                        </div>
                     </div>
-                )}
 
-                {/* ── STEP: ADJUST BAR ── */}
-                {step === 'adjust' && capturedImage && (
-                    <div className="flex flex-col">
-                        <div className="px-4 pt-4 pb-2">
-                            <p className="text-sm font-bold text-slate-800">Drag the red line to the top of the head</p>
-                            <p className="text-xs text-slate-400 mt-0.5">Touch and drag the red bar precisely to the crown of the head</p>
-                        </div>
-
-                        {/* Image + draggable bar */}
-                        <div
-                            ref={containerRef}
-                            className="relative mx-4 rounded-xl overflow-hidden bg-black select-none"
-                            style={{ touchAction: 'none' }}
+                    {/* Bottom calculate button */}
+                    <div className="shrink-0 px-5 pb-8 pt-4 bg-black/80 backdrop-blur-sm">
+                        <button
+                            onClick={calculateHeight}
+                            className="w-full py-4 rounded-2xl bg-[#0297d6] hover:bg-[#0286c2] text-white font-bold text-base transition-colors"
                         >
+                            Calculate Height →
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ── STEP: CONFIRM ── */}
+            {step === 'confirm' && (
+                <div className="flex-1 flex flex-col bg-slate-900">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-5 py-4 bg-black/40 backdrop-blur-sm">
+                        <button
+                            onClick={() => setStep('adjust')}
+                            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <span className="text-white font-bold">Height Calculated</span>
+                        <button
+                            onClick={onClose}
+                            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    {/* Preview image — fills most of screen */}
+                    {capturedImage && (
+                        <div className="flex-1 relative overflow-hidden">
                             <img
-                                ref={imgRef}
                                 src={capturedImage}
                                 alt="Captured"
-                                onLoad={onImgLoad}
-                                className="w-full object-contain max-h-[55vh]"
-                                draggable={false}
+                                className="absolute inset-0 w-full h-full object-contain opacity-60"
                             />
-
-                            {/* Red bar */}
-                            <div
-                                className="absolute left-0 right-0 cursor-row-resize z-10"
-                                style={{ top: barY - 12, height: 24, touchAction: 'none' }}
-                                onMouseDown={onMouseDown}
-                                onTouchStart={onTouchStart}
-                            >
-                                {/* Visible line */}
-                                <div
-                                    className="absolute left-0 right-0"
-                                    style={{ top: 11, height: 2, background: '#ef4444', boxShadow: '0 0 6px rgba(239,68,68,0.8)' }}
-                                />
-                                {/* Drag handle */}
-                                <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-8 h-8 bg-red-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center">
-                                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l4-4 4 4M8 15l4 4 4-4" />
-                                    </svg>
+                            {/* Height result overlay */}
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <div className="bg-black/70 backdrop-blur-md rounded-3xl px-10 py-8 flex flex-col items-center border border-white/10">
+                                    <div className="w-14 h-14 rounded-full bg-green-500/20 border border-green-500/40 flex items-center justify-center mb-4">
+                                        <svg className="w-7 h-7 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                    <p className="text-white/60 text-sm mb-1">Measured Height</p>
+                                    <p className="text-5xl font-black text-white mb-1">{displayHeight(calculatedHeight)}</p>
+                                    <p className="text-white/40 text-xs mt-2">
+                                        Camera 4 ft · Distance 6 ft · FOV {CAMERA_VFOV_DEG}°
+                                    </p>
                                 </div>
                             </div>
-
-                            {/* Floor indicator */}
-                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400/60" />
-                            <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded">
-                                Floor ↓
-                            </div>
                         </div>
+                    )}
 
-                        <div className="p-4 flex gap-3">
-                            <button onClick={() => { setCapturedImage(null); startCamera(); }} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm">
-                                Retake
-                            </button>
-                            <button onClick={calculateHeight} className="flex-1 py-3 rounded-xl bg-[#0297d6] text-white font-bold text-sm hover:bg-[#0286c2]">
-                                Calculate →
-                            </button>
-                        </div>
+                    {/* Bottom actions */}
+                    <div className="shrink-0 px-5 pb-8 pt-4 bg-black/40 backdrop-blur-sm flex gap-3">
+                        <button
+                            onClick={() => setStep('adjust')}
+                            className="flex-1 py-4 rounded-2xl border border-white/20 text-white font-semibold text-sm hover:bg-white/5 transition-colors"
+                        >
+                            ← Adjust
+                        </button>
+                        <button
+                            onClick={() => { onConfirm(calculatedHeight); onClose(); }}
+                            className="flex-1 py-4 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-bold text-sm transition-colors shadow-lg shadow-green-500/30"
+                        >
+                            Use This Height ✓
+                        </button>
                     </div>
-                )}
-
-                {/* ── STEP: CONFIRM ── */}
-                {step === 'confirm' && (
-                    <div className="p-6 text-center">
-                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                        </div>
-                        <h2 className="text-xl font-bold text-slate-800 mb-1">Height Calculated</h2>
-                        <p className="text-4xl font-extrabold text-[#0297d6] my-4">{displayHeight(calculatedHeight)}</p>
-                        <p className="text-xs text-slate-400 mb-6">
-                            Based on camera at 4 ft · patient at ~8.5 ft distance
-                        </p>
-
-                        {/* Preview of captured image */}
-                        {capturedImage && (
-                            <div className="mb-4 rounded-xl overflow-hidden border border-slate-100 max-h-32">
-                                <img src={capturedImage} alt="Captured" className="w-full object-contain max-h-32" />
-                            </div>
-                        )}
-
-                        <div className="flex gap-3">
-                            <button onClick={() => setStep('adjust')} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm">
-                                ← Adjust
-                            </button>
-                            <button
-                                onClick={() => { onConfirm(calculatedHeight); onClose(); }}
-                                className="flex-1 py-3 rounded-xl bg-green-500 text-white font-bold text-sm hover:bg-green-600"
-                            >
-                                Use This Height ✓
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 };
