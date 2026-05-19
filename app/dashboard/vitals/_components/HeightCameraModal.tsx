@@ -82,7 +82,7 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
     }, [isOpen]);
 
     // ── Camera ───────────────────────────────────────────────────────────────
-     const startCamera = useCallback(async () => {
+    const startCamera = useCallback(async () => {
         setCameraError('');
         setStep('camera');
     }, []);
@@ -262,18 +262,34 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
             )}
 
             {/* ── STEP: CAMERA ── */}
+            {/* ── STEP: CAMERA ── */}
             {step === 'camera' && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#000' }}>
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100dvh', display: 'flex', flexDirection: 'column', background: '#000', zIndex: 99999 }}>
                     <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+                    {/* Top bar with back button */}
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, display: 'flex', alignItems: 'center', padding: '16px', background: 'linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)' }}>
+                        <button
+                            onClick={() => { stopCamera(); setStep('intro'); }}
+                            style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 20 }}
+                        >
+                            ←
+                        </button>
+                        <span style={{ color: 'white', fontSize: 13, fontWeight: 600, marginLeft: 12 }}>Full body must be in frame</span>
+                    </div>
+
+                    {/* Webcam fills entire screen */}
                     <Webcam
                         ref={videoRef as any}
                         audio={false}
                         screenshotFormat="image/jpeg"
                         videoConstraints={{ facingMode: 'user' }}
-                        style={{ width: '100%', flex: 1, objectFit: 'cover', display: 'block' }}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     />
-                    <div style={{ background: '#111', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                        <p style={{ color: '#888', fontSize: 12, margin: 0 }}>Floor visible at bottom · Stand 6 ft away</p>
+
+                    {/* Bottom capture button — overlaid on video */}
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 16px 40px', background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)' }}>
+                        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, margin: '0 0 16px' }}>Floor visible at bottom · Stand 6 ft away</p>
                         <button
                             onClick={() => {
                                 const imageSrc = (videoRef.current as any).getScreenshot();
@@ -284,9 +300,6 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
                             style={{ width: 76, height: 76, borderRadius: '50%', background: '#fff', border: 'none', cursor: 'pointer', padding: 6 }}
                         >
                             <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#0297d6' }} />
-                        </button>
-                        <button onClick={() => { stopCamera(); setStep('intro'); }} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: 13 }}>
-                            ← Back
                         </button>
                     </div>
                 </div>
