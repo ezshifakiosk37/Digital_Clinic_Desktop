@@ -43,7 +43,7 @@ const VISIBLE_HEIGHT_INCHES = 2 * (PATIENT_DISTANCE_FT * 12) * Math.tan(halfFovR
 // Agar app chhota bata raha hai: factor 1 se bada karo (e.g. 1.08)
 // Agar app bada bata raha hai:  factor 1 se chhota karo (e.g. 0.92)
 // ─────────────────────────────────────────────────────────────────────────────
-const CALIBRATION_FACTOR = 1.046875; // ← SIRF YE EK NUMBER CHANGE KARO
+const CALIBRATION_FACTOR = 1.015625; // ← SIRF YE EK NUMBER CHANGE KARO
 
 // ─────────────────────────────────────────────────────────────────────────────
 
