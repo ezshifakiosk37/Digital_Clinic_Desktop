@@ -345,7 +345,7 @@ const VitalsPage = () => {
             Spo2: v.BloodOxygen || '',
             Height: v.Height || "",
             Weight: v.Weight || "",
-            Sugar: v.Sugar || "", 
+            Sugar: v.Sugar || "",
             symptoms: v.symptoms
               ? (typeof v.symptoms === 'string'
                 ? v.symptoms.split(",").map((s: string) => s.trim())
@@ -759,19 +759,12 @@ const VitalsPage = () => {
                       </div>
                     }
                   />
-                  <div className="col-span-2 md:col-span-2 lg:col-span-1 lg:col-start-2">
-                    <div className='justify-center w-full sm:w-79 md:w-79 md:ml-40 lg:w-full lg:ml-0'>
-                      <VitalCard
-                        type={VitalType.BMI}
-                        customContent={
-                          <div className="flex items-baseline justify-between w-full">
-                            <span className="text-2xl md:text-4xl font-bold text-secondary">{bmi ? bmi.value : '—'}</span>
-                            <span className={`text-sm font-bold ${bmi ? bmi.color : 'text-slate-400'}`}>{bmi ? bmi.label : 'Fill weight & height'}</span>
-                          </div>
-                        }
-                      />
-                    </div>
-                  </div>
+                  <VitalCard
+                    type={VitalType.BMI}
+                    value={bmi?.value ?? '—'}
+                    statusLabel={bmi?.label ?? 'Fill weight & height'}
+                    statusColor={bmi?.color}
+                  />
                   <VitalCard
                     type={VitalType.BLOOD_SUGAR}
                     value={vitals.Sugar}

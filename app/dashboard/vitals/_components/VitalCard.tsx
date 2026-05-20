@@ -16,8 +16,10 @@ interface VitalCardProps {
   timestamp?: string | number | Date;
   isDualValue?: boolean;
   customContent?: React.ReactNode;
-  toggleHeightUnit?: () => void,
-  heightUnit?: string
+  toggleHeightUnit?: () => void;
+  heightUnit?: string;
+  statusLabel?: string;       // 👈 added
+  statusColor?: string;       // 👈 added
 }
 
 const VitalCard: React.FC<VitalCardProps> = ({
@@ -34,7 +36,9 @@ const VitalCard: React.FC<VitalCardProps> = ({
   timestamp,
   toggleHeightUnit,
   heightUnit,
-  isDualValue = false
+  isDualValue = false,
+  statusLabel,                // 👈 added
+  statusColor,                // 👈 added
 }) => {
   const config = VITAL_CONFIGS[type];
 
@@ -42,9 +46,7 @@ const VitalCard: React.FC<VitalCardProps> = ({
     <div className="bg-white p-3 md:p-5 rounded-2xl shadow-lg shadow-black/10 border border-slate-100 flex flex-col items-start hover:border-primary/20 transition-all group w-full">
       <div className="flex justify-between items-center w-full mb-2">
         <h3 className="text-primary tracking-wider text-sm font-semibold mb-1 uppercase">{type}</h3>
-        {/* Conditional Calibration Button */}
         <div className={`flex gap-2`}>
-
           {type === VitalType.HEIGHT && (
             <button
               onClick={toggleHeightUnit}
@@ -90,17 +92,25 @@ const VitalCard: React.FC<VitalCardProps> = ({
                 className="text-2xl md:text-4xl font-bold text-secondary border-b-2 border-transparent focus:border-primary focus:outline-none w-[50%] rounded px-1 transition-all"
               />
               {type === VitalType.WEIGHT && (
-                <Button className='px-4 py-2 text-sm' onClick={onCalibrate} >
+                <Button className='px-4 py-2 text-sm' onClick={onCalibrate}>
                   Calibrate
                 </Button>
               )}
             </div>
-
           )
         ) : (
           <span className="text-xl font-bold text-secondary">{value || '--'}</span>
         )}
-        {!customContent && <span className="text-slate-500 font-medium">{config.unit}</span>}
+        {!customContent && (
+          // 👇 show status label instead of unit when statusLabel is provided
+          statusLabel ? (
+            <span className={`text-sm font-bold ${statusColor ?? 'text-slate-400'}`}>
+              {statusLabel}
+            </span>
+          ) : (
+            <span className="text-slate-500 font-medium">{config.unit}</span>
+          )
+        )}
       </div>
 
       {timestamp && (
