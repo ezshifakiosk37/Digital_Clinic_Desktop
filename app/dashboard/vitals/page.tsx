@@ -29,12 +29,10 @@ const VitalsPage = () => {
     Spo2: '93',
     Height: "5.6",
     Weight: "65",
-    Sugar: "113",
+    Sugar: "100",
     symptoms: [] as string[]
   });
 
-  const [otherSymptom, setOtherSymptom] = useState("");
-  const [showOtherInput, setShowOtherInput] = useState(false);
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [fetching, setFetching] = useState(false);
@@ -47,18 +45,15 @@ const VitalsPage = () => {
   const [showExpiredToast, setShowExpiredToast] = useState(false);
   const [showInvalidToast, setShowInvalidToast] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [verifyingToken, setVerifyingToken] = useState(false);
   const [symptomOther, setSymptomOther] = useState("");
   const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
   const [manualWeightInput, setManualWeightInput] = useState("");
   const [vitalsId, setVitalsId] = useState<string>("")
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [vitalsError, setVitalsError] = useState(false);
   const [symptomsError, setSymptomsError] = useState(false);
   const [vitalsSaved, setVitalsSaved] = useState(false);
-  // const [patientType, setPatientType] = useState<'Walk-in' | 'Online Consultation'>('Walk-in');
   const [vitalsQueue, setVitalsQueue] = useState<any[]>([]);
   const [loadingQueue, setLoadingQueue] = useState(false);
   const [vitalsSearch, setVitalsSearch] = useState("");
