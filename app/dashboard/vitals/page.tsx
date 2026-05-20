@@ -757,7 +757,7 @@ const VitalsPage = () => {
                   <VitalCard
                     type={VitalType.BMI}
                     value={bmi?.value ?? '—'}
-                    statusLabel={bmi?.label ?? 'Fill weight & height'}
+                    statusLabel={bmi?.label ?? ''}
                     statusColor={bmi?.color}
                   />
                   <VitalCard
