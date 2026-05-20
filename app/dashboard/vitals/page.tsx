@@ -668,6 +668,19 @@ const VitalsPage = () => {
               </div>
             </div>
 
+            {/* ── MR NUMBER INPUT (CENTERED) ── */}
+            {/* MR NUMBER CARD (centered, styled like VitalCard) */}
+            <div className="flex justify-center mb-6">
+              <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-4 w-full max-w-md">
+              
+                <input
+                  type="text"
+                  placeholder="Enter MR Number"
+                  className="w-full text-center text-lg font-semibold text-slate-700 border-b-2 border-slate-200 focus:border-[#0297d6] focus:outline-none py-2 transition-colors"
+                />
+              </div>
+            </div>
+
             {/* ── STEP 1: VITALS ── */}
             {step === 1 && (
               <>
