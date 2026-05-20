@@ -306,7 +306,7 @@ const EZShifaPortal = () => {
       }
     } catch (err: any) {
       const msg = err.message || '';
-      console.error("[WalkIn] Token search error:", msg);
+      console.log("[WalkIn] Token search error:", msg);
       setWalkinSearchError(
         msg.toLowerCase().includes('already used')
           ? 'This token has already been used today.'
