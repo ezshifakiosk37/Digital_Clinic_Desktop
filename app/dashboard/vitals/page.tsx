@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { apiService } from '@/app/_utils/apiService'
 import { Input } from '@/components/ui/input'
 import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Search, Loader2, Check, ChevronsUpDown } from 'lucide-react'
@@ -30,6 +29,7 @@ const VitalsPage = () => {
     Spo2: '93',
     Height: "5.6",
     Weight: "65",
+    Sugar: "113",
     symptoms: [] as string[]
   });
 
@@ -67,6 +67,14 @@ const VitalsPage = () => {
   const [showNoSessionToast, setShowNoSessionToast] = useState(false);
 
   const router = useRouter()
+
+  useEffect(() => {
+    window.onGlucoseReceived = (mgdl) => {
+      console.log('Glucose received:', mgdl);
+      setVitals(prev => ({ ...prev, BloodSugar: mgdl.toString() }));
+    };
+    return () => { delete window.onGlucoseReceived; };
+  }, []);
 
   const fetchVitalsQueue = async () => {
     setLoadingQueue(true);
@@ -185,6 +193,7 @@ const VitalsPage = () => {
       Spo2: '',
       Height: "",
       Weight: "",
+      Sugar: "",
       symptoms: []
     });
     setStep(1);
@@ -320,6 +329,7 @@ const VitalsPage = () => {
           Spo2: '',
           Height: "",
           Weight: "",
+          Sugar: "",
           symptoms: [] as string[]
         };
 
@@ -335,6 +345,7 @@ const VitalsPage = () => {
             Spo2: v.BloodOxygen || '',
             Height: v.Height || "",
             Weight: v.Weight || "",
+            Sugar: v.Sugar || "", 
             symptoms: v.symptoms
               ? (typeof v.symptoms === 'string'
                 ? v.symptoms.split(",").map((s: string) => s.trim())
@@ -761,6 +772,11 @@ const VitalsPage = () => {
                       />
                     </div>
                   </div>
+                  <VitalCard
+                    type={VitalType.BLOOD_SUGAR}
+                    value={vitals.Sugar}
+                    onChange={(val) => handleUpdate('Sugar', val)}
+                  />
                 </div>
                 {vitalsError && (
                   <div className="flex justify-end mt-4">
