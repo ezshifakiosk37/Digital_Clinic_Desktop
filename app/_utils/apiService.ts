@@ -267,9 +267,13 @@ export const apiService = {
         const url = doctorId
             ? `${API_BASE_URL}/api/patients/today-stats?doctorId=${doctorId}`
             : `${API_BASE_URL}/api/patients/today-stats`;
+        const token = localStorage.getItem('doc_token') || localStorage.getItem('token');
         const response = await fetch(url, {
             method: 'GET',
-            headers: getDocHeaders(),
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
         });
         return handleResponse(response);
     },
@@ -278,8 +282,7 @@ export const apiService = {
         const url = doctorId
             ? `${API_BASE_URL}/api/patients/today-queue?doctorId=${doctorId}`
             : `${API_BASE_URL}/api/patients/today-queue`;
-        // Use whichever token is available (staff or doctor)
-        const token = localStorage.getItem('token') || localStorage.getItem('doc_token');
+        const token = localStorage.getItem('doc_token') || localStorage.getItem('token');
         const response = await fetch(url, {
             method: 'GET',
             headers: {

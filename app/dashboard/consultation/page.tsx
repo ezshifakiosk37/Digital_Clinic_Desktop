@@ -404,7 +404,25 @@ const EZShifaPortal = () => {
       const data = await apiService.updateDoctorStatus('online');
       if (data.success) {
         console.log("[Status] Doctor now:", data.doctorStatus);
-        setDoctorStatus(data.doctorStatus);
+
+        // Wait for FCM registration to complete before clearing spinner
+        await new Promise<void>((resolve) => {
+          const onDone = () => {
+            window.removeEventListener('fcm-registration-done', onDone);
+            resolve();
+          };
+          const onStart = () => {
+            window.removeEventListener('fcm-registration-start', onStart);
+            window.addEventListener('fcm-registration-done', onDone);
+            // Safety timeout — if FCM takes >10s, unblock anyway
+            setTimeout(() => { resolve(); }, 10000);
+          };
+          window.addEventListener('fcm-registration-start', onStart);
+          // If FCM never starts (e.g. already registered), unblock after 1s
+          setTimeout(() => { resolve(); }, 1000);
+
+          setDoctorStatus(data.doctorStatus); // triggers dispatch → layout → registerFcm
+        });
       }
     } catch (err) {
       console.error("[Status] Toggle failed:", err);

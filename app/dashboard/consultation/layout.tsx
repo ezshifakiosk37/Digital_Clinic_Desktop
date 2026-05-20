@@ -37,6 +37,7 @@ export default function ConsultationLayout({ children }: { children: React.React
   const registerFcm = useCallback(async () => {
     console.log("[FCM] registerFcm() called, already registered:", fcmRegisteredRef.current);
     if (fcmRegisteredRef.current) return;
+    window.dispatchEvent(new CustomEvent('fcm-registration-start'));
 
     const jwt = localStorage.getItem('doc_token');
     console.log("[FCM] doc_token present:", !!jwt);
@@ -119,97 +120,98 @@ export default function ConsultationLayout({ children }: { children: React.React
     }
 
     fcmRegisteredRef.current = true;
+    window.dispatchEvent(new CustomEvent('fcm-registration-done'));
   }, [addCall]);
 
   // In unregisterFcm — add backend cleanup alongside Firebase cleanup
 
   const unregisterFcm = useCallback(async (shouldCleanup: boolean = true) => {
-  if (!fcmRegisteredRef.current) return;
+    if (!fcmRegisteredRef.current) return;
 
-  if (fcmListenerRef.current) {
-    fcmListenerRef.current();
-    fcmListenerRef.current = null;
-  }
-
-  if (window.AndroidNative) {
-    try {
-      if (typeof window.AndroidNative.unregisterFcmDevice === 'function') {
-        window.AndroidNative.unregisterFcmDevice();
-      }
-    } catch {}
-
-  } else if (shouldCleanup) {
-    // ✅ Guard: if doc_token is already gone, skip backend calls silently
-    // This happens when logout clears the token before this cleanup fires
-    const jwt = localStorage.getItem('doc_token');
-    if (!jwt) {
-      console.log("[FCM] Skipping backend unregister — doc_token already cleared (logout in progress)");
-      localStorage.removeItem(FCM_CACHE_KEY);
-      messagingRef.current = null;
-      fcmTokenRef.current = null;
-      fcmRegisteredRef.current = false;
-      return;
+    if (fcmListenerRef.current) {
+      fcmListenerRef.current();
+      fcmListenerRef.current = null;
     }
 
-    // 1️⃣ Remove old token from your backend DB first
-    const cachedToken = fcmTokenRef.current || localStorage.getItem(FCM_CACHE_KEY);
-    if (cachedToken) {
+    if (window.AndroidNative) {
       try {
-        await apiService.removeDoctorFcmToken(cachedToken);
-        console.log("[FCM] Old token removed from backend DB.");
-      } catch (err: any) {
-        // ✅ Silently ignore auth errors — token may have just expired
-        if (err.status === 401 || err.message?.toLowerCase().includes('expired')) {
-          console.log("[FCM] Unregister skipped — session already ended");
-        } else {
-          console.error("[FCM] Failed to remove token from backend:", err);
+        if (typeof window.AndroidNative.unregisterFcmDevice === 'function') {
+          window.AndroidNative.unregisterFcmDevice();
+        }
+      } catch { }
+
+    } else if (shouldCleanup) {
+      // ✅ Guard: if doc_token is already gone, skip backend calls silently
+      // This happens when logout clears the token before this cleanup fires
+      const jwt = localStorage.getItem('doc_token');
+      if (!jwt) {
+        console.log("[FCM] Skipping backend unregister — doc_token already cleared (logout in progress)");
+        localStorage.removeItem(FCM_CACHE_KEY);
+        messagingRef.current = null;
+        fcmTokenRef.current = null;
+        fcmRegisteredRef.current = false;
+        return;
+      }
+
+      // 1️⃣ Remove old token from your backend DB first
+      const cachedToken = fcmTokenRef.current || localStorage.getItem(FCM_CACHE_KEY);
+      if (cachedToken) {
+        try {
+          await apiService.removeDoctorFcmToken(cachedToken);
+          console.log("[FCM] Old token removed from backend DB.");
+        } catch (err: any) {
+          // ✅ Silently ignore auth errors — token may have just expired
+          if (err.status === 401 || err.message?.toLowerCase().includes('expired')) {
+            console.log("[FCM] Unregister skipped — session already ended");
+          } else {
+            console.error("[FCM] Failed to remove token from backend:", err);
+          }
         }
       }
-    }
-// const unregisterFcm = useCallback(async (shouldCleanup: boolean = true) => {
-//   if (!fcmRegisteredRef.current) return;
+      // const unregisterFcm = useCallback(async (shouldCleanup: boolean = true) => {
+      //   if (!fcmRegisteredRef.current) return;
 
-//   if (fcmListenerRef.current) {
-//     fcmListenerRef.current();
-//     fcmListenerRef.current = null;
-//   }
+      //   if (fcmListenerRef.current) {
+      //     fcmListenerRef.current();
+      //     fcmListenerRef.current = null;
+      //   }
 
-//   if (window.AndroidNative) {
-//     try {
-//       if (typeof window.AndroidNative.unregisterFcmDevice === 'function') {
-//         window.AndroidNative.unregisterFcmDevice();
-//       }
-//     } catch {}
+      //   if (window.AndroidNative) {
+      //     try {
+      //       if (typeof window.AndroidNative.unregisterFcmDevice === 'function') {
+      //         window.AndroidNative.unregisterFcmDevice();
+      //       }
+      //     } catch {}
 
-//   } else if (shouldCleanup) {
-//     // 1️⃣ Remove old token from your backend DB first
-//     const cachedToken = fcmTokenRef.current || localStorage.getItem(FCM_CACHE_KEY);
-//     if (cachedToken) {
-//       try {
-//         await apiService.removeDoctorFcmToken(cachedToken); // add this endpoint
-//         console.log("[FCM] Old token removed from backend DB.");
-//       } catch (err) {
-//         console.error("[FCM] Failed to remove token from backend:", err);
-//       }
-//     }
+      //   } else if (shouldCleanup) {
+      //     // 1️⃣ Remove old token from your backend DB first
+      //     const cachedToken = fcmTokenRef.current || localStorage.getItem(FCM_CACHE_KEY);
+      //     if (cachedToken) {
+      //       try {
+      //         await apiService.removeDoctorFcmToken(cachedToken); // add this endpoint
+      //         console.log("[FCM] Old token removed from backend DB.");
+      //       } catch (err) {
+      //         console.error("[FCM] Failed to remove token from backend:", err);
+      //       }
+      //     }
 
-    // 2️⃣ Delete from Firebase and wipe local cache
-    if (messagingRef.current && fcmTokenRef.current) {
-      try {
-        await deleteToken(messagingRef.current);
-        console.log("[FCM] Token deleted from Firebase.");
-      } catch (err) {
-        console.error("[FCM] Firebase token deletion failed:", err);
+      // 2️⃣ Delete from Firebase and wipe local cache
+      if (messagingRef.current && fcmTokenRef.current) {
+        try {
+          await deleteToken(messagingRef.current);
+          console.log("[FCM] Token deleted from Firebase.");
+        } catch (err) {
+          console.error("[FCM] Firebase token deletion failed:", err);
+        }
       }
+
+      localStorage.removeItem(FCM_CACHE_KEY); // ensures next registerFcm() gets a fresh token
+      messagingRef.current = null;
+      fcmTokenRef.current = null;
     }
 
-    localStorage.removeItem(FCM_CACHE_KEY); // ensures next registerFcm() gets a fresh token
-    messagingRef.current = null;
-    fcmTokenRef.current = null;
-  }
-
-  fcmRegisteredRef.current = false;
-}, []);
+    fcmRegisteredRef.current = false;
+  }, []);
 
   useEffect(() => {
     // ✅ No eager registerFcm() on mount
