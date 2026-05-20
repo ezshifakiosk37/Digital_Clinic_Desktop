@@ -26,6 +26,7 @@ const SignInPage: React.FC = () => {
     // Brutal Logic: Don't even try if the fields are empty
     if (!username || !password) {
       alert("Username and Password are required.");
+      setLoading(false);
       return;
     }
 
@@ -52,9 +53,9 @@ const SignInPage: React.FC = () => {
 
       
     } catch (error: any) {
-      // Logic: apiService.handleResponse throws the actual error message from Express
       console.error('Login error:', error);
       alert(error.message || 'Login failed. Please check your credentials.');
+      setLoading(false);
     }
   };
 
