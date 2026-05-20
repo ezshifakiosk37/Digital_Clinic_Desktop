@@ -64,6 +64,7 @@ const VitalsPage = () => {
   const [vitalsSearch, setVitalsSearch] = useState("");
   const [isHeightCameraOpen, setIsHeightCameraOpen] = useState(false);
   const [heightUnit, setHeightUnit] = useState<'ft' | 'cm'>('ft');
+  const [showNoSessionToast, setShowNoSessionToast] = useState(false);
 
   const router = useRouter()
 
@@ -202,6 +203,12 @@ const VitalsPage = () => {
   };
 
   const handleAddVitals = async () => {
+    if (!sessionPhone) {
+      setOpenTokenDialog(true);
+      setShowNoSessionToast(true);
+      setTimeout(() => setShowNoSessionToast(false), 3000);
+      return;
+    }
     if (!vitals.symptoms.length) {
       setSymptomsError(true);
       setTimeout(() => setSymptomsError(false), 3000);
@@ -268,6 +275,12 @@ const VitalsPage = () => {
   };
 
   const handleNextStep = () => {
+    if (!sessionPhone) {
+      setOpenTokenDialog(true);
+      setShowNoSessionToast(true);
+      setTimeout(() => setShowNoSessionToast(false), 3000);
+      return;
+    }
     const { BP, PulseRate, Temperature, Spo2, Height, Weight } = vitals;
     const allFilled =
       BP.value1 && BP.value2 && PulseRate && Temperature && Spo2 && Height && Weight;
@@ -593,6 +606,18 @@ const VitalsPage = () => {
               </svg>
             </div>
             Please add at least one symptom before saving.
+          </div>
+        </div>
+
+        {/* No Session Toast */}
+        <div className={`fixed top-6 right-6 z-100 transition-all duration-500 ${showNoSessionToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+          <div className="bg-orange-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+            <div className="bg-white/20 rounded-full p-1">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
+              </svg>
+            </div>
+            Please enter a token to start recording vitals.
           </div>
         </div>
         {/* Success Toast */}
