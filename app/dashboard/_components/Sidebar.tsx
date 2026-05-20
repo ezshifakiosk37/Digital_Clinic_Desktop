@@ -214,7 +214,7 @@ export default function Sidebar() {
         <button
           onClick={onReconnectPress}
           disabled={isConnecting}
-          className="fixed bottom-6 left-6 z-50 p-4 bg-[#0297d6] text-white rounded-full shadow-2xl transition-all duration-200 group
+          className="fixed bottom-6 right-0  z-50 p-4 bg-[#0297d6] text-white rounded-full shadow-2xl transition-all duration-200 group
             md:flex hidden
             ${isConnecting ? 'opacity-80 cursor-wait' : 'hover:bg-[#0286c2] hover:scale-110 active:scale-95'}"
           title="Reconnect to ESP32"
