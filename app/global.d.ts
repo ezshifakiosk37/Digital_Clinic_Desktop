@@ -36,6 +36,9 @@ declare global {
 
       /** Optional: Get printer status (Out of paper, Disconnected, etc.) */
       getPrinterStatus?: () => string;
+
+      /** Requests a fresh glucose reading from the meter. The result will be sent via window.onGlucoseReceived. */
+      requestGlucoseReading?: () => void;
     };
 
     /** * NEW: Receives the FCM token from Android. 
@@ -54,5 +57,11 @@ declare global {
 
     /** Listeners called FROM Android TO JavaScript */
     onSerialData?: (data: string) => void;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // GLUCOSE METER CALLBACK (from Android to JS)
+    // ─────────────────────────────────────────────────────────────────────────
+    /** Receives a glucose value from the Accu‑Chek Guide meter (mg/dL). */
+    onGlucoseReceived?: (mgdl: number) => void;
   }
 }
