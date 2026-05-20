@@ -66,7 +66,7 @@ const VitalsPage = () => {
   useEffect(() => {
     window.onGlucoseReceived = (mgdl) => {
       console.log('Glucose received:', mgdl);
-      setVitals(prev => ({ ...prev, BloodSugar: mgdl.toString() }));
+      setVitals(prev => ({ ...prev, Sugar: mgdl.toString() }));
     };
     return () => { delete window.onGlucoseReceived; };
   }, []);
