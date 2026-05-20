@@ -762,7 +762,7 @@ const VitalsPage = () => {
                             </div>
                           )}
 
-                          <Button onClick={() => setIsHeightCameraOpen(true)} className='px-3 scale-70 lg:scale-90 '>Measure Height</Button>
+                          <Button onClick={() => setIsHeightCameraOpen(true)} className='px-3 scale-90 '>Measure Height</Button>
                         </div>
                       </div>
                     }
