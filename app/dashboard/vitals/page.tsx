@@ -198,8 +198,24 @@ const VitalsPage = () => {
     setVitalsQueue(prev => prev.filter(p => p.id !== patient.id));
   };
 
+  // const handleUpdate = (type: keyof typeof vitals, val: string) => {
+  //   setVitals(prev => ({ ...prev, [type]: val }));
+  // };
+
   const handleUpdate = (type: keyof typeof vitals, val: string) => {
-    setVitals(prev => ({ ...prev, [type]: val }));
+    if (type === 'Temperature') {
+      // Parse the incoming string to a number, round to 1 decimal, then back to string
+      const num = parseFloat(val);
+      if (!isNaN(num)) {
+        const rounded = num.toFixed(1); // e.g., "36.67" → "36.7"
+        setVitals(prev => ({ ...prev, [type]: rounded }));
+      } else {
+        // Handle invalid input (clear or keep empty)
+        setVitals(prev => ({ ...prev, [type]: '' }));
+      }
+    } else {
+      setVitals(prev => ({ ...prev, [type]: val }));
+    }
   };
 
   const handleBPUpdate = (field: 'value1' | 'value2', val: string) => {
@@ -672,7 +688,7 @@ const VitalsPage = () => {
             {/* MR NUMBER CARD (centered, styled like VitalCard) */}
             <div className="flex justify-center mb-6">
               <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-4 w-full max-w-md">
-              
+
                 <input
                   type="text"
                   placeholder="Enter MR Number"
