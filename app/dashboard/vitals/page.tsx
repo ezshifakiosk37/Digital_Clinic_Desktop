@@ -696,7 +696,7 @@ const VitalsPage = () => {
                   <VitalCard
                     type={VitalType.TEMPERATURE}
                     onChange={(val) => handleUpdate('Temperature', val)}
-                    value={parseFloat(vitals.Temperature).toFixed(1).toString()}
+                    value={parseFloat(vitals.Temperature).toFixed(1)}
                   />
 
                   {/* SpO2 */}
