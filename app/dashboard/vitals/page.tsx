@@ -198,24 +198,8 @@ const VitalsPage = () => {
     setVitalsQueue(prev => prev.filter(p => p.id !== patient.id));
   };
 
-  // const handleUpdate = (type: keyof typeof vitals, val: string) => {
-  //   setVitals(prev => ({ ...prev, [type]: val }));
-  // };
-
   const handleUpdate = (type: keyof typeof vitals, val: string) => {
-    if (type === 'Temperature') {
-      // Parse the incoming string to a number, round to 1 decimal, then back to string
-      const num = parseFloat(val);
-      if (!isNaN(num)) {
-        const rounded = num.toFixed(1); // e.g., "36.67" → "36.7"
-        setVitals(prev => ({ ...prev, [type]: rounded }));
-      } else {
-        // Handle invalid input (clear or keep empty)
-        setVitals(prev => ({ ...prev, [type]: '' }));
-      }
-    } else {
-      setVitals(prev => ({ ...prev, [type]: val }));
-    }
+    setVitals(prev => ({ ...prev, [type]: val }));
   };
 
   const handleBPUpdate = (field: 'value1' | 'value2', val: string) => {
@@ -701,10 +685,24 @@ const VitalsPage = () => {
             {step === 1 && (
               <>
                 <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+
+                  {/* Pulse Rate */}
                   <VitalCard type={VitalType.PULSE_RATE} onChange={(val) => handleUpdate('PulseRate', val)} value={vitals.PulseRate} />
+
+                  {/* Blood Presure */}
                   <VitalCard type={VitalType.BLOOD_PRESSURE} onChange1={(val) => handleBPUpdate('value1', val)} onChange2={(val) => handleBPUpdate('value2', val)} isDualValue value1={vitals.BP.value1} value2={vitals.BP.value2} />
-                  <VitalCard type={VitalType.TEMPERATURE} onChange={(val) => handleUpdate('Temperature', val)} value={vitals.Temperature} />
+
+                  {/* Temperature */}
+                  <VitalCard
+                    type={VitalType.TEMPERATURE}
+                    onChange={(val) => handleUpdate('Temperature', val)}
+                    value={parseFloat(vitals.Temperature).toFixed(1).toString()}
+                  />
+
+                  {/* SpO2 */}
                   <VitalCard type={VitalType.BLOOD_OXYGEN} onChange={(val) => handleUpdate('Spo2', val)} value={vitals.Spo2} />
+
+                  {/* Weight */}
                   <VitalCard
                     type={VitalType.WEIGHT}
                     onChange={(val) => handleUpdate('Weight', val)}
@@ -718,6 +716,8 @@ const VitalsPage = () => {
                     knownWeightValue={manualWeightInput}
                     setKnownWeightValue={setManualWeightInput}
                   />
+
+                  {/* Height */}
                   <VitalCard
                     type={VitalType.HEIGHT}
                     toggleHeightUnit={toggleHeightUnit}
@@ -783,12 +783,15 @@ const VitalsPage = () => {
                       </div>
                     }
                   />
+                  {/* BMI */}
                   <VitalCard
                     type={VitalType.BMI}
                     value={bmi?.value ?? '—'}
                     statusLabel={bmi?.label ?? ''}
                     statusColor={bmi?.color}
                   />
+
+                  {/* Sugar */}
                   <VitalCard
                     type={VitalType.BLOOD_SUGAR}
                     value={vitals.Sugar}
