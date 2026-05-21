@@ -52,6 +52,9 @@ const DemographicPage: React.FC = () => {
   const [showTokenDialog, setShowTokenDialog] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
 
+  // MR Toggle
+  const [isMRToggled, setIsMRToggled] = useState(false);
+
 
   const countries = useMemo(() => Country.getAllCountries(), []);
   const states = useMemo(() => form.country ? State.getStatesOfCountry(form.country) : [], [form.country]);
@@ -143,6 +146,11 @@ const DemographicPage: React.FC = () => {
     }
   };
 
+  const handleToggle = () => {
+    setIsMRToggled(!isMRToggled);
+    // Add any side effects here (e.g., enable/disable a feature)
+  };
+
   // handleNextStep with this:
   const handleNextStep = async () => {
     const required = ['phoneNumber', 'firstName', 'gender', 'dob', 'age', 'country', 'city', 'province'];
@@ -227,15 +235,42 @@ const DemographicPage: React.FC = () => {
       {/* cards */}
       <div className="max-w-3xl px-4 md:px-4 flex flex-col items-center">
         <Card className="w-full py-2  -mt-10 shadow-2xl border-none rounded-t-[2.5rem] bg-white overflow-hidden mb-8 mx-6 gap-1 md:mx-20">
-          <div className="px-4 sm:px-6 md:px-8 pt-3 pb-1 flex items-center gap-3">
-            <div className="p-1.5 bg-blue-50 rounded-full">
-              <User className="w-5 h-5 text-[#0297d6]" />
+          {/* Header with toggle */}
+          <div className="px-4 sm:px-6 md:px-8 pt-3 pb-1 flex items-center justify-between gap-3">
+            <div className='flex items-center gap-3'>
+              <div className="p-1.5 bg-blue-50 rounded-full">
+                <User className="w-5 h-5 text-[#0297d6]" />
+              </div>
+              <h2 className="text-lg md:text-xl font-bold text-slate-800">Patient Details</h2>
             </div>
-            <h2 className="text-lg md:text-xl font-bold text-slate-800">Patient Details</h2>
+
+            {/* Toggle button - right after the heading */}
+            {/* Toggle button */}
+            <div className='flex items-center gap-3'>
+              <button
+                onClick={handleToggle}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isMRToggled ? 'bg-[#0297d6]' : 'bg-gray-300'
+                  }`}
+                role="switch"
+                aria-checked={isMRToggled}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isMRToggled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                />
+              </button>
+
+              {/* Label / Placeholder text */}
+              <span className="text-sm text-slate-600 font-medium">
+                {isMRToggled ? 'MR Mode ON' : 'Switch to MR'}
+              </span>
+            </div>
           </div>
-          <div className="mx-6 text-center px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[12px] text-slate-500">
+
+          {/* Help text (unchanged) */}
+          {!isMRToggled && <div className="mx-6 text-center px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[12px] text-slate-500">
             Enter Phone Number or CNIC and click Find to retrieve existing patient data.
-          </div>
+          </div>}
 
           <form className="py-3 px-4 sm:px-6 md:px-8 space-y-3 bg-white" onSubmit={(e) => e.preventDefault()}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -593,10 +628,10 @@ const DemographicPage: React.FC = () => {
             </div>
           </form>
         </Card>
-      </div>
+      </div >
 
       {/* Success Token Dialog */}
-      <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
+      < Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog} >
         <DialogContent className="sm:max-w-md text-center py-10">
           <DialogHeader>
             <div className="mx-auto bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
@@ -625,9 +660,9 @@ const DemographicPage: React.FC = () => {
             Done & New Patient
           </Button>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
-    </div>
+    </div >
   );
 };
 
