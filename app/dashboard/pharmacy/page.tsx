@@ -1,5 +1,6 @@
 'use client'
 import { Activity, Loader2, Pill, Printer } from 'lucide-react'
+import Navbar from '../_components/Navbar'
 import React, { useState, useEffect, useCallback } from 'react'
 import { apiService } from '@/app/_utils/apiService';
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge';
@@ -156,19 +157,8 @@ const Page = () => {
                 isPrinting={isPrinting}
             />
 
-            {/* Header */}
-            <div className="w-full bg-[#0297d6] text-white">
-                <div className="max-w-5xl mx-auto flex items-center gap-3 min-w-0">
-                    <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm shrink-0">
-                        <Activity className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">EZShifa</h1>
-                        <span className="opacity-50 text-sm shrink-0">|</span>
-                        <p className="opacity-80 text-md truncate">Site: EZShifa • Digital Health Clinic</p>
-                    </div>
-                </div>
-            </div>
+            {/* Navbar */}
+            <Navbar variant="pharmacy" />
 
             {/* Body */}
             <div className="max-w-6xl mx-auto px-4 py-8">

@@ -1,6 +1,8 @@
 'use client'
-import React, { useState, useMemo } from 'react';
-import { Check, ChevronsUpDown, Loader2, ChevronRight, RotateCcw, User, MapPin, Activity } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Check, ChevronsUpDown, Loader2, ChevronRight, RotateCcw, User, MapPin } from 'lucide-react';
+import Navbar from './Navbar';
+import { useUserProfile } from '@/app/_context/UserProfileContext';
 import { Country, State, City } from 'country-state-city';
 import { demographic } from '../../_utils/data/demographicData';
 import { Card } from '@/components/ui/card';
@@ -34,6 +36,8 @@ import {
 } from "@/components/ui/popover"
 
 const DemographicPage: React.FC = () => {
+  const { profile } = useUserProfile()
+
   const [form, setForm] = useState<any>({
     country: '',
     province: '',
@@ -52,7 +56,15 @@ const DemographicPage: React.FC = () => {
   const [showTokenDialog, setShowTokenDialog] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
 
-
+  // Autofill country & city from clinic profile on first load only
+  useEffect(() => {
+    if (!profile) return
+    setForm((prev: any) => ({
+      ...prev,
+      country: prev.country || profile.country || '',
+      city: prev.city || profile.city || '',
+    }))
+  }, [profile])
   const countries = useMemo(() => Country.getAllCountries(), []);
   const states = useMemo(() => form.country ? State.getStatesOfCountry(form.country) : [], [form.country]);
   const cities = useMemo(() => (form.country && form.province) ? City.getCitiesOfState(form.country, form.province) : [], [form.country, form.province]);
@@ -178,7 +190,14 @@ const DemographicPage: React.FC = () => {
   };
 
   const resetForm = () => {
-    setForm({ country: '', province: '', city: '', countryCode: '+92' });
+    setForm({
+      country: profile?.country || '',
+      province: '',
+      city: profile?.city || '',
+      phoneNumber: '',
+      gender: '',
+      countryCode: '+92',
+    });
     setEntryId(null);
     setShowOther({});
   };
@@ -212,17 +231,9 @@ const DemographicPage: React.FC = () => {
           <span>ℹ️</span> {notification}
         </div>
       )}
-      <div className="w-full bg-[#0297d6] pt-4 pb-12 px-4 text-white">
-        <div className="max-w-3xl mx-auto flex items-center gap-3 min-w-0">
-          <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm shrink-0">
-            <Activity className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <h1 className="text-lg font-bold tracking-tight whitespace-nowrap">EZShifa</h1>
-            <span className="opacity-50 text-sm shrink-0">|</span>
-            <p className="opacity-80 text-md truncate">Site: EZShifa • Digital Health Clinic</p>
-          </div>
-        </div>
+      {/* navbar */}
+      <div className="w-full pb-12">
+        <Navbar variant="demographic" />
       </div>
       {/* cards */}
       <div className="max-w-3xl px-4 md:px-4 flex flex-col items-center">

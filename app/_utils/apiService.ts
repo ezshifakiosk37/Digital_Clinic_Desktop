@@ -407,7 +407,13 @@ export const apiService = {
         });
         return handleResponse(response);
     },
-
+    getProfile: async () => {
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+        return handleResponse(response);
+    },
     getAllDoctors: async () => {
         const response = await fetch(`${API_BASE_URL}/api/doctors/all`, {
             method: 'GET',

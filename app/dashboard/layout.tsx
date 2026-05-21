@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Sidebar from "./_components/Sidebar";
+import { UserProfileProvider } from "../_context/UserProfileContext";
 
 const STAFF_ONLY_PATHS = [
   "/dashboard/demographic",
@@ -67,26 +68,28 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-[#0296d610]">
-      <Sidebar />
+    <UserProfileProvider>
+      <div className="flex min-h-screen bg-[#0296d610]">
+        <Sidebar />
 
-      {/* ✅ Floating Hamburger - ONLY for Staff on Mobile */}
-      {isStaff && (
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent('toggle-mobile-sidebar'))}
-          className="fixed top-4 left-4 z-50 md:hidden bg-white border border-slate-200 shadow-lg p-3 rounded-2xl text-slate-600 hover:bg-slate-50 active:bg-slate-100 transition-all"
-          aria-label="Open menu"
-        >
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-      )}
+        {/* ✅ Floating Hamburger - ONLY for Staff on Mobile */}
+        {isStaff && (
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('toggle-mobile-sidebar'))}
+            className="fixed top-4 left-4 z-50 md:hidden bg-white border border-slate-200 shadow-lg p-3 rounded-2xl text-slate-600 hover:bg-slate-50 active:bg-slate-100 transition-all"
+            aria-label="Open menu"
+          >
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        )}
 
-      <main className="flex-1 min-h-screen pl-0 md:pl-16 transition-all duration-300">
-        {children}
-      </main>
-    </div>
+        <main className="flex-1 min-h-screen pl-0 md:pl-16 transition-all duration-300">
+          {children}
+        </main>
+      </div>
+    </UserProfileProvider>
   );
 }
 

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { apiService } from '@/app/_utils/apiService'
 import { VideoConsultModel } from '../vitals/_components/VideoConsultModel'
 import { PatientResult, Doctor, QueueItem } from '@/app/_utils/types'
+import Navbar from '../_components/Navbar'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const parseSymptoms = (raw: string | null | undefined): string[] => {
@@ -148,17 +149,8 @@ const OnlineConsultPage = () => {
   return (
     <main className="min-h-screen bg-slate-50">
 
-      {/* Header */}
-      <div className="w-full bg-[#0297d6] py-5 px-4 text-white shadow-md">
-        <div className="max-w-6xl mx-auto flex items-center gap-3">
-          <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
-            <Activity className="w-5 h-5 text-white" />
-          </div>
-          <h1 className="text-xl font-bold tracking-tight">EZShifa</h1>
-          <span className="opacity-40 text-sm">|</span>
-          <p className="opacity-80 text-sm">Online Consultation</p>
-        </div>
-      </div>
+      {/* Navbar */}
+      <Navbar variant="onlineConsult" />
 
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
 

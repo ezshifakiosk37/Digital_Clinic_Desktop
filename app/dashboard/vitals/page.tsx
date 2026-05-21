@@ -12,6 +12,7 @@ import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Search, Loader2, Check, ChevronsUpDown } from 'lucide-react'
+import Navbar from '../_components/Navbar'
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge'
@@ -530,28 +531,10 @@ const VitalsPage = () => {
     <div className="min-h-screen bg-slate-50">
 
       {/* ── NAVBAR ── */}
-      <nav className="bg-[#0297d6] text-white px-4 py-3 shadow-md top-0 z-40">
-        <div className="max-w-full mx-auto flex items-center justify-between">
-          <div className="flex items- gap-2.5">
-            {/* <div className="bg-white/20 p-1.5 rounded-lg">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div> */}
-            <div className='flex-row'>
-              <p className="text-xl font-bold leading-tight">EZShifa:<span className="text-sm text-white/70"> Digital Health Clinic </span></p>
-
-            </div>
-          </div>
-          <Button
-            size="sm"
-            onClick={() => setOpenTokenDialog(true)}
-            className="bg-white text-[#0297d6] hover:bg-white/90 font-bold text-xs lg:text-lg h-8 px-3"
-          >
-            + Add Token
-          </Button>
-        </div>
-      </nav>
+      <Navbar
+        variant="vitals"
+        onAddToken={() => setOpenTokenDialog(true)}
+      />
 
       <div className="pl-4 pr-4 sm:pr-6 py-1 md:py-3">
         {/* ── PAGE HEADING ── */}
