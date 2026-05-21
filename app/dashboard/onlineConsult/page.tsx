@@ -131,10 +131,13 @@ const OnlineConsultPage = () => {
     setPickerPatient(patient)
   }
 
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null)
+
   const handleDoctorPick = (doctor: Doctor) => {
     if (!pickerPatient?.vitalsId) return
-    setPickerPatient(null)
+    setSelectedDoctorId(doctor.id)
     setVideoVitalsId(pickerPatient.vitalsId)
+    setPickerPatient(null)
   }
 
   const searchModeMeta: Record<SearchMode, { icon: React.ReactNode; placeholder: string }> = {
