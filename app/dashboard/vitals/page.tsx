@@ -110,18 +110,16 @@ const VitalsPage = () => {
   useEffect(() => {
     AndroidBridge.initVitalsListener((newVitals) => {
       setVitals(prev => {
-        // Create a copy of the previous state
         const updated = { ...prev, ...newVitals };
 
-        // LOGIC: If the incoming data contains BP, we must merge it 
-        // specifically to ensure the nested object structure is preserved
-        if (newVitals.BP) {
-          updated.BP = {
-            ...prev.BP,
-            ...newVitals.BP
-          };
+        // Format Temperature if it exists in the incoming data
+        if (newVitals.Temperature !== undefined) {
+          updated.Temperature = parseFloat(newVitals.Temperature).toFixed(1);
         }
 
+        if (newVitals.BP) {
+          updated.BP = { ...prev.BP, ...newVitals.BP };
+        }
         return updated;
       });
     });
@@ -129,17 +127,6 @@ const VitalsPage = () => {
     return () => { window.onSerialData = () => { }; };
   }, []);
 
-  const handleOnlineConsult = async () => {
-    if (!vitalsId) {
-      alert("Please save vitals first to initiate a consult.");
-      return;
-    }
-
-    // Logic: Navigate to your Video Call route 
-    // (e.g., /video-call/[vitalsId])
-    // Your Android WebView will then load this Next.js page.
-    router.push(`/video-call/${vitalsId}`);
-  };
 
   // Logic: Initial Trigger (x -> c -> a)
   const handleStartCalibration = async () => {
@@ -198,8 +185,22 @@ const VitalsPage = () => {
     setVitalsQueue(prev => prev.filter(p => p.id !== patient.id));
   };
 
+
   const handleUpdate = (type: keyof typeof vitals, val: string) => {
-    setVitals(prev => ({ ...prev, [type]: val }));
+    if (type === 'Temperature') {
+      // Regex: Max 2 digits before decimal, optional decimal followed by max 1 digit
+      const regex = /^\d{0,2}(\.\d{0,1})?$/;
+
+      if (val === "" || regex.test(val)) {
+        setVitals(prev => ({ ...prev, [type]: val }));
+      }
+    } else {
+      // Original logic for all other vitals
+      const regex = /^\d*\.?\d*$/;
+      if (val === "" || regex.test(val)) {
+        setVitals(prev => ({ ...prev, [type]: val }));
+      }
+    }
   };
 
   const handleBPUpdate = (field: 'value1' | 'value2', val: string) => {
@@ -532,6 +533,8 @@ const VitalsPage = () => {
     });
   };
 
+  console.log(vitals.Temperature ? parseFloat(vitals.Temperature).toFixed(1) : "")
+
   return (
     <div className="min-h-screen bg-slate-50">
 
@@ -696,7 +699,7 @@ const VitalsPage = () => {
                   <VitalCard
                     type={VitalType.TEMPERATURE}
                     onChange={(val) => handleUpdate('Temperature', val)}
-                    value={parseFloat(vitals.Temperature).toFixed(1)}
+                    value={vitals.Temperature}
                   />
 
                   {/* SpO2 */}
