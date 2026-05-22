@@ -62,76 +62,54 @@ const VitalsPage = () => {
   const [showNoSessionToast, setShowNoSessionToast] = useState(false);
 
   // ──────────────────────────────────────────────────────────────
-  // AUTO‑LOAD SESSION FROM LOCALSTORAGE ON MOUNT
+  // AUTO‑LOAD SESSION FROM LOCALSTORAGE – NO API CALLS
   // ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    const loadStoredSession = async () => {
-      // Only run if we don't already have an active session
-      if (sessionPhone) return;
+    // Only run if we don't already have an active session
+    if (sessionPhone) return;
 
-      const stored = localStorage.getItem("currentPatient");
-      if (!stored) return;
+    const stored = localStorage.getItem("currentPatient");
+    if (!stored) return;
 
-      try {
-        const patient = JSON.parse(stored);
-        const token = patient.token;
-        if (!token) return;
+    try {
+      const patient = JSON.parse(stored);
+      const token = patient.token;
+      const entryId = patient.entryId;
+      const phone = patient.phoneNumber;
+      const name = patient.firstName;
 
+      if (token && entryId) {
+        // Set session directly from localStorage – no backend verification
         setTokenNumber(token);
-        setVerifyingToken(true);
-
-        const res = await apiService.verifyToken(token);
-        if (res.success) {
-          // Fetch latest vitals for this specific token (optional)
-          const latestRes = await apiService.getLatestVitals(res.patientId, token);
-          let initialVitals = {
-            BP: { value1: '', value2: '' },
-            PulseRate: "",
-            Temperature: '',
-            Spo2: '',
-            Height: "",
-            Weight: "",
-            Sugar: "",
-            symptoms: [] as string[]
-          };
-          if (latestRes.success && latestRes.vital) {
-            const v = latestRes.vital;
-            initialVitals = {
-              BP: { value1: v.Systolic || '', value2: v.Diastolic || '' },
-              PulseRate: v.PulseRate || "",
-              Temperature: v.Temperature || '',
-              Spo2: v.BloodOxygen || '',
-              Height: v.Height || "",
-              Weight: v.Weight || "",
-              Sugar: v.Sugar || "",
-              symptoms: v.symptoms ? (typeof v.symptoms === 'string' ? v.symptoms.split(",").map((s: string) => s.trim()) : v.symptoms) : []
-            };
-          }
-          setVitals(initialVitals);
-          localStorage.setItem("localClinic_entryId", res.patientId);
-          setSessionPhone(res.phoneNumber);
-          setSessionName(res.firstName || "");
-          setOpenTokenDialog(false);
-          setHistory([]);
-          setHistorySearchPhone("");
-          setStep(1);
-          setVitalsSaved(false);
-          setVitalsId('');
-        } else {
-          // Token invalid – clear storage
-          localStorage.removeItem("currentPatient");
-        }
-      } catch (err) {
-        console.error("Auto session restore failed", err);
+        localStorage.setItem("localClinic_entryId", entryId);
+        setSessionPhone(phone || "");
+        setSessionName(name || "");
+        setOpenTokenDialog(false);      // ensure token dialog is closed
+        setStep(1);                     // start at vitals step 1
+        // Keep vitals empty (fresh entry) – do not load previous vitals
+        setVitals({
+          BP: { value1: '', value2: '' },
+          PulseRate: "",
+          Temperature: '',
+          Spo2: '',
+          Height: "",
+          Weight: "",
+          Sugar: "",
+          symptoms: []
+        });
+        setHistory([]);
+        setHistorySearchPhone("");
+        setVitalsSaved(false);
+        setVitalsId('');
+      } else {
+        // Invalid stored data – clear it
         localStorage.removeItem("currentPatient");
-      } finally {
-        setVerifyingToken(false);
       }
-    };
-
-    loadStoredSession();
-  }, []); // runs once on mount
-
+    } catch (err) {
+      console.error("Failed to parse stored patient", err);
+      localStorage.removeItem("currentPatient");
+    }
+  }, [sessionPhone]); // runs once on mount, and if sessionPhone changes
   useEffect(() => {
     window.onGlucoseReceived = (mgdl) => {
       console.log('Glucose received:', mgdl);
