@@ -39,7 +39,7 @@ const VitalsPage = () => {
   const [tokenNumber, setTokenNumber] = useState("");
   const [sessionPhone, setSessionPhone] = useState(""); // Phone of current active patient
   const [historySearchPhone, setHistorySearchPhone] = useState(""); // Phone for history lookup
-  const [openTokenDialog, setOpenTokenDialog] = useState(true);
+  const [openTokenDialog, setOpenTokenDialog] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [sessionName, setSessionName] = useState("");
   const [showExpiredToast, setShowExpiredToast] = useState(false);
