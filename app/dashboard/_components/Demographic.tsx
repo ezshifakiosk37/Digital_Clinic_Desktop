@@ -278,6 +278,29 @@ const DemographicPage: React.FC = () => {
         setEntryId(response.entryId);
         setExistingPatientId(response.entryId);
         setToken(response.token);
+
+        // ──────────────────────────────────────────────────────────────
+        // Store EVERY detail about the patient in localStorage
+        // ──────────────────────────────────────────────────────────────
+        const patientToStore = {
+          // Save the response data
+          token: response.token,
+          entryId: response.entryId,
+
+          // Save all form fields (the patient's complete data)
+          ...form,
+
+          // Also save the cleaned medical history (after "Other" replacement)
+          medicalHistory: finalData.medicalHistory,
+          medicineHistory: finalData.medicineHistory,
+          allergies: finalData.allergies,
+
+          // Timestamp of when it was saved
+          savedAt: new Date().toISOString(),
+        };
+
+        localStorage.setItem('currentPatient', JSON.stringify(patientToStore));
+
         setShowTokenDialog(true);
       }
     } catch (error: any) {
