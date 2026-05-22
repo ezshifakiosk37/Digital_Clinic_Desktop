@@ -392,7 +392,7 @@ const DemographicPage: React.FC = () => {
             </div>
           </div>
 
-          <div className={`mx-6 text-center px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[12px] text-slate-500 ${isMRToggled && "mt-6"}`}>
+          <div className={`mx-6 text-center px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[12px] text-slate-500 ${isMRToggled && "md:mt-0 mt-6"}`}>
             {!isMRToggled ? "Enter Phone Number or CNIC and click Find to retrieve existing patient data." : "Scan the MR number to skip the data"}
           </div>
 
@@ -447,9 +447,9 @@ const DemographicPage: React.FC = () => {
                 <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wide">
                   MR Number <span className='text-red-500'>*</span>
                 </Label>
-                <div className="flex h-16 overflow-hidden rounded-md border border-slate-100 focus-within:ring-1 focus-within:ring-[#0297d6] items-center">
+                <div className="flex md:h-9 h-16 overflow-hidden rounded-md border border-slate-100 focus-within:ring-1 focus-within:ring-[#0297d6] items-center">
                   <Input
-                    className="border-none text-center placeholder:text-center placeholder:text-sm focus-visible:ring-0 h-16 flex-1 rounded-none py-0"
+                    className="border-none text-center placeholder:text-center placeholder:text-sm focus-visible:ring-0 h-16 md:h-9 flex-1 rounded-none py-0"
                     style={{fontSize: "1.5rem"}}
                     type='number'
                     placeholder="Please Enter Mr Number"
