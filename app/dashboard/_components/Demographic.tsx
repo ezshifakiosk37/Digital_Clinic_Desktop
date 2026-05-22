@@ -443,7 +443,7 @@ const DemographicPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="space-y-1 mb-4">
+              <div className="space-y-1 mb-6">
                 <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wide">
                   MR Number <span className='text-red-500'>*</span>
                 </Label>
