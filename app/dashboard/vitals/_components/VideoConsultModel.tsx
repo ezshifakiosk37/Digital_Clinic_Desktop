@@ -11,9 +11,10 @@ interface VideoConsultModelProps {
   vitalsId: string | null;
   patientId: string | null;
   patientToken: string | null;
+  doctorId?: string | null; 
 }
 
-export const VideoConsultModel = ({ isOpen, onClose, vitalsId, patientId, patientToken }: VideoConsultModelProps) => {
+export const VideoConsultModel = ({ isOpen, onClose, vitalsId, patientId, patientToken, doctorId: propDoctorId  }: VideoConsultModelProps) => {
   const [doctorId, setDoctorId] = useState<string | null>(null);
   const [loadingDoctor, setLoadingDoctor] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +40,12 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId, patientId, patien
       }
 
       try {
+        // Online consult: doctor was already picked, skip clinic lookup
+        if (propDoctorId) {
+          setDoctorId(propDoctorId);
+          return;
+        }
+
         const userObj = JSON.parse(userString);
         const storedKioskId = userObj.id;
 
@@ -46,8 +53,6 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId, patientId, patien
           setLoadingDoctor(true);
           setError(null);
           try {
-            // ✅ replaced raw fetch with apiService
-            const token = localStorage.getItem('token') || localStorage.getItem('doc_token');
             const data = await apiService.getAssignedDoctor(storedKioskId);
             if (data.success) setDoctorId(data.doctorId);
             else setError(data.error || "No doctor assigned");
@@ -67,7 +72,7 @@ export const VideoConsultModel = ({ isOpen, onClose, vitalsId, patientId, patien
       setIsWaitingForDoctor(false);
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     }
-  }, [isOpen]);
+  }, [isOpen, propDoctorId]);
 
   const startPollingStatus = (vid: string) => {
     console.log("🚀 [startPollingStatus] Called with vid:", vid);

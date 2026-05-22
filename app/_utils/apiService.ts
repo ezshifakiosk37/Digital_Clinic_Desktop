@@ -429,13 +429,22 @@ export const apiService = {
         });
         return handleResponse(response);
     },
-
+    //new
     removeDoctorFcmToken: async (token: string) => {
         const response = await fetch(`${API_BASE_URL}/api/notifications/remove-fcm-token`, {
             method: 'DELETE',
-            headers: getHeaders(),
+            headers: getDocHeaders(),
             body: JSON.stringify({ fcmToken: token }),
         });
         return handleResponse(response);
     },
+    //orignal
+    // removeDoctorFcmToken: async (token: string) => {
+    //     const response = await fetch(`${API_BASE_URL}/api/notifications/remove-fcm-token`, {
+    //         method: 'DELETE',
+    //         headers: getHeaders(),
+    //         body: JSON.stringify({ fcmToken: token }),
+    //     });
+    //     return handleResponse(response);
+    // },
 };

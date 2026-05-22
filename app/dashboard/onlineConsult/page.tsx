@@ -444,10 +444,11 @@ const OnlineConsultPage = () => {
       {/* Video consult modal */}
       <VideoConsultModel
         isOpen={!!videoVitalsId}
-        onClose={() => setVideoVitalsId(null)}
+        onClose={() => { setVideoVitalsId(null); setSelectedDoctorId(null); }}
         vitalsId={videoVitalsId}
         patientId={pickerPatient?.id ?? null}
         patientToken={pickerPatient?.token ?? null}
+        doctorId={selectedDoctorId}
       />
     </main>
   )
