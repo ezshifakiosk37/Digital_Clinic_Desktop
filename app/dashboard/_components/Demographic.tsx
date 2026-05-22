@@ -78,6 +78,14 @@ const DemographicPage: React.FC = () => {
   const states = useMemo(() => form.country ? State.getStatesOfCountry(form.country) : [], [form.country]);
   const cities = useMemo(() => (form.country && form.province) ? City.getCitiesOfState(form.country, form.province) : [], [form.country, form.province]);
 
+  // Load MR toggle state from localStorage on mount
+  useEffect(() => {
+    const savedMode = localStorage.getItem('mrModeEnabled');
+    if (savedMode !== null) {
+      setIsMRToggled(savedMode === 'true');
+    }
+  }, []);
+
   // ──────────────────────────────────────────────────────────────────
   // MR Mode: fill static defaults when typing, clear when empty
   // ──────────────────────────────────────────────────────────────────
@@ -206,8 +214,12 @@ const DemographicPage: React.FC = () => {
     }
   };
 
-  const handleToggle = () => {
-    setIsMRToggled(!isMRToggled);
+  const handleMRToggle = () => {
+    const newValue = !isMRToggled;
+    setIsMRToggled(newValue);
+    localStorage.setItem('mrModeEnabled', String(newValue));
+
+    // Reset patient ID and clear form (optional)
     setExistingPatientId(null);
     setEntryId(null);
     setForm({
@@ -379,7 +391,7 @@ const DemographicPage: React.FC = () => {
 
             <div className='flex items-center gap-3'>
               <button
-                onClick={handleToggle}
+                onClick={handleMRToggle}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isMRToggled ? 'bg-[#0297d6]' : 'bg-gray-300'}`}
                 role="switch"
                 aria-checked={isMRToggled}
@@ -450,7 +462,7 @@ const DemographicPage: React.FC = () => {
                 <div className="flex lg:h-9 h-16 overflow-hidden rounded-md border border-slate-100 focus-within:ring-1 focus-within:ring-[#0297d6] items-center">
                   <Input
                     className="border-none text-center placeholder:text-center placeholder:text-sm focus-visible:ring-0 h-16 lg:h-9 flex-1 rounded-none py-0"
-                    style={{fontSize: "1.5rem"}}
+                    style={{ fontSize: "1.5rem" }}
                     type='number'
                     placeholder="Please Enter Mr Number"
                     value={form.mrNumber || ""}
