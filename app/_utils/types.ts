@@ -11,6 +11,35 @@ export type DemographicField = {
   inputType?: string;
 };
 
+export interface PatientForm {
+  // MR mode field
+  mrNumber: string;
+  // Contact fields
+  phoneNumber: string;
+  cnic: string;
+  countryCode: string;
+  // Personal info
+  firstName: string;
+  lastName: string;
+  father_husband: string;
+  email: string;
+  gender: string;
+  dob: string;
+  age: string;
+  languages: string;
+  // Address
+  country: string;
+  province: string;
+  city: string;
+  stAddress: string;
+  // Medical
+  medicalHistory: string[];
+  medicineHistory: string[];
+  allergies: string[];
+  surgicalHistory: string;
+  // ... any other fields
+}
+
 // 1. Extract the specific keys from the array to create a Union Type
 // This results in: "phoneNumber" | "firstName" | "lastName" | etc.
 export type DemographicKey = (typeof demographic)[number]["key"];

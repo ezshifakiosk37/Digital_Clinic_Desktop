@@ -1,6 +1,6 @@
 // app/_utils/apiService.ts
-const API_BASE_URL = "https://bifurcation-clinic-api.vercel.app";
-// const API_BASE_URL = "http://localhost:5000";
+// const API_BASE_URL = "https://bifurcation-clinic-api.vercel.app";
+const API_BASE_URL = "http://localhost:5000";
 
 async function handleResponse(response: Response) {
     if (!response.ok) {
@@ -427,6 +427,15 @@ export const apiService = {
             headers: getHeaders(),
             body: JSON.stringify({ fcmToken: token }),
         });
+        return handleResponse(response);
+    },
+
+    findPatientByMR: async (mrNumber: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/patients/?mrNumber=${encodeURIComponent(mrNumber)}`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+        if (response.status === 404) return null;
         return handleResponse(response);
     },
 };

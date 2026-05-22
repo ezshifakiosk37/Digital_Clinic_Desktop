@@ -53,6 +53,7 @@
     "@electron/fuses": "^1.8.0",
     "@tailwindcss/postcss": "^4",
     "@types/file-saver": "^2.0.7",
+    "@types/lodash": "^4.17.24",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

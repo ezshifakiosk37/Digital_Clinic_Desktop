@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Check, ChevronsUpDown, Loader2, ChevronRight, RotateCcw, User, MapPin, Activity } from 'lucide-react';
 import { Country, State, City } from 'country-state-city';
 import { demographic } from '../../_utils/data/demographicData';
@@ -24,42 +24,102 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogOverlay
 } from "@/components/ui/dialog";
-
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { PatientForm } from '@/app/_utils/types';
 
 const DemographicPage: React.FC = () => {
+
   const [form, setForm] = useState<any>({
     country: '',
     province: '',
     city: '',
     phoneNumber: '',
     gender: '',
-    countryCode: '+92'
+    countryCode: '+92',
+    mrNumber: '',
   });
 
+  const defaultPatient: Partial<PatientForm> = {
+    firstName: '.',
+    lastName: '',
+    father_husband: '',
+    email: '',
+    gender: 'Male',
+    dob: '1990-01-01',
+    age: '0',
+    languages: '',
+    country: 'PK',
+    province: 'PB',
+    city: 'Karachi',
+    stAddress: '',
+    medicalHistory: [],
+    medicineHistory: [],
+    allergies: [],
+    surgicalHistory: 'No',
+  };
+
   const [entryId, setEntryId] = useState<string | null>(null);
+  const [existingPatientId, setExistingPatientId] = useState<string | null>(null);
   const [isFinding, setIsFinding] = useState<{ [key: string]: boolean }>({ phone: false, cnic: false });
-  const [isSaving, setIsSaving] = useState(false); // New Loading State
+  const [isSaving, setIsSaving] = useState(false);
   const [showOther, setShowOther] = useState<{ [key: string]: boolean }>({});
   const [openCode, setOpenCode] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [showTokenDialog, setShowTokenDialog] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
-
-  // MR Toggle
   const [isMRToggled, setIsMRToggled] = useState(false);
-
 
   const countries = useMemo(() => Country.getAllCountries(), []);
   const states = useMemo(() => form.country ? State.getStatesOfCountry(form.country) : [], [form.country]);
   const cities = useMemo(() => (form.country && form.province) ? City.getCitiesOfState(form.country, form.province) : [], [form.country, form.province]);
 
+  // ──────────────────────────────────────────────────────────────────
+  // MR Mode: fill static defaults when typing, clear when empty
+  // ──────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (isMRToggled) {
+      if (form.mrNumber?.trim()) {
+        // Fill with static defaults (no DB call)
+        setForm((prev: any) => ({
+          ...prev,
+          ...defaultPatient,
+          mrNumber: prev.mrNumber,   // keep the typed MR number
+          phoneNumber: '',
+          cnic: '',
+        }));
+      } else {
+        // Clear all auto‑filled fields when MR input is empty
+        setForm((prev: any) => ({
+          ...prev,
+          firstName: '',
+          lastName: '',
+          father_husband: '',
+          email: '',
+          gender: '',
+          dob: '',
+          age: '',
+          languages: '',
+          country: '',
+          province: '',
+          city: '',
+          stAddress: '',
+          medicalHistory: [],
+          medicineHistory: [],
+          allergies: [],
+          surgicalHistory: '',
+        }));
+      }
+    }
+  }, [form.mrNumber, isMRToggled]);
+
+  // ──────────────────────────────────────────────────────────────────
+  // Helper functions (unchanged)
+  // ──────────────────────────────────────────────────────────────────
   const toggleSelection = (key: string, value: string) => {
     const currentValues = Array.isArray(form[key]) ? form[key] : [];
     const newValues = currentValues.includes(value)
@@ -72,6 +132,7 @@ const DemographicPage: React.FC = () => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 4000);
   };
+
   const updateForm = (key: string, value: any) => {
     setForm((prev: any) => {
       const updated = { ...prev, [key]: value };
@@ -111,10 +172,7 @@ const DemographicPage: React.FC = () => {
         ? await apiService.findPatientByCnic(value)
         : await apiService.findPatientByPhone(value);
       if (data && data.fields) {
-        // Logic: Ensure backend fields map correctly to form keys
-        // If backend returns 'stAddress', the input with value={form.stAddress} will now work
         const clean = (val: any) => (!val || val === "null") ? "" : val;
-
         setForm({
           ...data.fields,
           phoneNumber: clean(data.fields.phoneNumber) || form.phoneNumber,
@@ -136,8 +194,10 @@ const DemographicPage: React.FC = () => {
           allergies: Array.isArray(data.fields.allergies) ? data.fields.allergies : [],
         });
         setEntryId(data.entryId);
+        setExistingPatientId(data.entryId);
       } else {
         showNotification("No record found. Please fill in the details.");
+        setExistingPatientId(null);
       }
     } catch (error: any) {
       alert(error.message || "Search failed.");
@@ -148,19 +208,54 @@ const DemographicPage: React.FC = () => {
 
   const handleToggle = () => {
     setIsMRToggled(!isMRToggled);
-    // Add any side effects here (e.g., enable/disable a feature)
+    setExistingPatientId(null);
+    setEntryId(null);
+    setForm({
+      country: '',
+      province: '',
+      city: '',
+      phoneNumber: '',
+      gender: '',
+      countryCode: '+92',
+      mrNumber: '',
+    });
   };
 
-  // handleNextStep with this:
   const handleNextStep = async () => {
-    const required = ['phoneNumber', 'firstName', 'gender', 'dob', 'age', 'country', 'city', 'province'];
-    const missing = required.filter(field => !form[field]);
+    let required: (keyof PatientForm)[];
+    if (isMRToggled) {
+      required = ['mrNumber', 'firstName', 'gender', 'dob', 'age', 'country', 'city', 'province'];
+    } else {
+      required = ['phoneNumber', 'firstName', 'gender', 'dob', 'age', 'country', 'city', 'province'];
+    }
 
-    if (missing.length > 0) return showNotification("Please Fill the required fields marked with *.");
+    const missing = required.filter(field => {
+      const value = form[field];
+      if (field === 'mrNumber') return !value?.toString().trim();
+      if (field === 'phoneNumber') return !value?.toString().trim();
+      return !value;
+    });
+
+    if (missing.length > 0) {
+      showNotification("Please fill all required fields marked with *.");
+      return;
+    }
 
     setIsSaving(true);
     try {
-      const finalData = { ...form };
+      const finalData: any = { ...form };
+
+      if (isMRToggled) {
+        // MR mode: keep mrNumber, clear phone/cnic
+        finalData.phoneNumber = '';
+        finalData.cnic = '';
+        // do NOT delete mrNumber
+      } else {
+        // Normal mode: do not send mrNumber
+        delete finalData.mrNumber;
+      }
+
+      // Handle "Other" in medical history fields
       ['medicalHistory', 'medicineHistory', 'allergies'].forEach(key => {
         if (Array.isArray(finalData[key]) && finalData[key].includes("Other")) {
           const customValue = finalData[`${key}Custom`];
@@ -170,13 +265,20 @@ const DemographicPage: React.FC = () => {
         }
       });
 
-      const response = await apiService.saveOrUpdatePatient(finalData, entryId);
+      // For MR mode, do NOT pass any patientId – backend will find by mrNumber.
+      // For normal mode, use the ID from search.
+      let patientId = null;
+      if (!isMRToggled) {
+        patientId = existingPatientId || (entryId && entryId !== 'null' ? entryId : null);
+      }
+
+      const response = await apiService.saveOrUpdatePatient(finalData, patientId);
 
       if (response.success) {
         setEntryId(response.entryId);
-        // --- NEW LOGIC HERE ---
-        setToken(response.token); // Store the token (e.g., "0001")
-        setShowTokenDialog(true); // Show the success popup
+        setExistingPatientId(response.entryId);
+        setToken(response.token);
+        setShowTokenDialog(true);
       }
     } catch (error: any) {
       showNotification(error.message || "Failed to save details.");
@@ -186,8 +288,17 @@ const DemographicPage: React.FC = () => {
   };
 
   const resetForm = () => {
-    setForm({ country: '', province: '', city: '', countryCode: '+92' });
+    setForm({
+      country: '',
+      province: '',
+      city: '',
+      phoneNumber: '',
+      gender: '',
+      countryCode: '+92',
+      mrNumber: '',
+    });
     setEntryId(null);
+    setExistingPatientId(null);
     setShowOther({});
   };
 
@@ -213,7 +324,6 @@ const DemographicPage: React.FC = () => {
   }, []);
 
   return (
-
     <div className="min-h-dvh bg-slate-50 flex flex-col items-center w-full">
       {notification && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#d602a1] text-white px-6 py-3 rounded-full shadow-lg text-sm font-semibold animate-fade-in flex items-center gap-2">
@@ -232,9 +342,9 @@ const DemographicPage: React.FC = () => {
           </div>
         </div>
       </div>
-      {/* cards */}
+
       <div className="max-w-3xl px-4 md:px-4 flex flex-col items-center">
-        <Card className="w-full py-2  -mt-10 shadow-2xl border-none rounded-t-[2.5rem] bg-white overflow-hidden mb-8 mx-6 gap-1 md:mx-20">
+        <Card className="w-full py-2 -mt-10 shadow-2xl border-none rounded-t-[2.5rem] bg-white overflow-hidden mb-8 mx-6 gap-1 md:mx-20">
           {/* Header with toggle */}
           <div className="px-4 sm:px-6 md:px-8 pt-3 pb-1 flex items-center justify-between gap-3">
             <div className='flex items-center gap-3'>
@@ -244,109 +354,79 @@ const DemographicPage: React.FC = () => {
               <h2 className="text-lg md:text-xl font-bold text-slate-800">Patient Details</h2>
             </div>
 
-            {/* Toggle button - right after the heading */}
-            {/* Toggle button */}
             <div className='flex items-center gap-3'>
               <button
                 onClick={handleToggle}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isMRToggled ? 'bg-[#0297d6]' : 'bg-gray-300'
-                  }`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isMRToggled ? 'bg-[#0297d6]' : 'bg-gray-300'}`}
                 role="switch"
                 aria-checked={isMRToggled}
               >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isMRToggled ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                />
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isMRToggled ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
-
-              {/* Label / Placeholder text */}
               <span className="text-sm text-slate-600 font-medium">
                 {isMRToggled ? 'MR Mode ON' : 'Switch to MR'}
               </span>
             </div>
           </div>
 
-          {/* Help text (unchanged) */}
-          {!isMRToggled && <div className="mx-6 text-center px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[12px] text-slate-500">
-            Enter Phone Number or CNIC and click Find to retrieve existing patient data.
-          </div>}
+          <div className="mx-6 text-center px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[12px] text-slate-500">
+            {!isMRToggled ? "Enter Phone Number or CNIC and click Find to retrieve existing patient data." : "Scan the MR number to skip the data"}
+          </div>
 
           <form className="py-3 px-4 sm:px-6 md:px-8 space-y-3 bg-white" onSubmit={(e) => e.preventDefault()}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {/* Phone */}
-              <div className="space-y-1">
-                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wide">Phone Number <span className='text-red-500'>*</span></Label>
-                <div className="flex h-9 overflow-hidden rounded-md border border-slate-100 focus-within:ring-1 focus-within:ring-[#0297d6] items-center">
-                  <Popover open={openCode} onOpenChange={setOpenCode}>
-                    <PopoverTrigger asChild>
-                      <Button variant="ghost" className="w-25 h-full rounded-none bg-slate-100 border-r px-3 text-xs md:text-sm font-bold">
-                        {form.countryCode || "+92"}
-                        <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-50 p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Search code..." className="h-9 py-0" />
-                        <CommandList>
-                          <CommandEmpty>No code found.</CommandEmpty>
-                          <CommandGroup className="max-h-60 overflow-y-auto">
-                            {countries.map((c) => (
-                              <CommandItem
-                                key={c.isoCode}
-                                onSelect={() => {
-                                  updateForm('countryCode', `+${c.phonecode.replace('+', '')}`)
-                                  setOpenCode(false)
-                                }}
-                              >
-                                <Check className={cn("mr-2 h-4 w-4", form.countryCode === `+${c.phonecode.replace('+', '')}` ? "opacity-100" : "opacity-0")} />
-                                <span className="flex-1">{c.name}</span>
-                                <span className="text-slate-400">+{c.phonecode.replace('+', '')}</span>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <Input
-                    className="border-none focus-visible:ring-0 h-9 flex-1 rounded-none py-0"
-                    placeholder="3331111111"
-                    value={form.phoneNumber || ""}
-                    onChange={(e) => updateForm('phoneNumber', e.target.value)}
-                  />
+            {!isMRToggled ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Phone Number */}
+                <div className="space-y-1">
+                  <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wide">Phone Number <span className='text-red-500'>*</span></Label>
+                  <div className="flex h-9 overflow-hidden rounded-md border border-slate-100 focus-within:ring-1 focus-within:ring-[#0297d6] items-center">
+                    <Popover open={openCode} onOpenChange={setOpenCode}>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" className="w-25 h-full rounded-none bg-slate-100 border-r px-3 text-xs md:text-sm font-bold">
+                          {form.countryCode || "+92"}
+                          <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-50 p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search code..." className="h-9 py-0" />
+                          <CommandList>
+                            <CommandEmpty>No code found.</CommandEmpty>
+                            <CommandGroup className="max-h-60 overflow-y-auto">
+                              {countries.map((c) => (
+                                <CommandItem key={c.isoCode} onSelect={() => { updateForm('countryCode', `+${c.phonecode.replace('+', '')}`); setOpenCode(false); }}>
+                                  <Check className={cn("mr-2 h-4 w-4", form.countryCode === `+${c.phonecode.replace('+', '')}` ? "opacity-100" : "opacity-0")} />
+                                  <span className="flex-1">{c.name}</span>
+                                  <span className="text-slate-400">+{c.phonecode.replace('+', '')}</span>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <Input className="border-none focus-visible:ring-0 h-9 flex-1 rounded-none py-0" placeholder="3331111111" value={form.phoneNumber || ""} onChange={(e) => updateForm('phoneNumber', e.target.value)} />
+                  </div>
                 </div>
-              </div>
 
-              {/* CNIC + unified Find button */}
-              <div className="space-y-1">
-                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wide">CNIC</Label>
-                <div className="flex gap-2 h-9">
-                  <Input
-                    className="h-9 py-0 flex-1"
-                    placeholder="42201XXXXXXXX"
-                    value={form.cnic || ""}
-                    onChange={(e) => updateForm('cnic', e.target.value)}
-                    onKeyDown={handleKeyDown}
-                  />
-                  <Button
-                    type="button"
-                    disabled={isFinding.phone || isFinding.cnic}
-                    onClick={() => {
-                      if (form.phoneNumber) handleSearch('phone');
-                      else if (form.cnic) handleSearch('cnic');
-                      else alert('Please enter a Phone Number or CNIC to search.');
-                    }}
-                    className="rounded-md bg-[#0297d6] hover:bg-[#0286c2] h-full px-6 font-bold shrink-0"
-                  >
-                    {(isFinding.phone || isFinding.cnic)
-                      ? <Loader2 className="animate-spin w-4 h-4" />
-                      : "Find"
-                    }
-                  </Button>
+                <div className="space-y-1">
+                  <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wide">CNIC</Label>
+                  <div className="flex gap-2 h-9">
+                    <Input className="h-9 py-0 flex-1" placeholder="42201XXXXXXXX" value={form.cnic || ""} onChange={(e) => updateForm('cnic', e.target.value)} onKeyDown={handleKeyDown} />
+                    <Button type="button" disabled={isFinding.phone || isFinding.cnic} onClick={() => { if (form.phoneNumber) handleSearch('phone'); else if (form.cnic) handleSearch('cnic'); else alert('Please enter a Phone Number or CNIC to search.'); }} className="rounded-md bg-[#0297d6] hover:bg-[#0286c2] h-full px-6 font-bold shrink-0">
+                      {(isFinding.phone || isFinding.cnic) ? <Loader2 className="animate-spin w-4 h-4" /> : "Find"}
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-1">
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wide">MR Number <span className='text-red-500'>*</span></Label>
+                <div className="flex h-9 overflow-hidden rounded-md border border-slate-100 focus-within:ring-1 focus-within:ring-[#0297d6] items-center">
+                  <Input className="border-none focus-visible:ring-0 h-9 flex-1 rounded-none py-0" placeholder="Type MR number..." value={form.mrNumber || ""} onChange={(e) => updateForm('mrNumber', e.target.value)} />
+                </div>
+              </div>
+            )}
 
             {/* Names Row */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -371,17 +451,11 @@ const DemographicPage: React.FC = () => {
                 <Input className="h-9 py-0" type="email" value={form.email || ""} onChange={(e) => updateForm('email', e.target.value)} onKeyDown={handleKeyDown} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Gender <span className='text-red-500'>*</span> </Label>
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Gender <span className='text-red-500'>*</span></Label>
                 <div className="flex gap-4 mt-1">
                   {['Male', 'Female', 'Other'].map((g) => (
                     <label key={g} className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 font-medium">
-                      <input
-                        type="radio"
-                        name="gender"
-                        checked={form.gender === g}
-                        onChange={() => updateForm('gender', g)}
-                        className="accent-[#0297d6] h-4 w-4"
-                      /> {g}
+                      <input type="radio" name="gender" checked={form.gender === g} onChange={() => updateForm('gender', g)} className="accent-[#0297d6] h-4 w-4" /> {g}
                     </label>
                   ))}
                 </div>
@@ -396,24 +470,17 @@ const DemographicPage: React.FC = () => {
               </div>
               <div>
                 <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase block">Age <span className='text-red-500'>*</span></Label>
-                <Input
-                  type="number"
-                  value={form.age || ""}
-                  onChange={(e) => updateForm('age', e.target.value)}
-                  className="h-9 py-0 bg-slate-50 border-dashed text-center font-bold text-[#0297d6]"
-                />
+                <Input type="number" value={form.age || ""} onChange={(e) => updateForm('age', e.target.value)} className="h-9 py-0 bg-slate-50 border-dashed text-center font-bold text-[#0297d6]" />
               </div>
             </div>
 
             {/* Languages */}
             <div className="grid grid-cols-1 gap-4 mt-4">
-              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Primary Language </Label>
+              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Primary Language</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50">
-                    <span className={form.languages ? "text-slate-800" : "text-slate-400"}>
-                      {form.languages || "Select Language..."}
-                    </span>
+                    <span className={form.languages ? "text-slate-800" : "text-slate-400"}>{form.languages || "Select Language..."}</span>
                     <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
                   </Button>
                 </PopoverTrigger>
@@ -454,9 +521,7 @@ const DemographicPage: React.FC = () => {
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50">
-                        <span className={form.country ? "text-slate-800" : "text-slate-400"}>
-                          {countries.find(c => c.isoCode === form.country)?.name || "Select Country..."}
-                        </span>
+                        <span className={form.country ? "text-slate-800" : "text-slate-400"}>{countries.find(c => c.isoCode === form.country)?.name || "Select Country..."}</span>
                         <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
                       </Button>
                     </PopoverTrigger>
@@ -483,9 +548,7 @@ const DemographicPage: React.FC = () => {
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50" disabled={!states.length}>
-                        <span className={form.province ? "text-slate-800" : "text-slate-400"}>
-                          {states.find(s => s.isoCode === form.province)?.name || "Select Province..."}
-                        </span>
+                        <span className={form.province ? "text-slate-800" : "text-slate-400"}>{states.find(s => s.isoCode === form.province)?.name || "Select Province..."}</span>
                         <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
                       </Button>
                     </PopoverTrigger>
@@ -512,9 +575,7 @@ const DemographicPage: React.FC = () => {
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50" disabled={!cities.length}>
-                        <span className={form.city ? "text-slate-800" : "text-slate-400"}>
-                          {form.city || "Select City..."}
-                        </span>
+                        <span className={form.city ? "text-slate-800" : "text-slate-400"}>{form.city || "Select City..."}</span>
                         <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
                       </Button>
                     </PopoverTrigger>
@@ -578,11 +639,7 @@ const DemographicPage: React.FC = () => {
                     </PopoverContent>
                   </Popover>
                   {form[key]?.includes("Other") && (
-                    <Input
-                      placeholder="Please specify..."
-                      className="mt-2 h-9 text-xs border-blue-100 bg-blue-50/30"
-                      onChange={(e) => updateForm(`${key}Custom`, e.target.value)}
-                    />
+                    <Input placeholder="Please specify..." className="mt-2 h-9 text-xs border-blue-100 bg-blue-50/30" onChange={(e) => updateForm(`${key}Custom`, e.target.value)} />
                   )}
                 </div>
               ))}
@@ -595,13 +652,7 @@ const DemographicPage: React.FC = () => {
                 <div className="flex gap-6">
                   {['Yes', 'No'].map((option) => (
                     <label key={option} className="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700">
-                      <input
-                        type="radio"
-                        name="surgicalHistoryToggle"
-                        checked={form.surgicalHistory === option}
-                        onChange={() => updateForm('surgicalHistory', option)}
-                        className="accent-[#0297d6] h-4 w-4"
-                      /> {option}
+                      <input type="radio" name="surgicalHistoryToggle" checked={form.surgicalHistory === option} onChange={() => updateForm('surgicalHistory', option)} className="accent-[#0297d6] h-4 w-4" /> {option}
                     </label>
                   ))}
                 </div>
@@ -613,56 +664,35 @@ const DemographicPage: React.FC = () => {
               <Button variant="ghost" onClick={resetForm} className="rounded-full w-12 h-12 p-0 hover:bg-red-50 hover:text-red-500">
                 <RotateCcw className="w-6 h-6" />
               </Button>
-
-              <Button
-                disabled={isSaving}
-                onClick={handleNextStep}
-                className="bg-[#0297d6] hover:bg-[#0286c2] rounded-xl px-10 py-4 text-base md:text-lg font-bold shadow-lg shadow-blue-100 flex items-center gap-3 transition-transform active:scale-95 disabled:opacity-70"
-              >
-                {isSaving ? (
-                  <>Saving... <Loader2 className="animate-spin w-5 h-5" /></>
-                ) : (
-                  <>Next Step <ChevronRight className="w-6 h-6" /></>
-                )}
+              <Button disabled={isSaving} onClick={handleNextStep} className="bg-[#0297d6] hover:bg-[#0286c2] rounded-xl px-10 py-4 text-base md:text-lg font-bold shadow-lg shadow-blue-100 flex items-center gap-3 transition-transform active:scale-95 disabled:opacity-70">
+                {isSaving ? <>Saving... <Loader2 className="animate-spin w-5 h-5" /></> : <>Next Step <ChevronRight className="w-6 h-6" /></>}
               </Button>
             </div>
           </form>
         </Card>
-      </div >
+      </div>
 
-      {/* Success Token Dialog */}
-      < Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog} >
+      <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
         <DialogContent className="sm:max-w-md text-center py-10">
           <DialogHeader>
             <div className="mx-auto bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
               <Check className="w-10 h-10 text-green-600" />
             </div>
             <DialogTitle className="text-2xl text-center">Registration Successful</DialogTitle>
-            <DialogDescription className="text-center text-lg">
-              Patient has been checked in.
-            </DialogDescription>
+            <DialogDescription className="text-center text-lg">Patient has been checked in.</DialogDescription>
           </DialogHeader>
-
           <div className="py-6">
             <p className="text-sm text-slate-500 uppercase font-bold tracking-widest mb-2">Patient Token</p>
             <div className="text-6xl font-black text-[#0297d6] bg-slate-50 py-4 rounded-2xl border-2 border-dashed border-slate-200">
               {token || "----"}
             </div>
           </div>
-
-          <Button
-            onClick={() => {
-              setShowTokenDialog(false);
-              resetForm(); // Clear the form for the next patient
-            }}
-            className="w-full bg-[#0297d6] h-12 text-lg font-bold"
-          >
+          <Button onClick={() => { setShowTokenDialog(false); resetForm(); }} className="w-full bg-[#0297d6] h-12 text-lg font-bold">
             Done & New Patient
           </Button>
         </DialogContent>
-      </Dialog >
-
-    </div >
+      </Dialog>
+    </div>
   );
 };
 
