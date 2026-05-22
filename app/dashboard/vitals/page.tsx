@@ -65,7 +65,6 @@ const VitalsPage = () => {
   // AUTO‑LOAD SESSION FROM LOCALSTORAGE – NO API CALLS
   // ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    // Only run if we don't already have an active session
     if (sessionPhone) return;
 
     const stored = localStorage.getItem("currentPatient");
@@ -75,18 +74,25 @@ const VitalsPage = () => {
       const patient = JSON.parse(stored);
       const token = patient.token;
       const entryId = patient.entryId;
-      const phone = patient.phoneNumber;
-      const name = patient.firstName;
+
+      // Determine display phone: prefer actual phone, else use MR number, else empty
+      let displayPhone = patient.phoneNumber;
+      if (!displayPhone && patient.mrNumber) {
+        displayPhone = `MR:${patient.mrNumber}`;
+      }
+      // Determine display name: skip placeholder '.' 
+      let displayName = patient.firstName;
+      if (displayName === '.' || !displayName) {
+        displayName = patient.mrNumber ? `MR Patient` : 'Patient';
+      }
 
       if (token && entryId) {
-        // Set session directly from localStorage – no backend verification
         setTokenNumber(token);
         localStorage.setItem("localClinic_entryId", entryId);
-        setSessionPhone(phone || "");
-        setSessionName(name || "");
-        setOpenTokenDialog(false);      // ensure token dialog is closed
-        setStep(1);                     // start at vitals step 1
-        // Keep vitals empty (fresh entry) – do not load previous vitals
+        setSessionPhone(displayPhone || "");   // now will have value
+        setSessionName(displayName);
+        setOpenTokenDialog(false);
+        setStep(1);
         setVitals({
           BP: { value1: '', value2: '' },
           PulseRate: "",
@@ -102,14 +108,15 @@ const VitalsPage = () => {
         setVitalsSaved(false);
         setVitalsId('');
       } else {
-        // Invalid stored data – clear it
         localStorage.removeItem("currentPatient");
       }
     } catch (err) {
       console.error("Failed to parse stored patient", err);
       localStorage.removeItem("currentPatient");
     }
-  }, [sessionPhone]); // runs once on mount, and if sessionPhone changes
+  }, [sessionPhone]);
+
+
   useEffect(() => {
     window.onGlucoseReceived = (mgdl) => {
       console.log('Glucose received:', mgdl);
