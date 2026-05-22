@@ -421,9 +421,24 @@ const DemographicPage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-1">
-                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wide">MR Number <span className='text-red-500'>*</span></Label>
-                <div className="flex h-16 overflow-hidden rounded-md border border-slate-100 focus-within:ring-1 focus-within:ring-[#0297d6] items-center">
-                  <Input type='number' className="border-none text-center placeholder:text-center focus-visible:ring-0 h-full flex-1 rounded-none py-0" placeholder="Please Enter MR Number" value={form.mrNumber || ""} onChange={(e) => updateForm('mrNumber', e.target.value)} />
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wide">
+                  MR Number <span className='text-red-500'>*</span>
+                </Label>
+                <div className="flex h-9 overflow-hidden rounded-md border border-slate-100 focus-within:ring-1 focus-within:ring-[#0297d6] items-center">
+                  <Input
+                    className="border-none text-center placeholder:text-center focus-visible:ring-0 h-9 flex-1 rounded-none py-0"
+                    type='number'
+                    placeholder="Plese Enter Mr Number"
+                    value={form.mrNumber || ""}
+                    onChange={(e) => updateForm('mrNumber', e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        (e.target as HTMLInputElement).select();
+                      }
+                    }}
+                  />
                 </div>
               </div>
             )}
