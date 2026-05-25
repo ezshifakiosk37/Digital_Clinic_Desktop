@@ -429,6 +429,28 @@ export const apiService = {
         return { success: true, url: data.secure_url, publicId: data.public_id };
     },
 
+    uploadDoctorPhoto: async (file: File) => {
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            throw new Error('Only JPG, PNG or WEBP images allowed');
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            throw new Error('Image must be under 5MB');
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'patient_photos'); // same preset works fine
+
+        const response = await fetch(
+            'https://api.cloudinary.com/v1_1/djuvrhjcz/image/upload',
+            { method: 'POST', body: formData }
+        );
+
+        if (!response.ok) throw new Error('Upload failed');
+        const data = await response.json();
+        return { success: true, url: data.secure_url };
+    },
     getAllDoctors: async () => {
         const response = await fetch(`${API_BASE_URL}/api/doctors/all`, {
             method: 'GET',

@@ -463,7 +463,7 @@ const EZShifaPortal = () => {
     <div className="min-h-dvh bg-white text-sm overflow-x-hidden">
       <Navbar
         fullName={fullName}
-        doctorPhoto={doctor.photo}
+        doctorPhoto={doctor?.photo || undefined}
         onProfileClick={() => setActivePage('profile')}
         onLogoutClick={() => { setLogoutModalMode('logout'); setShowLogoutModal(true); }}
         doctorStatus={doctorStatus}

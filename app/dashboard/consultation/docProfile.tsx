@@ -37,6 +37,7 @@ const DocProfile: React.FC<DocProfileProps> = ({
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   React.useEffect(() => {
     apiService.docGetProfile().then((data) => {
@@ -103,15 +104,29 @@ const DocProfile: React.FC<DocProfileProps> = ({
               />
               {editMode && (
                 <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-4xl cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="text-white text-[10px] font-black uppercase">Change</span>
+                  <span className="text-white text-[10px] font-black uppercase">
+                    {photoUploading ? '...' : 'Change'}
+                  </span>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
                     className="hidden"
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const f = e.target.files?.[0];
-                      if (f) {
-                        setDoctor((d) => ({ ...d, photo: URL.createObjectURL(f) }));
+                      if (!f) return;
+                      setPhotoUploading(true);
+                      try {
+                        const data = await apiService.uploadDoctorPhoto(f);
+                        if (data.url) {
+                          setDoctor((d) => ({ ...d, photo: data.url }));
+                          // Save to DB immediately
+                          const stored = apiService.getDoctor();
+                          await apiService.docUpdateProfile(stored.id, { photo: data.url });
+                        }
+                      } catch (err: any) {
+                        setError(err.message || 'Photo upload failed');
+                      } finally {
+                        setPhotoUploading(false);
                       }
                     }}
                   />
