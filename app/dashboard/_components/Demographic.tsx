@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Check, ChevronsUpDown, Loader2, ChevronRight, RotateCcw, User, MapPin } from 'lucide-react';
 import Navbar from './Navbar';
 import { useUserProfile } from '@/app/_context/UserProfileContext';
@@ -55,6 +55,11 @@ const DemographicPage: React.FC = () => {
   const [token, setToken] = useState<string | null>(null);
   const [showTokenDialog, setShowTokenDialog] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
 
   // Autofill country & city from clinic profile on first load only
   useEffect(() => {
@@ -145,6 +150,7 @@ const DemographicPage: React.FC = () => {
           allergies: Array.isArray(data.fields.allergies) ? data.fields.allergies : [],
         });
         setEntryId(data.entryId);
+        if (data.fields.profilePhoto) setPhotoUrl(data.fields.profilePhoto);
       } else {
         showNotification("No record found. Please fill in the details.");
       }
@@ -199,7 +205,39 @@ const DemographicPage: React.FC = () => {
       countryCode: '+92',
     });
     setEntryId(null);
+    setPhotoUrl(null);
     setShowOther({});
+  };
+  //profile photo Patient
+  const handlePhotoUpload = async (file: File) => {
+    if (!file) return;
+
+    // Format check
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      showNotification('❌ Only JPG, PNG or WEBP images are allowed.');
+      return;
+    }
+
+    // Size check (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showNotification('❌ Image is too large. Maximum size is 5MB.');
+      return;
+    }
+
+    setPhotoUploading(true);
+    try {
+      const data = await apiService.uploadPatientPhoto(file);
+      if (data.url) {
+        setPhotoUrl(data.url);
+        updateForm('profilePhoto', data.url);
+        showNotification('✅ Photo uploaded successfully.');
+      }
+    } catch (err: any) {
+      showNotification(err.message || '❌ Photo upload failed. Please try again.');
+    } finally {
+      setPhotoUploading(false);
+    }
   };
 
   const getField = (key: string) => demographic.find(f => f.key === key);
@@ -238,11 +276,58 @@ const DemographicPage: React.FC = () => {
       {/* cards */}
       <div className="max-w-3xl px-4 md:px-4 flex flex-col items-center">
         <Card className="w-full py-2  -mt-10 shadow-2xl border-none rounded-t-[2.5rem] bg-white overflow-hidden mb-8 mx-6 gap-1 md:mx-20">
-          <div className="px-4 sm:px-6 md:px-8 pt-3 pb-1 flex items-center gap-3">
-            <div className="p-1.5 bg-blue-50 rounded-full">
-              <User className="w-5 h-5 text-[#0297d6]" />
+          <div className="px-4 sm:px-6 md:px-8 pt-3 pb-1 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 bg-blue-50 rounded-full">
+                <User className="w-5 h-5 text-[#0297d6]" />
+              </div>
+              <h2 className="text-lg md:text-xl font-bold text-slate-800">Patient Details</h2>
             </div>
-            <h2 className="text-lg md:text-xl font-bold text-slate-800">Patient Details</h2>
+
+            {/* Profile Photo Upload */}
+            <div className="flex flex-col items-center gap-1">
+              <div className="relative group">
+                <div
+                  className="w-14 h-14 rounded-full border-2 border-dashed border-[#0297d6] bg-blue-50 overflow-hidden flex items-center justify-center cursor-pointer hover:border-solid hover:bg-blue-100 transition-all"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {photoUploading ? (
+                    <Loader2 className="w-5 h-5 text-[#0297d6] animate-spin" />
+                  ) : photoUrl ? (
+                    <img src={photoUrl} alt="Patient" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-6 h-6 text-[#0297d6] opacity-50" />
+                  )}
+                </div>
+                {/* Small camera icon badge */}
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
+                  className="absolute -bottom-0.5 -right-0.5 bg-[#0297d6] rounded-full p-0.5 hover:bg-[#0286c2] transition-colors"
+                  title="Take photo"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
+                </button>
+              </div>
+              <span className="text-[9px] text-slate-400 font-medium">Photo</span>
+
+              {/* Hidden inputs */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && handlePhotoUpload(e.target.files[0])}
+              />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="user"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && handlePhotoUpload(e.target.files[0])}
+              />
+            </div>
           </div>
           <div className="mx-6 text-center px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[12px] text-slate-500">
             Enter Phone Number or CNIC and click Find to retrieve existing patient data.

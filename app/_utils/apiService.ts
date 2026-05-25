@@ -414,6 +414,21 @@ export const apiService = {
         });
         return handleResponse(response);
     },
+    uploadPatientPhoto: async (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'patient_photos');
+
+        const response = await fetch(
+            'https://api.cloudinary.com/v1_1/djuvrhjcz/image/upload',
+            { method: 'POST', body: formData }
+        );
+
+        if (!response.ok) throw new Error('Upload failed');
+        const data = await response.json();
+        return { success: true, url: data.secure_url, publicId: data.public_id };
+    },
+
     getAllDoctors: async () => {
         const response = await fetch(`${API_BASE_URL}/api/doctors/all`, {
             method: 'GET',
