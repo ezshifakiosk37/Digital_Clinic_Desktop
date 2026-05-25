@@ -54,9 +54,9 @@ const MORE_ICONS: Record<string, React.ReactNode> = {
     hemoglobin: <Droplets className="w-5 h-5 text-[#0297d6]" />,
     cholesterol: <Heart className="w-5 h-5 text-[#0297d6]" />,
     bodyfat: <Activity className="w-5 h-5 text-[#0297d6]" />,
-    creatinine: <FlaskConical className="w-5 h-5 text-[#0297d6]" />,
-    uricacid: <TestTube className="w-5 h-5 text-[#0297d6]" />,
-    platelets: <Microscope className="w-5 h-5 text-[#0297d6]" />,
+    // creatinine: <FlaskConical className="w-5 h-5 text-[#0297d6]" />,
+    // uricacid: <TestTube className="w-5 h-5 text-[#0297d6]" />,
+    // platelets: <Microscope className="w-5 h-5 text-[#0297d6]" />,
 }
 
 const DEFAULT_TESTS: TestItem[] = [
@@ -77,9 +77,9 @@ const MORE_TEST_OPTIONS: Omit<MoreTest, 'value'>[] = [
     { id: 'hemoglobin', label: 'Hemoglobin', normalRange: '13.8–17.2 g/dL, Female 12.1–15.1 g/dL' },
     { id: 'cholesterol', label: 'Cholesterol', normalRange: 'Average below 200 mg/dL' },
     { id: 'bodyfat', label: 'Body Fat', normalRange: 'Male: 10–20%, Female: 18–28%' },
-    { id: 'creatinine', label: 'Creatinine', normalRange: '0.7–1.3 mg/dL (Male), 0.6–1.1 mg/dL (Female)' },
-    { id: 'uricacid', label: 'Uric Acid', normalRange: 'Male: 3.4–7.0 mg/dL, Female: 2.4–6.0 mg/dL' },
-    { id: 'platelets', label: 'Platelets', normalRange: '150,000–400,000 per µL' },
+    // { id: 'creatinine', label: 'Creatinine', normalRange: '0.7–1.3 mg/dL (Male), 0.6–1.1 mg/dL (Female)' },
+    // { id: 'uricacid', label: 'Uric Acid', normalRange: 'Male: 3.4–7.0 mg/dL, Female: 2.4–6.0 mg/dL' },
+    // { id: 'platelets', label: 'Platelets', normalRange: '150,000–400,000 per µL' },
 ]
 
 const DISCLAIMER = `Rapid medical screenings test are only for preliminary screening and guidance. For confirmation of any condition, please consult with a licensed medical practitioner, perform required test(s) from a certified lab, and then follow medical advice for treatment, if needed. EZShifa is performing rapid medical test as social service. The rapid tests are only for preliminary medical screening. The tests are approved by DRAP, but still have a possibility of getting few falls positive. We take adequate precautions to avoid such events.\n\nThis preventive medical screening exercise at such a mass scale is an extremely needed social service to prevent long term aliments, avoidable serious medical conditions and premature fatalities.`
