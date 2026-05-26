@@ -390,6 +390,33 @@ export const apiService = {
 
         return handleResponse(response);
     },
+
+    saveRapidTesting: async (vitalsId: string, rapidData: any) => {
+        const response = await fetch(`${API_BASE_URL}/api/vitals/rapid-testing/save`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ vitalsId, rapidData }),
+        });
+        return handleResponse(response);
+    },
+
+    updateRapidTesting: async (id: string, rapidData: any) => {
+        const response = await fetch(`${API_BASE_URL}/api/vitals/rapid-testing/update/${id}`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ rapidData }),
+        });
+        return handleResponse(response);
+    },
+
+    getRapidTesting: async (vitalsId: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/vitals/rapid-testing/${vitalsId}`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+        return handleResponse(response);
+    },
+
     getLatestVitals: async (patientId: string, token: string) => {
         const res = await fetch(
             `${API_BASE_URL}/api/patients/latest-vitals/${patientId}/${token}`,

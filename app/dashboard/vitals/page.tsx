@@ -69,6 +69,7 @@ const VitalsPage = () => {
   const [showNoSessionToast, setShowNoSessionToast] = useState(false);
   const [showRapidTesting, setShowRapidTesting] = useState(false);
   const [rapidTestingData, setRapidTestingData] = useState<RapidTestingData | null>(null);
+  const [rapidTestingId, setRapidTestingId] = useState<string>('');
 
   const router = useRouter()
 
@@ -195,6 +196,8 @@ const VitalsPage = () => {
     // setPatientType('Walk-in');
     setVitalsSaved(false);
     setVitalsId('');
+    setRapidTestingId('');
+    setRapidTestingData(null);
     setVitalsQueue(prev => prev.filter(p => p.id !== patient.id));
   };
 
@@ -246,15 +249,30 @@ const VitalsPage = () => {
       });
 
       if (result.success) {
-        if (!vitalsSaved) {
-          const newVitalsId = result.data?.id ?? result.vitalsId ?? result.data;
-          if (!newVitalsId) {
-            alert("Failed to capture vitals ID. Please try again.");
-            return;
-          }
-          // setVitalsId(newVitalsId);
-          // setVitalsSaved(true);
+        const newVitalsId = result.data?.id ?? result.vitalsId ?? result.data;
+        if (!newVitalsId) {
+          alert("Failed to capture vitals ID. Please try again.");
+          return;
         }
+
+        // Save or update rapid testing data (skipped if user skipped rapid testing)
+        if (rapidTestingData) {
+          try {
+            if (rapidTestingId) {
+              // Already saved once — update it
+              await apiService.updateRapidTesting(rapidTestingId, rapidTestingData);
+            } else {
+              // First save
+              const rtResult = await apiService.saveRapidTesting(newVitalsId, rapidTestingData);
+              if (rtResult.success && rtResult.data?.id) {
+                setRapidTestingId(rtResult.data.id);
+              }
+            }
+          } catch (err) {
+            console.error("Rapid testing save failed (non-blocking):", err);
+          }
+        }
+        // If rapidTestingData is null — user skipped, nothing saved, that's fine
 
         setShowSuccessToast(true);
         setTimeout(() => setShowSuccessToast(false), 3000);
@@ -362,9 +380,10 @@ const VitalsPage = () => {
         setHistorySearchPhone("");
 
         setStep(1);
-        // setPatientType('Walk-in');
         setVitalsSaved(false);
         setVitalsId('');
+        setRapidTestingId('');
+        setRapidTestingData(null);
       }
     } catch (error: any) {
       const msg = error.message || "";
