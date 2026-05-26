@@ -118,17 +118,31 @@ const ChartTest = ({
 
     return (
         <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-hidden md:ml-16">
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-5 pb-3 ">
+            {/* Navbar — identical to select stage navbar */}
+            <nav className="w-full bg-[#0297d6] text-white px-4 py-4 shadow-md shrink-0">
+                <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-2xl font-bold tracking-tight">EZShifa</span>
+                                <span className="opacity-40 text-lg">|</span>
+                                <span className="text-lg font-semibold">Digital Health Clinic</span>
+                            </div>
+                            <p className="text-sm font-bold text-white mt-0.5">Eye Examination</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setStage('select')}
+                        className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            </nav>
+            {/* Sub-header */}
+            <div className="flex items-center px-5 pt-3 pb-2 shrink-0 bg-slate-50 border-b border-slate-100">
                 <p className="text-sm text-slate-500 font-medium">Identify the Letter / Shape in the blue box</p>
-                <button
-                    onClick={() => setStage('select')}
-                    className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white"
-                >
-                    <X className="w-4 h-4" />
-                </button>
             </div>
-
             {/* Toggle */}
             <div className="flex items-center gap-3 px-5 py-4 bg-slate-50">
                 <span className="text-sm font-black text-slate-800 uppercase tracking-wide">CAN YOU READ IT?</span>
@@ -218,6 +232,7 @@ const ChartTest = ({
 interface EyeTestingPageProps {
     onNext: (data: EyeTestingData) => void
     onSkip: () => void
+    onSkipToColorBlind: () => void
     sessionName?: string
     sessionPhone?: string
 }
@@ -227,6 +242,7 @@ type Stage = 'select' | 'info_stand' | 'info_cover_left' | 'test_right' | 'info_
 const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
     onNext,
     onSkip,
+    onSkipToColorBlind,
     sessionName = '',
     sessionPhone = '',
 }) => {
@@ -285,7 +301,7 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
                 <div className="flex flex-col h-[calc(100vh-73px)] px-6">
                     <div className="flex justify-end pt-1">
                         <button
-                            onClick={onSkip}
+                            onClick={onSkipToColorBlind}
                             className="bg-[#0297d6] text-white font-bold px-6 py-2 rounded-full"
                         >
                             Skip
@@ -307,7 +323,6 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
                         </div>
                     </div>
 
-                    {/* Buttons - Higher position */}
                     <div className="flex justify-between pb-6 pt-2">
                         <button
                             onClick={onSkip}

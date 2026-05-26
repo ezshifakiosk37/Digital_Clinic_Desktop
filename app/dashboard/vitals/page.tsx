@@ -23,6 +23,7 @@ import { VideoConsultModel } from './_components/VideoConsultModel';
 import HeightCameraModal from './_components/HeightCameraModal';
 import RapidTestingPage, { RapidTestingData } from './_components/RapidTestingPage'
 import EyeTestingpage, { EyeTestingData } from './_components/EyeTestingpage'
+import ColorBlindTestPage, { ColorBlindTestData } from './_components/ColorBlindTestPage'
 
 
 const VitalsPage = () => {
@@ -73,6 +74,8 @@ const VitalsPage = () => {
   const [rapidTestingId, setRapidTestingId] = useState<string>('');
   const [showEyeTesting, setShowEyeTesting] = useState(false);
   const [eyeTestingData, setEyeTestingData] = useState<EyeTestingData | null>(null);
+  const [showColorBlindTest, setShowColorBlindTest] = useState(false);
+  const [colorBlindData, setColorBlindData] = useState<ColorBlindTestData | null>(null);
   const router = useRouter()
 
   const fetchVitalsQueue = async () => {
@@ -579,18 +582,48 @@ const VitalsPage = () => {
           onNext={(data) => {
             setEyeTestingData(data);
             setShowEyeTesting(false);
-            setStep(2);
+            setShowColorBlindTest(true);
           }}
           onSkip={() => {
+            // ← Back → go to Rapid Testing
             setShowEyeTesting(false);
-            setStep(2);
+            setShowRapidTesting(true);
+          }}
+          onSkipToColorBlind={() => {
+            // Skip → go to Color Blind Test
+            setShowEyeTesting(false);
+            setShowColorBlindTest(true);
           }}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
         />
       )}
-      {!showRapidTesting && !showEyeTesting && (
+
+      {showColorBlindTest && (
+        <ColorBlindTestPage
+          onNext={(data) => {
+            setColorBlindData(data);
+            setShowColorBlindTest(false);
+            setStep(2);
+          }}
+          onSkip={() => {
+            // Skip → go to Step 2
+            setShowColorBlindTest(false);
+            setStep(2);
+          }}
+          onBack={() => {
+            // ← Back → go back to Eye Testing select page
+            setShowColorBlindTest(false);
+            setShowEyeTesting(true);
+          }}
+          sessionName={sessionName}
+          sessionPhone={sessionPhone}
+        />
+      )}
+      {!showRapidTesting && !showEyeTesting && !showColorBlindTest && (
         <>
+
+
           <Navbar
             variant="vitals"
             onAddToken={() => setOpenTokenDialog(true)}
