@@ -22,6 +22,7 @@ import { useRouter } from 'next/navigation';
 import { VideoConsultModel } from './_components/VideoConsultModel';
 import HeightCameraModal from './_components/HeightCameraModal';
 import RapidTestingPage, { RapidTestingData } from './_components/RapidTestingPage'
+import EyeTestingpage, { EyeTestingData } from './_components/EyeTestingpage'
 
 
 const VitalsPage = () => {
@@ -70,7 +71,8 @@ const VitalsPage = () => {
   const [showRapidTesting, setShowRapidTesting] = useState(false);
   const [rapidTestingData, setRapidTestingData] = useState<RapidTestingData | null>(null);
   const [rapidTestingId, setRapidTestingId] = useState<string>('');
-
+  const [showEyeTesting, setShowEyeTesting] = useState(false);
+  const [eyeTestingData, setEyeTestingData] = useState<EyeTestingData | null>(null);
   const router = useRouter()
 
   const fetchVitalsQueue = async () => {
@@ -198,6 +200,8 @@ const VitalsPage = () => {
     setVitalsId('');
     setRapidTestingId('');
     setRapidTestingData(null);
+    setShowEyeTesting(false);
+    setEyeTestingData(null);
     setVitalsQueue(prev => prev.filter(p => p.id !== patient.id));
   };
 
@@ -384,6 +388,8 @@ const VitalsPage = () => {
         setVitalsId('');
         setRapidTestingId('');
         setRapidTestingData(null);
+        setShowEyeTesting(false);
+        setEyeTestingData(null);
       }
     } catch (error: any) {
       const msg = error.message || "";
@@ -558,7 +564,7 @@ const VitalsPage = () => {
           onNext={(data) => {
             setRapidTestingData(data);
             setShowRapidTesting(false);
-            setStep(2);
+            setShowEyeTesting(true);
           }}
           onSkip={() => {
             setShowRapidTesting(false);
@@ -568,7 +574,22 @@ const VitalsPage = () => {
           sessionPhone={sessionPhone}
         />
       )}
-      {!showRapidTesting && (
+      {showEyeTesting && (
+        <EyeTestingpage
+          onNext={(data) => {
+            setEyeTestingData(data);
+            setShowEyeTesting(false);
+            setStep(2);
+          }}
+          onSkip={() => {
+            setShowEyeTesting(false);
+            setStep(2);
+          }}
+          sessionName={sessionName}
+          sessionPhone={sessionPhone}
+        />
+      )}
+      {!showRapidTesting && !showEyeTesting && (
         <>
           <Navbar
             variant="vitals"
