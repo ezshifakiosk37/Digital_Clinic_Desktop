@@ -230,6 +230,14 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     const [moreTests, setMoreTests] = useState<MoreTest[]>([])
     const [showMoreDialog, setShowMoreDialog] = useState(false)
 
+    useEffect(() => {
+        window.onGlucoseReceived = (mgdl) => {
+            console.log('Glucose received:', mgdl);
+            setBloodSugar({value: mgdl.toString(), type: "Random"})
+        };
+        return () => { delete window.onGlucoseReceived; };
+    }, []);
+
     const updateTest = (id: string, result: TestResult) =>
         setTests(prev => prev.map(t => (t.id === id ? { ...t, result } : t)))
 

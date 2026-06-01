@@ -293,5 +293,29 @@ export const AndroidBridge = {
       return true;
     }
     return false;
-  }
+  },
+
+  /**
+   * Initialises the listener for glucose readings pushed from Android.
+   * @param onGlucose Callback that receives the glucose value (mg/dL)
+   */
+  initGlucoseListener: (onGlucose: (mgdl: number) => void) => {
+    window.onGlucoseReceived = (mgdl: number) => {
+      console.log("Glucose reading received:", mgdl);
+      onGlucose(mgdl);
+    };
+  },
+
+  /**
+   * Manually requests a fresh glucose reading from the meter.
+   * The result will arrive via the onGlucose callback.
+   */
+  requestGlucoseReading: () => {
+    const bridge = window.AndroidNative;
+    if (bridge?.requestGlucoseReading) {
+      bridge.requestGlucoseReading();
+      return true;
+    }
+    return false;
+  },
 }; // End of AndroidBridge object
