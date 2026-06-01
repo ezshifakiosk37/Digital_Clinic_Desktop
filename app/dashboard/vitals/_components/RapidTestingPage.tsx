@@ -232,7 +232,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
 
     useEffect(() => {
         window.onGlucoseReceived = (mgdl) => {
-            console.log('Glucose received:', mgdl);
+            console.log('Glucose received: ', mgdl);
             setBloodSugar({value: mgdl.toString(), type: "Random"})
         };
         return () => { delete window.onGlucoseReceived; };
