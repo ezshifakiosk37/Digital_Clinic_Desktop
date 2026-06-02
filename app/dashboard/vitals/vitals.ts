@@ -1,4 +1,13 @@
 //vitals.ts
+//color blind and eye testng
+
+export const COLOR_BLIND_PLATES = [
+    { id: 1, correct: '74', options: ['34', '45', '74'], image: '/img1.png' },
+    { id: 2, correct: '45', options: ['48', '45', '15'], image: '/img2.png' },
+    { id: 3, correct: '3',  options: ['8', '3', '5'],    image: '/img3.png' },
+];
+
+
 export type FieldType =
   | 'text'
   | 'email'

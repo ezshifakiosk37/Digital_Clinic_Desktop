@@ -2,55 +2,14 @@
 import React, { useState } from 'react'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export interface ColorBlindTestData {
-    results: { plate: number; answer: string; correct: string; passed: boolean }[]
-    skipped: boolean
+    plate1: string;
+    plate2: string;
+    plate3: string;
+    colorBlindResult: "Passed" | "Failed" | "Not Performed";
+    skipped: boolean;
 }
-
-// ─── Real Ishihara plates with correct answers and 3 options each ─────────────
-// Using publicly available Ishihara test images
-// SVG Ishihara-style plates rendered inline — no external images needed
-const makePlate = (numberDots: [number, number][], bgColor: string, fgColor: string) => numberDots
-
-// Each plate: array of {cx, cy, r, fg} — fg=true means it's part of the number
-const PLATE_DATA = [
-    // Plate 1 — number "6"
-    { correct: '6', options: ['3', '5', '6'], fg: '#c0392b', bg: '#e67e22', accent: '#d35400' },
-    // Plate 2 — number "45"  
-    { correct: '45', options: ['48', '45', '15'], fg: '#27ae60', bg: '#8e44ad', accent: '#2ecc71' },
-    // Plate 3 — number "16"
-    { correct: '16', options: ['6', '16', '13'], fg: '#e74c3c', bg: '#27ae60', accent: '#c0392b' },
-]
-
-// Generate deterministic dot pattern for Ishihara-style plate
-function generatePlate(seed: number, fgColor: string, bgColor: string, accentColor: string, numberText: string) {
-    const dots: { cx: number; cy: number; r: number; color: string }[] = []
-    const rng = (n: number) => {
-        const x = Math.sin(seed * 9301 + n * 49297 + 233) * 93280.233
-        return x - Math.floor(x)
-    }
-    // Background dots
-    for (let i = 0; i < 200; i++) {
-        const angle = rng(i * 3) * Math.PI * 2
-        const dist = Math.sqrt(rng(i * 3 + 1)) * 130
-        const cx = 160 + Math.cos(angle) * dist
-        const cy = 160 + Math.sin(angle) * dist
-        const r = 6 + rng(i * 3 + 2) * 12
-        const colorPick = rng(i * 7)
-        const color = colorPick < 0.5 ? bgColor : accentColor
-        dots.push({ cx, cy, r, color })
-    }
-    return dots
-}
-
-const PLATES = PLATE_DATA.map((p, idx) => ({
-    id: idx + 1,
-    correct: p.correct,
-    options: p.options,
-    fg: p.fg,
-    bg: p.bg,
-    accent: p.accent,
-}))
 
 interface ColorBlindTestPageProps {
     onNext: (data: ColorBlindTestData) => void
@@ -60,6 +19,14 @@ interface ColorBlindTestPageProps {
     sessionPhone?: string
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+const PLATES = [
+    { id: 1, correct: '74', options: ['34', '45', '74'], image: '/img1.png' },
+    { id: 2, correct: '45', options: ['48', '45', '15'], image: '/img2.png' },
+    { id: 3, correct: '3', options: ['8', '3', '5'], image: '/img3.png' },
+]
+
+// ─── Main Component ──────────────────────────────────────────────────────────
 const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
     onNext,
     onSkip,
@@ -74,6 +41,7 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
     const current = PLATES[currentIndex]
     const selected = answers[currentIndex] ?? ''
     const isLastPlate = currentIndex === PLATES.length - 1
+    const isFirstPlate = currentIndex === 0
 
     const handleSelect = (value: string) => {
         setAnswers(prev => ({ ...prev, [currentIndex]: value }))
@@ -81,13 +49,25 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
 
     const handleNext = () => {
         if (isLastPlate) {
-            const results = PLATES.map((plate, i) => ({
-                plate: plate.id,
-                answer: answers[i] ?? '',
-                correct: plate.correct,
-                passed: answers[i] === plate.correct,
-            }))
-            onNext({ results, skipped: false })
+            const plate1 = answers[0] ?? ''
+            const plate2 = answers[1] ?? ''
+            const plate3 = answers[2] ?? ''
+
+            const correctCount = [
+                plate1 === PLATES[0].correct,
+                plate2 === PLATES[1].correct,
+                plate3 === PLATES[2].correct
+            ].filter(Boolean).length
+
+            const colorBlindResult = correctCount >= 2 ? "Passed" : "Failed"
+
+            onNext({
+                plate1,
+                plate2,
+                plate3,
+                colorBlindResult,
+                skipped: false
+            })
         } else {
             setCurrentIndex(p => p + 1)
         }
@@ -101,10 +81,20 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
         if (currentIndex < PLATES.length - 1) setCurrentIndex(p => p + 1)
     }
 
+    const handleSkip = () => {
+        onNext({
+            plate1: "Not Performed",
+            plate2: "Not Performed",
+            plate3: "Not Performed",
+            colorBlindResult: "Not Performed",
+            skipped: true
+        })
+    }
+
     return (
         <div className="h-screen bg-white flex flex-col overflow-hidden">
 
-            {/* ── Navbar — matches EZShifa style ── */}
+            {/* Navbar */}
             <nav className="w-full bg-[#0297d6] text-white px-4 py-4 shadow-md sticky top-0 z-10">
                 <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
                     <div className="min-w-0">
@@ -115,6 +105,8 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
                         </div>
                         <p className="text-sm font-bold text-white mt-0.5 leading-none tracking-wide">Color Vision Test</p>
                     </div>
+
+
                     {(sessionName || sessionPhone) && (
                         <div className="flex flex-col items-end gap-0.5 shrink-0">
                             {sessionName && (
@@ -133,13 +125,20 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
                     )}
                 </div>
             </nav>
-
-            {/* ── Main Content ── */}
+            <div className='flex justify-end'>
+                {isFirstPlate && (
+                    <button
+                        onClick={handleSkip}
+                        className="bg-[#0297d6] text-white font-bold px-6 py-2 mt-1 mr-1 rounded-full hover:text-[#000000] transition-colors shadow-md"
+                    >
+                        Skip
+                    </button>
+                )}
+            </div>
+            {/* Main Content */}
             <div className="flex-1 flex flex-col items-center justify-between px-4 py-3">
 
-                {/* Plate image + left/right arrows */}
                 <div className="flex-1 flex items-center justify-center w-full relative">
-                    {/* Left arrow */}
                     <button
                         onClick={handlePrev}
                         disabled={currentIndex === 0}
@@ -148,49 +147,15 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
                         <ArrowLeft className="w-10 h-10" />
                     </button>
 
-                    {/* Plate — SVG Ishihara-style, always renders */}
                     <div className="flex items-center justify-center">
-                        <svg
-                            width="260" height="260"
-                            viewBox="0 0 320 320"
-                            className="rounded-full shadow-xl"
-                        >
-                            <defs>
-                                <clipPath id="circle-clip">
-                                    <circle cx="160" cy="160" r="150" />
-                                </clipPath>
-                            </defs>
-                            {/* Background */}
-                            <circle cx="160" cy="160" r="150" fill={current.bg} />
-                            {/* Random dots */}
-                            {generatePlate(current.id, current.fg, current.bg, current.accent, current.correct).map((dot, i) => (
-                                <circle
-                                    key={i}
-                                    cx={dot.cx} cy={dot.cy} r={dot.r}
-                                    fill={dot.color}
-                                    clipPath="url(#circle-clip)"
-                                    opacity="0.85"
-                                />
-                            ))}
-                            {/* Number rendered in fg color dots over the bg */}
-                            <text
-                                x="160" y="175"
-                                textAnchor="middle"
-                                fontSize="80"
-                                fontWeight="bold"
-                                fill={current.fg}
-                                opacity="0.55"
-                                clipPath="url(#circle-clip)"
-                                style={{ userSelect: 'none' }}
-                            >
-                                {current.correct}
-                            </text>
-                            {/* Outer ring */}
-                            <circle cx="160" cy="160" r="150" fill="none" stroke="#fff" strokeWidth="3" opacity="0.3" />
-                        </svg>
+                        <img
+                            src={current.image}
+                            alt={`Ishihara plate ${current.id}`}
+                            className="rounded-full shadow-xl object-cover"
+                            style={{ width: 260, height: 260 }}
+                        />
                     </div>
 
-                    {/* Right arrow */}
                     <button
                         onClick={handleArrowRight}
                         disabled={currentIndex === PLATES.length - 1}
@@ -200,7 +165,6 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
                     </button>
                 </div>
 
-                {/* Answer options — 3 per plate */}
                 <div className="flex gap-4 justify-center mb-2 mt-2">
                     {current.options.map(opt => (
                         <button
@@ -217,25 +181,16 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
                     ))}
                 </div>
 
-                {/* Plate counter */}
                 <p className="text-base font-bold text-slate-500 mb-3">
                     {currentIndex + 1}/{PLATES.length}
                 </p>
 
-                {/* Next button — centered, same style as eye testing */}
                 <div className="flex justify-between items-center w-full px-2">
                     <button
                         onClick={onBack}
                         className="px-6 py-2.5 text-sm font-bold border border-slate-200 bg-white rounded-lg text-slate-600 hover:bg-slate-50 transition-colors"
                     >
                         ← Back
-                    </button>
-
-                    <button
-                        onClick={onSkip}
-                        className="px-6 py-2.5 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                        Skip
                     </button>
 
                     <button

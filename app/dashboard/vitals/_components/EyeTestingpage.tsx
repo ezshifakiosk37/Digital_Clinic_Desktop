@@ -1,3 +1,4 @@
+//EyeTestingpage.tsx
 'use client'
 import React, { useState } from 'react'
 import { ArrowLeft, ArrowRight, X } from 'lucide-react'
@@ -104,7 +105,7 @@ const ChartTest = ({
 
     const handleNext = () => {
         if (canRead) {
-            onDone('Not Normal')
+            onDone(currentRow.vision)
         } else if (isLastRow) {
             onDone(currentRow.vision)
         } else {
@@ -113,7 +114,7 @@ const ChartTest = ({
         }
     }
 
-    const resultLabel = canRead ? 'Not Normal' : isLastRow ? currentRow.vision : ''
+    const resultLabel = canRead || isLastRow ? currentRow.vision : ''
     const showNext = canRead || isLastRow
 
     return (
@@ -254,14 +255,14 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
     const handleTypeSelect = (type: ChartType) => setChartType(type)
     const handleBegin = () => setStage('info_stand')
 
-    const handleRightDone = (result: string) => {
-        setRightEyeResult(result)
+    const handleLeftDone = (result: string) => {
+        setLeftEyeResult(result)
         setStage('info_cover_right')
     }
 
-    const handleLeftDone = (result: string) => {
-        setLeftEyeResult(result)
-        onNext({ chartType, leftEye: result, rightEye: rightEyeResult, skipped: false })
+    const handleRightDone = (result: string) => {
+        setRightEyeResult(result)
+        onNext({ chartType, leftEye: leftEyeResult, rightEye: result, skipped: false })
     }
 
     const CHART_OPTIONS = [
@@ -341,13 +342,14 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
             )}
             {/* Info & Test Screens */}
             {stage === 'info_stand' && <InfoDialog message="Stand at mark line for eye examination." onOk={() => setStage('info_cover_left')} />}
-            {stage === 'info_cover_left' && <InfoDialog message="Cover your LEFT EYE while examination" onOk={() => setStage('test_right')} />}
-            {stage === 'info_cover_right' && <InfoDialog message="Cover your RIGHT EYE while examination" onOk={() => setStage('test_left')} />}
+            {stage === 'info_cover_left' && <InfoDialog message="Cover your LEFT EYE while examination" onOk={() => setStage('test_left')} />}
+            {stage === 'info_cover_right' && <InfoDialog message="Cover your RIGHT EYE while examination" onOk={() => setStage('test_right')} />}
 
-            {stage === 'test_right' && <ChartTest chartType={chartType} eye="right" onDone={handleRightDone} setStage={setStage} />}
             {stage === 'test_left' && <ChartTest chartType={chartType} eye="left" onDone={handleLeftDone} setStage={setStage} />}
-        </div>
+            {stage === 'test_right' && <ChartTest chartType={chartType} eye="right" onDone={handleRightDone} setStage={setStage} />}
+            </div>
     )
 }
 
 export default EyeTestingPage
+

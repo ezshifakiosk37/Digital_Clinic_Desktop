@@ -275,6 +275,26 @@ const VitalsPage = () => {
                 setRapidTestingId(rtResult.data.id);
               }
             }
+
+            // ─── Save eye testing + color blind data only if at least one test was performed ───
+            if (eyeTestingData !== null || colorBlindData !== null) {
+              const eyeDataToSave = {
+                chartType: eyeTestingData?.chartType ?? "Not Performed",
+                leftEye: eyeTestingData?.leftEye ?? "Not Performed",
+                rightEye: eyeTestingData?.rightEye ?? "Not Performed",
+                plate1: colorBlindData?.plate1 ?? "Not Performed",
+                plate2: colorBlindData?.plate2 ?? "Not Performed",
+                plate3: colorBlindData?.plate3 ?? "Not Performed",
+                colorBlindResult: colorBlindData?.colorBlindResult ?? "Not Performed",
+              };
+              try {
+                await apiService.saveEyeTesting(newVitalsId, eyeDataToSave);
+              } catch (err) {
+                console.error("Eye testing save failed (non-blocking):", err);
+              }
+            }
+
+
           } catch (err) {
             console.error("Rapid testing save failed (non-blocking):", err);
           }
