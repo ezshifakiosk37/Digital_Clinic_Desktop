@@ -39,9 +39,9 @@ export default function GlucoseSuccessPopup({
                     <h2 className="text-xl font-bold text-slate-800 mb-2">
                         Glucose Value Added
                     </h2>
-                    <p className="text-slate-600 mb-6">
+                    {/* <p className="text-slate-600 mb-6">
                         Glucose Added Successfully.
-                    </p>
+                    </p> */}
                     <p className="my-4 flex items-baseline justify-center gap-1">
                         <span className="text-4xl font-extrabold text-[#0297d6]">
                             {glucoseValue !== null ? glucoseValue : 136}
