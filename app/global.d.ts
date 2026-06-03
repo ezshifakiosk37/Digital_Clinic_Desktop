@@ -69,5 +69,11 @@ declare global {
     // ─────────────────────────────────────────────────────────────────────────
     /** Receives a glucose value from the Accu‑Chek Guide meter (mg/dL). */
     onGlucoseReceived?: (mgdl: number) => void;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ECG FILE DETECTION CALLBACK (from Android to JS)
+    // ─────────────────────────────────────────────────────────────────────────
+    /** Called when the Android native code detects a new file starting with 'ecg-*' in the Downloads folder. */
+    onEcgFileDetected?: (filename: string) => void;
   }
 }
