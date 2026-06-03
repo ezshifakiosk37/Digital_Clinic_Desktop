@@ -18,7 +18,7 @@ export default function GlucoseSuccessPopup({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-[50%] w-full animate-in zoom-in-95 duration-200">
         {/* Header with close icon */}
         <div className="flex justify-end pt-4 pr-4">
           <button
@@ -30,7 +30,7 @@ export default function GlucoseSuccessPopup({
         </div>
 
         {/* Main content */}
-        <div className="text-center pb-8 px-6">
+        <div className="text-center pb-8 px-2">
           <div className="flex justify-center mb-4">
             <div className="bg-green-100 rounded-full p-4">
               <Check className="w-16 h-16 text-green-600" />
