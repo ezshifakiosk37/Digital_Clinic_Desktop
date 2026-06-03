@@ -44,7 +44,7 @@ export default function GlucoseSuccessPopup({
                     </p> */}
                     <p className="my-4 flex items-baseline justify-center gap-1">
                         <span className="text-4xl font-extrabold text-[#0297d6]">
-                            {glucoseValue !== null ? glucoseValue : 136}
+                            {glucoseValue !== null ? glucoseValue : "-"}
                         </span>
                         <span className="-translate-y-1 font-medium text-slate-500">
                             mg/dL
