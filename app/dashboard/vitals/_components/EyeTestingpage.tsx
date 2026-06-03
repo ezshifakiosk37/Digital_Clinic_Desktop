@@ -275,40 +275,48 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
     return (
         <div className="fixed inset-0 bg-slate-50 z-50 overflow-hidden md:ml-16">
 
-            {/* Navbar - Same as Rapid Testing */}
-            <nav className="w-full bg-[#0297d6] text-white px-4 py-4 shadow-md sticky top-0 z-50">
+            {/* ── Navbar ── */}
+            <nav className="w-full bg-[#0297d6] text-white px-4 py-4 shadow-md shrink-0 sticky top-0 z-10">
                 <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                        <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-2xl font-bold tracking-tight">EZShifa</span>
-                                <span className="opacity-40 text-lg">|</span>
-                                <span className="text-lg font-semibold">Digital Health Clinic</span>
-                            </div>
-                            <p className="text-sm font-bold text-white mt-0.5">Eye Examination</p>
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-2xl font-bold tracking-tight whitespace-nowrap">EZShifa</span>
+                            <span className="opacity-40 text-lg shrink-0">|</span>
+                            <span className="text-lg font-semibold whitespace-nowrap">Digital Health Clinic</span>
                         </div>
+                        <p className="text-sm font-bold text-white mt-0.5 leading-none">Hearing Test</p>
                     </div>
-                    {(sessionName || sessionPhone) && (
-                        <div className="flex flex-col items-end text-sm">
-                            {sessionName && <span><span className="opacity-70">NAME:</span> {sessionName}</span>}
-                            {sessionPhone && <span><span className="opacity-70">PHONE:</span> {sessionPhone}</span>}
-                        </div>
-                    )}
+                    <div className="flex items-center gap-3 shrink-0">
+                        {(sessionName || sessionPhone) && (
+                            <div className="flex flex-col items-end gap-0.5">
+                                {sessionName && (
+                                    <span className="text-white text-xs font-medium">
+                                        <span className="text-white/60 uppercase tracking-wider text-[10px] mr-1">NAME</span>
+                                        <span className="font-bold">{sessionName}</span>
+                                    </span>
+                                )}
+                                {sessionPhone && (
+                                    <span className="text-white text-xs font-medium">
+                                        <span className="text-white/60 uppercase tracking-wider text-[10px] mr-1">PHONE</span>
+                                        <span className="font-bold">{sessionPhone}</span>
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                        {/* Skip — top-right in navbar, same as EyeTestingPage */}
+                        <button
+                            onClick={onSkipToColorBlind}
+                            className="bg-white text-[#0297d6] font-bold px-6 py-2 rounded-full"
+                        >
+                            Skip
+                        </button>
+                    </div>
                 </div>
             </nav>
 
             {/* Select Stage - 2x2 Grid (Fixed button visibility) */}
             {stage === 'select' && (
                 <div className="flex flex-col h-[calc(100vh-73px)] px-6">
-                    <div className="flex justify-end pt-1">
-                        <button
-                            onClick={onSkipToColorBlind}
-                            className="bg-[#0297d6] text-white font-bold px-6 py-2 rounded-full"
-                        >
-                            Skip
-                        </button>
-                    </div>
-
                     <div className="flex-1 flex items-center justify-center">
                         <div className="grid grid-cols-4 gap-4 max-w-full">
                             {CHART_OPTIONS.map(opt => (
@@ -347,7 +355,7 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
 
             {stage === 'test_left' && <ChartTest chartType={chartType} eye="left" onDone={handleLeftDone} setStage={setStage} />}
             {stage === 'test_right' && <ChartTest chartType={chartType} eye="right" onDone={handleRightDone} setStage={setStage} />}
-            </div>
+        </div>
     )
 }
 

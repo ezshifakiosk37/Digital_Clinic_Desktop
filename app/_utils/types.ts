@@ -223,3 +223,11 @@ export interface ColorBlindTestData {
     plate3: string;
     colorBlindResult: "Passed" | "Failed" | "Not Performed";
 }
+
+export interface HearingTestData {
+  leftEar: Record<number, number>   // { 250: 30, 500: 20, ... } Hz → dB threshold
+  rightEar: Record<number, number>
+  leftResult: 'Normal' | 'Mild Loss' | 'Moderate Loss' | 'Severe Loss' | 'Skipped'
+  rightResult: 'Normal' | 'Mild Loss' | 'Moderate Loss' | 'Severe Loss' | 'Skipped'
+  skipped: boolean
+}

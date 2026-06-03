@@ -24,7 +24,7 @@ import HeightCameraModal from './_components/HeightCameraModal';
 import RapidTestingPage, { RapidTestingData } from './_components/RapidTestingPage'
 import EyeTestingpage, { EyeTestingData } from './_components/EyeTestingpage'
 import ColorBlindTestPage, { ColorBlindTestData } from './_components/ColorBlindTestPage'
-
+import HearingTestPage, { HearingTestData } from './_components/HearingTestPage'
 
 const VitalsPage = () => {
   const [vitals, setVitals] = useState({
@@ -76,6 +76,8 @@ const VitalsPage = () => {
   const [eyeTestingData, setEyeTestingData] = useState<EyeTestingData | null>(null);
   const [showColorBlindTest, setShowColorBlindTest] = useState(false);
   const [colorBlindData, setColorBlindData] = useState<ColorBlindTestData | null>(null);
+  const [showHearingTest, setShowHearingTest] = useState(false);
+  const [hearingTestData, setHearingTestData] = useState<HearingTestData | null>(null);
   const router = useRouter()
 
   const fetchVitalsQueue = async () => {
@@ -624,15 +626,13 @@ const VitalsPage = () => {
           onNext={(data) => {
             setColorBlindData(data);
             setShowColorBlindTest(false);
-            setStep(2);
+            setShowHearingTest(true); {/* ← goes to Hearing next */ }
           }}
           onSkip={() => {
-            // Skip → go to Step 2
             setShowColorBlindTest(false);
-            setStep(2);
+            setShowHearingTest(true); {/* ← skip also goes to Hearing */ }
           }}
           onBack={() => {
-            // ← Back → go back to Eye Testing select page
             setShowColorBlindTest(false);
             setShowEyeTesting(true);
           }}
@@ -640,7 +640,27 @@ const VitalsPage = () => {
           sessionPhone={sessionPhone}
         />
       )}
-      {!showRapidTesting && !showEyeTesting && !showColorBlindTest && (
+
+      {showHearingTest && (
+        <HearingTestPage
+          onNext={(data) => {
+            setHearingTestData(data);
+            setShowHearingTest(false);
+            setStep(2);
+          }}
+          onSkip={() => {
+            setShowHearingTest(false);
+            setStep(2);
+          }}
+          onBack={() => {
+            setShowHearingTest(false);
+            setShowColorBlindTest(true);
+          }}
+          sessionName={sessionName}
+          sessionPhone={sessionPhone}
+        />
+      )}
+      {!showRapidTesting && !showEyeTesting && !showColorBlindTest && !showHearingTest && (
         <>
 
 
