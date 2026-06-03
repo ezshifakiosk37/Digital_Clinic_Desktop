@@ -36,14 +36,14 @@ export default function GlucoseSuccessPopup({
                             <Check className="w-16 h-16 text-green-600" />
                         </div>
                     </div>
-                    <h2 className="text-xl font-bold text-slate-800 mb-2">
+                    <h2 className="text-lg font-bold text-slate-800 mb-2">
                         Glucose Value Added
                     </h2>
                     {/* <p className="text-slate-600 mb-6">
                         Glucose Added Successfully.
                     </p> */}
                     <p className="my-4 flex items-baseline justify-center gap-1">
-                        <span className="text-4xl font-extrabold text-[#0297d6]">
+                        <span className="text-3xl font-extrabold text-[#0297d6]">
                             {glucoseValue !== null ? glucoseValue : "-"}
                         </span>
                         <span className="-translate-y-1 font-medium text-slate-500">
@@ -52,7 +52,7 @@ export default function GlucoseSuccessPopup({
                     </p>
                     <button
                         onClick={onDismiss}
-                        className="bg-[#0297d6] hover:bg-[#0280bb] text-white font-bold py-3 px-8 rounded-xl transition-colors text-lg shadow-md"
+                        className="bg-[#0297d6] hover:bg-[#0280bb] text-white font-bold py-3 px-8 rounded-xl transition-colors  shadow-md"
                     >
                         Dismiss
                     </button>
