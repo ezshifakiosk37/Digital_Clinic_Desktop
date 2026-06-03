@@ -417,6 +417,22 @@ export const apiService = {
         return handleResponse(response);
     },
 
+    saveEyeTesting: async (vitalsId: string, eyeData: any) => {
+        const response = await fetch(`${API_BASE_URL}/api/vitals/eye-testing/save`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ vitalsId, eyeData }),
+        });
+        return handleResponse(response);
+    },
+
+    getEyeTesting: async (vitalsId: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/vitals/eye-testing/${vitalsId}`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+        return handleResponse(response);
+    },
     getLatestVitals: async (patientId: string, token: string) => {
         const res = await fetch(
             `${API_BASE_URL}/api/patients/latest-vitals/${patientId}/${token}`,

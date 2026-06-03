@@ -207,3 +207,19 @@ export interface Doctor {
   experience: number
   doctorStatus: 'online' | 'offline'
 }
+
+//eye testing + color blind test
+
+export interface EyeTestingData {
+    chartType: 'English' | 'Urdu' | 'Shapes' | 'Mix';
+    leftEye: string;
+    rightEye: string;
+    skipped: boolean;
+}
+
+export interface ColorBlindTestData {
+    plate1: string;
+    plate2: string;
+    plate3: string;
+    colorBlindResult: "Passed" | "Failed" | "Not Performed";
+}

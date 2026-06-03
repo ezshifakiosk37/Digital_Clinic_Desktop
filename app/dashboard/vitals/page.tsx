@@ -22,6 +22,8 @@ import { useRouter } from 'next/navigation';
 import { VideoConsultModel } from './_components/VideoConsultModel';
 import HeightCameraModal from './_components/HeightCameraModal';
 import RapidTestingPage, { RapidTestingData } from './_components/RapidTestingPage'
+import EyeTestingpage, { EyeTestingData } from './_components/EyeTestingpage'
+import ColorBlindTestPage, { ColorBlindTestData } from './_components/ColorBlindTestPage'
 
 
 const VitalsPage = () => {
@@ -70,7 +72,10 @@ const VitalsPage = () => {
   const [showRapidTesting, setShowRapidTesting] = useState(false);
   const [rapidTestingData, setRapidTestingData] = useState<RapidTestingData | null>(null);
   const [rapidTestingId, setRapidTestingId] = useState<string>('');
-
+  const [showEyeTesting, setShowEyeTesting] = useState(false);
+  const [eyeTestingData, setEyeTestingData] = useState<EyeTestingData | null>(null);
+  const [showColorBlindTest, setShowColorBlindTest] = useState(false);
+  const [colorBlindData, setColorBlindData] = useState<ColorBlindTestData | null>(null);
   const router = useRouter()
 
   const fetchVitalsQueue = async () => {
@@ -198,6 +203,8 @@ const VitalsPage = () => {
     setVitalsId('');
     setRapidTestingId('');
     setRapidTestingData(null);
+    setShowEyeTesting(false);
+    setEyeTestingData(null);
     setVitalsQueue(prev => prev.filter(p => p.id !== patient.id));
   };
 
@@ -268,6 +275,26 @@ const VitalsPage = () => {
                 setRapidTestingId(rtResult.data.id);
               }
             }
+
+            // ─── Save eye testing + color blind data only if at least one test was performed ───
+            if (eyeTestingData !== null || colorBlindData !== null) {
+              const eyeDataToSave = {
+                chartType: eyeTestingData?.chartType ?? "Not Performed",
+                leftEye: eyeTestingData?.leftEye ?? "Not Performed",
+                rightEye: eyeTestingData?.rightEye ?? "Not Performed",
+                plate1: colorBlindData?.plate1 ?? "Not Performed",
+                plate2: colorBlindData?.plate2 ?? "Not Performed",
+                plate3: colorBlindData?.plate3 ?? "Not Performed",
+                colorBlindResult: colorBlindData?.colorBlindResult ?? "Not Performed",
+              };
+              try {
+                await apiService.saveEyeTesting(newVitalsId, eyeDataToSave);
+              } catch (err) {
+                console.error("Eye testing save failed (non-blocking):", err);
+              }
+            }
+
+
           } catch (err) {
             console.error("Rapid testing save failed (non-blocking):", err);
           }
@@ -384,6 +411,8 @@ const VitalsPage = () => {
         setVitalsId('');
         setRapidTestingId('');
         setRapidTestingData(null);
+        setShowEyeTesting(false);
+        setEyeTestingData(null);
       }
     } catch (error: any) {
       const msg = error.message || "";
@@ -558,7 +587,7 @@ const VitalsPage = () => {
           onNext={(data) => {
             setRapidTestingData(data);
             setShowRapidTesting(false);
-            setStep(2);
+            setShowEyeTesting(true);
           }}
           onSkip={() => {
             setShowRapidTesting(false);
@@ -568,8 +597,53 @@ const VitalsPage = () => {
           sessionPhone={sessionPhone}
         />
       )}
-      {!showRapidTesting && (
+      {showEyeTesting && (
+        <EyeTestingpage
+          onNext={(data) => {
+            setEyeTestingData(data);
+            setShowEyeTesting(false);
+            setShowColorBlindTest(true);
+          }}
+          onSkip={() => {
+            // ← Back → go to Rapid Testing
+            setShowEyeTesting(false);
+            setShowRapidTesting(true);
+          }}
+          onSkipToColorBlind={() => {
+            // Skip → go to Color Blind Test
+            setShowEyeTesting(false);
+            setShowColorBlindTest(true);
+          }}
+          sessionName={sessionName}
+          sessionPhone={sessionPhone}
+        />
+      )}
+
+      {showColorBlindTest && (
+        <ColorBlindTestPage
+          onNext={(data) => {
+            setColorBlindData(data);
+            setShowColorBlindTest(false);
+            setStep(2);
+          }}
+          onSkip={() => {
+            // Skip → go to Step 2
+            setShowColorBlindTest(false);
+            setStep(2);
+          }}
+          onBack={() => {
+            // ← Back → go back to Eye Testing select page
+            setShowColorBlindTest(false);
+            setShowEyeTesting(true);
+          }}
+          sessionName={sessionName}
+          sessionPhone={sessionPhone}
+        />
+      )}
+      {!showRapidTesting && !showEyeTesting && !showColorBlindTest && (
         <>
+
+
           <Navbar
             variant="vitals"
             onAddToken={() => setOpenTokenDialog(true)}
