@@ -5,6 +5,7 @@ import {
     Activity, Droplets, Shield, Microscope, Bug,
     Zap, Wind, Stethoscope, FlaskConical, TestTube, Heart
 } from 'lucide-react'
+import ToastPopup from './ToastPopup'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type TestResult = 'Not Performed' | 'Normal' | 'Consultation Required'
@@ -228,12 +229,17 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     const [sugarTypeOpen, setSugarTypeOpen] = useState(false)
     const [tests, setTests] = useState<TestItem[]>(DEFAULT_TESTS)
     const [moreTests, setMoreTests] = useState<MoreTest[]>([])
+    const [showToast, setShowToast] = useState(false)
+    const [toastMessage, setToastMessage] = useState('')
     const [showMoreDialog, setShowMoreDialog] = useState(false)
 
     useEffect(() => {
         window.onGlucoseReceived = (mgdl) => {
             console.log('Glucose received: ', mgdl);
             setBloodSugar({ value: mgdl.toString(), type: "Random" })
+            // Show popup with the value
+            setToastMessage(`Glucose value ${mgdl} mg/dL added successfully`)
+            setShowToast(true)
         };
         return () => { delete window.onGlucoseReceived; };
     }, []);
@@ -272,6 +278,13 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
 
     return (
         <div className="min-h-screen bg-slate-50">
+            {/* Toast popup */}
+            <ToastPopup
+                message={toastMessage}
+                visible={showToast}
+                onHide={() => setShowToast(false)}
+                duration={5000}
+            />
 
             {/* ── Navbar — matches existing Navbar component style exactly ── */}
             <nav className="w-full bg-[#0297d6] text-white px-4 py-4 shadow-md sticky top-0 z-10">
