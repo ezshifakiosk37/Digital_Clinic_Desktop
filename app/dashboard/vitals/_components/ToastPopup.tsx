@@ -36,11 +36,11 @@ export default function GlucoseSuccessPopup({
               <Check className="w-16 h-16 text-green-600" />
             </div>
           </div>
-          {/* <h2 className="text-xl font-bold text-slate-800 mb-2">
+          <h2 className="text-xl font-bold text-slate-800 mb-2">
             Glucose Value Added
-          </h2> */}
+          </h2>
           <p className="text-slate-600 mb-6">
-            The blood sugar reading has been successfully recorded.
+            Glucose Added Successfully.
           </p>
           <p className="text-4xl font-extrabold text-[#0297d6] my-4">
             {glucoseValue !== null ? `${glucoseValue} mg/dL` : '136'}
