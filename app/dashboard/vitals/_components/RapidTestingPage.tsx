@@ -300,7 +300,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
             {/* ── Scrollable Content ── */}
             <div className="p-4 md:p-6 space-y-2">
 
-                {/* ── FIX 2: Blood Sugar + ECG in same unified grid row ──
+                {/* ── FIX 2: Blood Sugar + ECG in same unified grid row
             They share the same grid as the other cards so they sit
             flush in the same row on desktop instead of a separate section. */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
