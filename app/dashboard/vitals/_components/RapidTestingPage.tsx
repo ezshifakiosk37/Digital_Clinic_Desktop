@@ -233,10 +233,20 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     useEffect(() => {
         window.onGlucoseReceived = (mgdl) => {
             console.log('Glucose received: ', mgdl);
-            setBloodSugar({value: mgdl.toString(), type: "Random"})
+            setBloodSugar({ value: mgdl.toString(), type: "Random" })
         };
         return () => { delete window.onGlucoseReceived; };
     }, []);
+
+    const handleCheckECG = () => {
+        const bridge = window.AndroidNative;
+        if (bridge?.openKardiaApp) {
+            bridge.openKardiaApp();
+        } else {
+            console.warn("Native bridge not found");
+            // Optional: show a toast or alert
+        }
+    };
 
     const updateTest = (id: string, result: TestResult) =>
         setTests(prev => prev.map(t => (t.id === id ? { ...t, result } : t)))
@@ -358,7 +368,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                                 <Activity className="w-7 h-7 text-[#0297d6]" />
                             </div>
                         </div>
-                        <button className="bg-[#0297d6] text-white text-sm font-bold rounded-lg py-2 px-3 hover:bg-[#0280bb] transition-colors flex items-center justify-center gap-2">
+                        <button onClick={handleCheckECG} className="bg-[#0297d6] text-white text-sm font-bold rounded-lg py-2 px-3 hover:bg-[#0280bb] transition-colors flex items-center justify-center gap-2">
                             <Activity className="w-4 h-4" />
                             Check ECG
                         </button>
