@@ -39,6 +39,12 @@ declare global {
 
       /** Requests a fresh glucose reading from the meter. The result will be sent via window.onGlucoseReceived. */
       requestGlucoseReading?: () => void;
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // NEW: OPEN KARDIA APP
+      // ─────────────────────────────────────────────────────────────────────────
+      /** Opens the external Kardia ECG app. */
+      openKardiaApp: () => void;
     };
 
     /** * NEW: Receives the FCM token from Android. 

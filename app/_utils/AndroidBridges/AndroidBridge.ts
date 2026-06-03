@@ -318,4 +318,15 @@ export const AndroidBridge = {
     }
     return false;
   },
+
+  // Add this function alongside your other bridge functions
+  openKardiaApp: () => {
+    const bridge = window.AndroidNative;
+    if (bridge?.openKardiaApp) {
+      bridge.openKardiaApp();
+      return true;
+    }
+    console.warn("Native bridge not found: openKardiaApp failed");
+    return false;
+  },
 }; // End of AndroidBridge object
