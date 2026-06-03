@@ -229,17 +229,16 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     const [sugarTypeOpen, setSugarTypeOpen] = useState(false)
     const [tests, setTests] = useState<TestItem[]>(DEFAULT_TESTS)
     const [moreTests, setMoreTests] = useState<MoreTest[]>([])
-    const [showToast, setShowToast] = useState(false)
-    const [toastMessage, setToastMessage] = useState('')
+    const [showGlucosePopup, setShowGlucosePopup] = useState(false)
+    const [lastGlucoseValue, setLastGlucoseValue] = useState<number | null>(null)
     const [showMoreDialog, setShowMoreDialog] = useState(false)
 
     useEffect(() => {
         window.onGlucoseReceived = (mgdl) => {
             console.log('Glucose received: ', mgdl);
             setBloodSugar({ value: mgdl.toString(), type: "Random" })
-            // Show popup with the value
-            setToastMessage(`Glucose value ${mgdl} mg/dL added successfully`)
-            setShowToast(true)
+            setLastGlucoseValue(mgdl)
+            setShowGlucosePopup(true)
         };
         return () => { delete window.onGlucoseReceived; };
     }, []);
@@ -280,10 +279,9 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
         <div className="min-h-screen bg-slate-50">
             {/* Toast popup */}
             <ToastPopup
-                message={toastMessage}
-                visible={showToast}
-                onHide={() => setShowToast(false)}
-                duration={5000}
+                visible={true}
+                glucoseValue={lastGlucoseValue}
+                onDismiss={() => setShowGlucosePopup(false)}
             />
 
             {/* ── Navbar — matches existing Navbar component style exactly ── */}
