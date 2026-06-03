@@ -279,7 +279,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
         <div className="min-h-screen bg-slate-50">
             {/* Toast popup */}
             <ToastPopup
-                visible={showGlucosePopup}
+                visible={true}
                 glucoseValue={lastGlucoseValue}
                 onDismiss={() => setShowGlucosePopup(false)}
             />
