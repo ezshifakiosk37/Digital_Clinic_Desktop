@@ -329,4 +329,20 @@ export const AndroidBridge = {
     console.warn("Native bridge not found: openKardiaApp failed");
     return false;
   },
+
+  /**
+ * Initializes a listener for ECG file download events from the native Android side.
+ * When Android detects a file named `ecg-*` in the Downloads folder, it will call
+ * the provided callback with the file name.
+ *
+ * @param onEcgFileDetected - Callback that receives the filename (e.g., "ecg-2025-01-15.pdf")
+ */
+  initEcgFileListener: (onEcgFileDetected: (filename: string) => void) => {
+    if (typeof window === "undefined") return;
+
+    window.onEcgFileDetected = (filename: string) => {
+      console.log("📄 ECG file detected by native:", filename);
+      onEcgFileDetected(filename);
+    };
+  },
 }; // End of AndroidBridge object

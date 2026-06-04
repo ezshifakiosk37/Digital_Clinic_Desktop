@@ -5,6 +5,7 @@ import {
     Activity, Droplets, Shield, Microscope, Bug,
     Zap, Wind, Stethoscope, FlaskConical, TestTube, Heart
 } from 'lucide-react'
+import ToastPopup from './ToastPopup'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type TestResult = 'Not Performed' | 'Normal' | 'Consultation Required'
@@ -230,16 +231,37 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
 }) => {
     const [bloodSugar, setBloodSugar] = useState<BloodSugar>({ value: '', type: 'Random' })
     const [sugarTypeOpen, setSugarTypeOpen] = useState(false)
+    const [glucosePopup, setGlucosePopup] = useState({
+        visible: false,
+        value: null as number | null,
+    })
+
+    const [ecgPopup, setEcgPopup] = useState({
+        visible: false,
+        filename: '',
+    })
     const [tests, setTests] = useState<TestItem[]>(DEFAULT_TESTS)
     const [moreTests, setMoreTests] = useState<MoreTest[]>([])
+    const [showGlucosePopup, setShowGlucosePopup] = useState(false)
+    const [lastGlucoseValue, setLastGlucoseValue] = useState<number | null>(null)
     const [showMoreDialog, setShowMoreDialog] = useState(false)
 
     useEffect(() => {
         window.onGlucoseReceived = (mgdl) => {
             console.log('Glucose received: ', mgdl);
             setBloodSugar({ value: mgdl.toString(), type: "Random" })
+            setGlucosePopup({ visible: true, value: mgdl })
         };
         return () => { delete window.onGlucoseReceived; };
+    }, []);
+
+    // ECG file detection from Android
+    useEffect(() => {
+        window.onEcgFileDetected = (filename) => {
+            console.log('ECG file detected: ', filename);
+            setEcgPopup({ visible: true, filename })
+        };
+        return () => { delete window.onEcgFileDetected; };
     }, []);
 
     const handleCheckECG = () => {
@@ -276,6 +298,23 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
 
     return (
         <div className="min-h-screen bg-slate-50">
+            {/* Toast popup */}
+            {/* Glucose Success Popup */}
+            <ToastPopup
+                visible={glucosePopup.visible}
+                onDismiss={() => setGlucosePopup({ visible: false, value: null })}
+                title="Glucose Value Added"
+                value={glucosePopup.value}
+                valueLabel="mg/dL"
+            />
+
+            {/* ECG Success Popup */}
+            <ToastPopup
+                visible={ecgPopup.visible}
+                onDismiss={() => setEcgPopup({ visible: false, filename: '' })}
+                title="ECG Report Added"
+                message={`ECG report "${ecgPopup.filename}" downloaded successfully.`}
+            />
 
             {/* ── Navbar — matches existing Navbar component style exactly ── */}
             <nav className="w-full bg-[#0297d6] text-white px-4 py-4 shadow-md sticky top-0 z-10">
