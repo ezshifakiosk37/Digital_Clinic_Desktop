@@ -20,7 +20,7 @@ interface HearingTestPageProps {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const FREQUENCIES = [250, 500, 1000, 2000, 4000, 8000]
-const DB_LEVELS   = [20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]
+const DB_LEVELS = [20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getHearingResult(t: Record<number, number>): HearingTestData['leftResult'] {
@@ -45,12 +45,12 @@ function startTone(
     const gain = Math.pow(normalized, 2.2)
 
     const oscillator = audioCtx.createOscillator()
-    const gainNode   = audioCtx.createGain()
-    const panner     = audioCtx.createStereoPanner()
+    const gainNode = audioCtx.createGain()
+    const panner = audioCtx.createStereoPanner()
 
-    panner.pan.value       = ear === 'left' ? -1 : 1
-    gainNode.gain.value    = Math.max(0.001, Math.min(0.98, gain))
-    oscillator.type        = 'sine'
+    panner.pan.value = ear === 'left' ? -1 : 1
+    gainNode.gain.value = Math.max(0.001, Math.min(0.98, gain))
+    oscillator.type = 'sine'
     oscillator.frequency.value = hz
 
     oscillator.connect(gainNode)
@@ -59,10 +59,10 @@ function startTone(
     oscillator.start()
 
     return () => {
-        try { oscillator.stop()        } catch (_) {}
-        try { oscillator.disconnect()  } catch (_) {}
-        try { gainNode.disconnect()    } catch (_) {}
-        try { panner.disconnect()      } catch (_) {}
+        try { oscillator.stop() } catch (_) { }
+        try { oscillator.disconnect() } catch (_) { }
+        try { gainNode.disconnect() } catch (_) { }
+        try { panner.disconnect() } catch (_) { }
     }
 }
 
@@ -78,10 +78,10 @@ const WaveformBars = ({ playing }: { playing: boolean }) => (
                 key={i}
                 className="flex-1 max-w-[10px] rounded-t-sm"
                 style={{
-                    height         : `${h}px`,
+                    height: `${h}px`,
                     backgroundColor: '#0297d6',
-                    opacity        : playing ? 0.9 : 0.4,
-                    animation      : playing
+                    opacity: playing ? 0.9 : 0.4,
+                    animation: playing
                         ? `waveAnim ${(0.25 + (i % 6) * 0.07).toFixed(2)}s ease-in-out infinite alternate`
                         : 'none',
                 }}
@@ -98,10 +98,10 @@ const WaveformBars = ({ playing }: { playing: boolean }) => (
 
 // ─── Frequency knob ───────────────────────────────────────────────────────────
 const FreqKnob = ({ hz, onChange }: { hz: number; onChange: (hz: number) => void }) => {
-    const fi         = FREQUENCIES.indexOf(hz)
-    const angle      = -135 + (fi / (FREQUENCIES.length - 1)) * 270
-    const DOT_COUNT  = 60
-    const dotColors  = ['#0297d6']
+    const fi = FREQUENCIES.indexOf(hz)
+    const angle = -135 + (fi / (FREQUENCIES.length - 1)) * 270
+    const DOT_COUNT = 60
+    const dotColors = ['#0297d6']
 
     return (
         <div className="flex flex-col items-center gap-1 shrink-0">
@@ -110,10 +110,10 @@ const FreqKnob = ({ hz, onChange }: { hz: number; onChange: (hz: number) => void
                 <svg className="absolute inset-0 w-full h-full" viewBox="0 0 176 176">
                     {/* Coloured dots ring */}
                     {Array.from({ length: DOT_COUNT }).map((_, i) => {
-                        const a      = -135 + (i / (DOT_COUNT - 1)) * 270
-                        const rad    = (a * Math.PI) / 180
-                        const cx     = 88 + 82 * Math.cos(rad)
-                        const cy     = 88 + 82 * Math.sin(rad)
+                        const a = -135 + (i / (DOT_COUNT - 1)) * 270
+                        const rad = (a * Math.PI) / 180
+                        const cx = 88 + 82 * Math.cos(rad)
+                        const cy = 88 + 82 * Math.sin(rad)
                         const active = i <= (fi / (FREQUENCIES.length - 1)) * (DOT_COUNT - 1)
                         return (
                             <circle
@@ -128,7 +128,7 @@ const FreqKnob = ({ hz, onChange }: { hz: number; onChange: (hz: number) => void
 
                     {/* Tick marks at each frequency */}
                     {FREQUENCIES.map((f, i) => {
-                        const a   = -135 + (i / (FREQUENCIES.length - 1)) * 270
+                        const a = -135 + (i / (FREQUENCIES.length - 1)) * 270
                         const rad = (a * Math.PI) / 180
                         return (
                             <line
@@ -253,12 +253,12 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
     onNext, onSkip, onBack,
     sessionName = '', sessionPhone = '',
 }) => {
-    const [showModal,       setShowModal]       = useState(true)
-    const [currentHz,       setCurrentHz]       = useState(250)
-    const [currentDb,       setCurrentDb]       = useState(20)
-    const [activeEar,       setActiveEar]       = useState<'left' | 'right'>('left')
-    const [playing,         setPlaying]         = useState(false)
-    const [leftThresholds,  setLeftThresholds]  = useState<Record<number, number>>({})
+    const [showModal, setShowModal] = useState(true)
+    const [currentHz, setCurrentHz] = useState(250)
+    const [currentDb, setCurrentDb] = useState(20)
+    const [activeEar, setActiveEar] = useState<'left' | 'right'>('left')
+    const [playing, setPlaying] = useState(false)
+    const [leftThresholds, setLeftThresholds] = useState<Record<number, number>>({})
     const [rightThresholds, setRightThresholds] = useState<Record<number, number>>({})
 
     const audioCtxRef = useRef<AudioContext | null>(null)
@@ -331,15 +331,15 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
     const handleFinish = () => {
         stopCurrentTone()
         onNext({
-            leftEar    : leftThresholds,
-            rightEar   : rightThresholds,
-            leftResult : getHearingResult(leftThresholds),
+            leftEar: leftThresholds,
+            rightEar: rightThresholds,
+            leftResult: getHearingResult(leftThresholds),
             rightResult: getHearingResult(rightThresholds),
-            skipped    : false,
+            skipped: false,
         })
     }
 
-    const leftDone  = Object.keys(leftThresholds).length
+    const leftDone = Object.keys(leftThresholds).length
     const rightDone = Object.keys(rightThresholds).length
 
     return (
@@ -372,7 +372,7 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
                     <div className="flex items-center gap-3 shrink-0">
                         {(sessionName || sessionPhone) && (
                             <div className="flex flex-col items-end gap-0.5">
-                                {sessionName  && (
+                                {sessionName && (
                                     <span className="text-white text-xs font-medium">
                                         <span className="text-white/60 uppercase tracking-wider text-[10px] mr-1">NAME</span>
                                         <span className="font-bold">{sessionName}</span>
@@ -387,12 +387,14 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
                             </div>
                         )}
                         {/* Skip — top-right in navbar, same as EyeTestingPage */}
-                        <button
-                            onClick={() => { stopCurrentTone(); onSkip() }}
-                            className="px-5 py-2 bg-white text-[#0297d6] font-bold rounded-full text-sm hover:bg-slate-100 transition-colors"
-                        >
-                            Skip
-                        </button>
+                        {(leftDone === 0 && rightDone === 0) && (
+                            <button
+                                onClick={() => { stopCurrentTone(); onSkip() }}
+                                className="px-5 py-2 bg-white text-[#0297d6] font-bold rounded-full text-sm hover:bg-slate-100 transition-colors"
+                            >
+                                Skip
+                            </button>
+                        )}
                     </div>
                 </div>
             </nav>
@@ -423,7 +425,7 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
                             ? <span className="text-sm">■</span>
                             : <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 ml-0.5">
                                 <path d="M8 5v14l11-7z" />
-                              </svg>
+                            </svg>
                         }
                     </button>
                     <span className="text-[10px] text-slate-400 font-bold">
@@ -493,14 +495,21 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
                 {/* Ear tabs */}
                 <div className="flex border-b border-slate-100">
                     {(['left', 'right'] as const).map(ear => {
-                        const done       = ear === 'left' ? leftDone : rightDone
+                        const done = ear === 'left' ? leftDone : rightDone
                         const thresholds = ear === 'left' ? leftThresholds : rightThresholds
-                        const lastHz     = done > 0 ? Math.max(...Object.keys(thresholds).map(Number)) : null
-                        const isActive   = activeEar === ear
+                        const lastHz = done > 0 ? Math.max(...Object.keys(thresholds).map(Number)) : null
+                        const isActive = activeEar === ear
                         return (
                             <button
                                 key={ear}
-                                onClick={() => switchEar(ear)}
+                                onClick={() => {
+                                    const otherEar = ear === 'left' ? 'right' : 'left';
+                                    const otherDone = otherEar === 'left' ? leftDone : rightDone;
+                                    const thisDone = ear === 'left' ? leftDone : rightDone;
+                                    // If the other ear is fully done but this one isn't started yet, allow
+                                    // If this ear is partially done, block switching away
+                                    if (activeEar !== ear) switchEar(ear);
+                                }}
                                 className={`flex-1 flex items-center justify-between px-4 py-2.5 transition-colors
                                     ${isActive
                                         ? 'border-b-2 border-[#0297d6] bg-[#0297d6]/5'
@@ -543,9 +552,22 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
                     >✓ YES, I Hear It</button>
 
                     <button
-                        onClick={handleFinish}
+                        onClick={() => {
+                            if (leftDone > 0 && rightDone === 0) {
+                                alert("Please complete the Right Ear test before finishing.");
+                                switchEar('right');
+                                return;
+                            }
+                            if (rightDone > 0 && leftDone === 0) {
+                                alert("Please complete the Left Ear test before finishing.");
+                                switchEar('left');
+                                return;
+                            }
+                            handleFinish();
+                        }}
                         className="px-3 md:px-4 py-2.5 text-sm font-bold bg-green-500 hover:bg-green-600 text-white rounded-xl transition-colors shrink-0"
-                    >Finish</button>
+                    >Finish
+                    </button>
                 </div>
             </div>
         </div>

@@ -207,6 +207,8 @@ const VitalsPage = () => {
     setRapidTestingData(null);
     setShowEyeTesting(false);
     setEyeTestingData(null);
+    setShowHearingTest(false);
+    setHearingTestData(null);
     setVitalsQueue(prev => prev.filter(p => p.id !== patient.id));
   };
 
@@ -278,21 +280,39 @@ const VitalsPage = () => {
               }
             }
 
-            // ─── Save eye testing + color blind data only if at least one test was performed ───
-            if (eyeTestingData !== null || colorBlindData !== null) {
-              const eyeDataToSave = {
-                chartType: eyeTestingData?.chartType ?? "Not Performed",
-                leftEye: eyeTestingData?.leftEye ?? "Not Performed",
-                rightEye: eyeTestingData?.rightEye ?? "Not Performed",
-                plate1: colorBlindData?.plate1 ?? "Not Performed",
-                plate2: colorBlindData?.plate2 ?? "Not Performed",
-                plate3: colorBlindData?.plate3 ?? "Not Performed",
-                colorBlindResult: colorBlindData?.colorBlindResult ?? "Not Performed",
-              };
+            // ─── Save eye testing data if performed ───
+            if (eyeTestingData !== null) {
               try {
-                await apiService.saveEyeTesting(newVitalsId, eyeDataToSave);
+                await apiService.saveEyeTesting(newVitalsId, {
+                  chartType: eyeTestingData.chartType ?? "Not Performed",
+                  leftEye: eyeTestingData.leftEye ?? "Not Performed",
+                  rightEye: eyeTestingData.rightEye ?? "Not Performed",
+                });
               } catch (err) {
                 console.error("Eye testing save failed (non-blocking):", err);
+              }
+            }
+
+            // ─── Save color blind data if performed ───
+            if (colorBlindData !== null) {
+              try {
+                await apiService.saveColorBlind(newVitalsId, {
+                  plate1: colorBlindData.plate1 ?? "Not Performed",
+                  plate2: colorBlindData.plate2 ?? "Not Performed",
+                  plate3: colorBlindData.plate3 ?? "Not Performed",
+                  colorBlindResult: colorBlindData.colorBlindResult ?? "Not Performed",
+                });
+              } catch (err) {
+                console.error("Color blind save failed (non-blocking):", err);
+              }
+            }
+
+            // ─── Save hearing test data if performed ───
+            if (hearingTestData !== null) {
+              try {
+                await apiService.saveHearingTest(newVitalsId, hearingTestData);
+              } catch (err) {
+                console.error("Hearing test save failed (non-blocking):", err);
               }
             }
 
@@ -415,6 +435,8 @@ const VitalsPage = () => {
         setRapidTestingData(null);
         setShowEyeTesting(false);
         setEyeTestingData(null);
+        setShowHearingTest(false);
+        setHearingTestData(null);
       }
     } catch (error: any) {
       const msg = error.message || "";

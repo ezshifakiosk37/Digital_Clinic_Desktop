@@ -433,6 +433,23 @@ export const apiService = {
         });
         return handleResponse(response);
     },
+
+    saveColorBlind: async (vitalsId: string, colorBlindData: any) => {
+        const response = await fetch(`${API_BASE_URL}/api/vitals/color-blind/save`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ vitalsId, colorBlindData }),
+        });
+        return handleResponse(response);
+    },
+
+    getColorBlind: async (vitalsId: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/vitals/color-blind/${vitalsId}`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+        return handleResponse(response);
+    },
     getLatestVitals: async (patientId: string, token: string) => {
         const res = await fetch(
             `${API_BASE_URL}/api/patients/latest-vitals/${patientId}/${token}`,
@@ -496,6 +513,23 @@ export const apiService = {
     },
     getAllDoctors: async () => {
         const response = await fetch(`${API_BASE_URL}/api/doctors/all`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+        return handleResponse(response);
+    },
+
+    saveHearingTest: async (vitalsId: string, hearingData: any) => {
+        const response = await fetch(`${API_BASE_URL}/api/vitals/hearing-testing/save`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ vitalsId, hearingData }),
+        });
+        return handleResponse(response);
+    },
+
+    getHearingTest: async (vitalsId: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/vitals/hearing-testing/${vitalsId}`, {
             method: 'GET',
             headers: getHeaders(),
         });
