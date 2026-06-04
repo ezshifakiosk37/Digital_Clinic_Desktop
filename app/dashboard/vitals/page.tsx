@@ -78,7 +78,36 @@ const VitalsPage = () => {
   const [colorBlindData, setColorBlindData] = useState<ColorBlindTestData | null>(null);
   const [showHearingTest, setShowHearingTest] = useState(false);
   const [hearingTestData, setHearingTestData] = useState<HearingTestData | null>(null);
+
+  // ── Prefetched data for comparison (Change 3 & 4) ──
+  const [prefetchedVitals, setPrefetchedVitals] = useState<any>(null);
+  const [prefetchedRapidData, setPrefetchedRapidData] = useState<any>(null);
+  const [prefetchedEyeData, setPrefetchedEyeData] = useState<any>(null);
+  const [prefetchedColorBlindData, setPrefetchedColorBlindData] = useState<any>(null);
+  const [prefetchedHearingData, setPrefetchedHearingData] = useState<any>(null);
+
+  // ── Toast states for each test ──
+  const [showRapidToast, setShowRapidToast] = useState(false);
+  const [showEyeToast, setShowEyeToast] = useState(false);
+  const [showColorBlindToast, setShowColorBlindToast] = useState(false);
+  const [showHearingToast, setShowHearingToast] = useState(false);
+  const [showSymptomsToast, setShowSymptomsToast] = useState(false);
+
   const router = useRouter()
+
+  // ── Compare two vitals objects field by field ──
+  const vitalsChanged = (current: any, prefetched: any): boolean => {
+    if (!prefetched) return true;
+    return (
+      current.PulseRate !== (prefetched.PulseRate || '') ||
+      current.Spo2 !== (prefetched.Spo2 || '') ||
+      current.BP?.value1 !== (prefetched.BP?.value1 || '') ||
+      current.BP?.value2 !== (prefetched.BP?.value2 || '') ||
+      current.Temperature !== (prefetched.Temperature || '') ||
+      current.Weight !== (prefetched.Weight || '') ||
+      current.Height !== (prefetched.Height || '')
+    );
+  };
 
   const fetchVitalsQueue = async () => {
     setLoadingQueue(true);
@@ -220,112 +249,22 @@ const VitalsPage = () => {
     setVitals(prev => ({ ...prev, BP: { ...prev.BP, [field]: val } }));
   };
 
-  const handleAddVitals = async () => {
+  const handleAddSymptoms = async () => {
     if (!sessionPhone) {
       setOpenTokenDialog(true);
       setShowNoSessionToast(true);
       setTimeout(() => setShowNoSessionToast(false), 3000);
       return;
     }
-    if (!vitals.symptoms.length) {
-      setSymptomsError(true);
-      setTimeout(() => setSymptomsError(false), 3000);
-      return;
-    }
-    const patientId = localStorage.getItem("localClinic_entryId");
-    if (!patientId) {
-      alert("No active patient session.");
+    if (!vitalsId) {
+      alert("Please complete vitals first.");
       return;
     }
     setLoading(true);
     try {
-      let result;
-
-      // ALWAYS INSERT NEW ROW
-      // Always save height in feet.inches format regardless of display unit
-      const heightForSave = heightUnit === 'cm'
-        ? (() => {
-          const totalInches = parseFloat(vitals.Height) / 2.54;
-          const ft = Math.floor(totalInches / 12);
-          const inch = Math.round(totalInches % 12);
-          return `${ft}.${inch}`;
-        })()
-        : vitals.Height;
-
-      result = await apiService.saveVitals(patientId, {
-        ...vitals,
-        Height: heightForSave,
-        bmi: bmi?.value ?? null,
-        patientType: 'walk-in',
-      });
-
-      if (result.success) {
-        const newVitalsId = result.data?.id ?? result.vitalsId ?? result.data;
-        if (!newVitalsId) {
-          alert("Failed to capture vitals ID. Please try again.");
-          return;
-        }
-
-        // Save or update rapid testing data (skipped if user skipped rapid testing)
-        if (rapidTestingData) {
-          try {
-            if (rapidTestingId) {
-              // Already saved once — update it
-              await apiService.updateRapidTesting(rapidTestingId, rapidTestingData);
-            } else {
-              // First save
-              const rtResult = await apiService.saveRapidTesting(newVitalsId, rapidTestingData);
-              if (rtResult.success && rtResult.data?.id) {
-                setRapidTestingId(rtResult.data.id);
-              }
-            }
-
-            // ─── Save eye testing data if performed ───
-            if (eyeTestingData !== null) {
-              try {
-                await apiService.saveEyeTesting(newVitalsId, {
-                  chartType: eyeTestingData.chartType ?? "Not Performed",
-                  leftEye: eyeTestingData.leftEye ?? "Not Performed",
-                  rightEye: eyeTestingData.rightEye ?? "Not Performed",
-                });
-              } catch (err) {
-                console.error("Eye testing save failed (non-blocking):", err);
-              }
-            }
-
-            // ─── Save color blind data if performed ───
-            if (colorBlindData !== null) {
-              try {
-                await apiService.saveColorBlind(newVitalsId, {
-                  plate1: colorBlindData.plate1 ?? "Not Performed",
-                  plate2: colorBlindData.plate2 ?? "Not Performed",
-                  plate3: colorBlindData.plate3 ?? "Not Performed",
-                  colorBlindResult: colorBlindData.colorBlindResult ?? "Not Performed",
-                });
-              } catch (err) {
-                console.error("Color blind save failed (non-blocking):", err);
-              }
-            }
-
-            // ─── Save hearing test data if performed ───
-            if (hearingTestData !== null) {
-              try {
-                await apiService.saveHearingTest(newVitalsId, hearingTestData);
-              } catch (err) {
-                console.error("Hearing test save failed (non-blocking):", err);
-              }
-            }
-
-
-          } catch (err) {
-            console.error("Rapid testing save failed (non-blocking):", err);
-          }
-        }
-        // If rapidTestingData is null — user skipped, nothing saved, that's fine
-
-        setShowSuccessToast(true);
-        setTimeout(() => setShowSuccessToast(false), 3000);
-      }
+      await apiService.updateSymptoms(vitalsId, vitals.symptoms);
+      setShowSymptomsToast(true);
+      setTimeout(() => setShowSymptomsToast(false), 3000);
     } catch (error: any) {
       alert(`Failed: ${error.message}`);
     } finally {
@@ -345,23 +284,64 @@ const VitalsPage = () => {
     });
   };
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     if (!sessionPhone) {
       setOpenTokenDialog(true);
       setShowNoSessionToast(true);
       setTimeout(() => setShowNoSessionToast(false), 3000);
       return;
     }
-    const { BP, PulseRate, Temperature, Spo2, Height, Weight } = vitals;
-    const allFilled =
-      BP.value1 && BP.value2 && PulseRate && Temperature && Spo2 && Height && Weight;
-    if (!allFilled) {
-      setVitalsError(true);
-      setTimeout(() => setVitalsError(false), 3000);
+
+    const patientId = localStorage.getItem("localClinic_entryId");
+    if (!patientId) {
+      alert("No active patient session.");
       return;
     }
-    // Go to Rapid Testing between step 1 and step 2
-    setShowRapidTesting(true);
+
+    setLoading(true);
+    try {
+      const heightForSave = heightUnit === 'cm'
+        ? (() => {
+          const totalInches = parseFloat(vitals.Height) / 2.54;
+          const ft = Math.floor(totalInches / 12);
+          const inch = Math.round(totalInches % 12);
+          return `${ft}.${inch}`;
+        })()
+        : vitals.Height;
+
+      const vitalsToSave = {
+        ...vitals,
+        Height: heightForSave,
+        bmi: bmi?.value ?? null,
+        patientType: 'walk-in',
+      };
+
+      let currentVitalsId = vitalsId;
+
+      // If vitals changed or no existing vitalsId → insert new row
+      if (!currentVitalsId || vitalsChanged(vitalsToSave, prefetchedVitals)) {
+        const result = await apiService.saveVitals(patientId, vitalsToSave);
+        if (!result.success) {
+          alert("Failed to save vitals.");
+          return;
+        }
+        currentVitalsId = result.data?.id ?? result.vitalsId ?? result.data;
+        if (!currentVitalsId) {
+          alert("Failed to capture vitals ID. Please try again.");
+          return;
+        }
+        setVitalsId(currentVitalsId);
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000);
+      }
+
+      // Navigate to Rapid Testing with vitalsId
+      setShowRapidTesting(true);
+    } catch (error: any) {
+      alert(`Failed: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
   const handleOtherSymptomChange = (value: string) => {
     const trimmedValue = value.trim();
@@ -395,8 +375,11 @@ const VitalsPage = () => {
           symptoms: [] as string[]
         };
 
+        let fetchedVitalsId = '';
+
         if (latestRes.success && latestRes.vital) {
           const v = latestRes.vital;
+          fetchedVitalsId = v.id || '';
           initialVitals = {
             BP: {
               value1: v.Systolic || '',
@@ -415,29 +398,53 @@ const VitalsPage = () => {
                   : [])
               : []
           };
+          setPrefetchedVitals(initialVitals);
+
+          // ── Fetch all test data if vitalsId exists ──
+          if (fetchedVitalsId) {
+            try {
+              const [rapidRes, eyeRes, colorRes, hearingRes] = await Promise.all([
+                apiService.getRapidTesting(fetchedVitalsId).catch(() => null),
+                apiService.getEyeTesting(fetchedVitalsId).catch(() => null),
+                apiService.getColorBlind(fetchedVitalsId).catch(() => null),
+                apiService.getHearingTest(fetchedVitalsId).catch(() => null),
+              ]);
+              setPrefetchedRapidData(rapidRes?.data ?? null);
+              setPrefetchedEyeData(eyeRes?.data ?? null);
+              setPrefetchedColorBlindData(colorRes?.data ?? null);
+              setPrefetchedHearingData(hearingRes?.data ?? null);
+            } catch (err) {
+              console.error("Failed to prefetch test data:", err);
+            }
+          }
+        } else {
+          setPrefetchedVitals(null);
+          setPrefetchedRapidData(null);
+          setPrefetchedEyeData(null);
+          setPrefetchedColorBlindData(null);
+          setPrefetchedHearingData(null);
         }
 
-        // Set the vitals (with pre-filled data if available)
         setVitals(initialVitals);
-
-        // Set session info
         localStorage.setItem("localClinic_entryId", res.patientId);
         setSessionPhone(res.phoneNumber);
         setSessionName(res.firstName || "");
         setOpenTokenDialog(false);
         setHistory([]);
         setHistorySearchPhone("");
-
         setStep(1);
         setVitalsSaved(false);
-        setVitalsId('');
+        setVitalsId(fetchedVitalsId);
         setRapidTestingId('');
         setRapidTestingData(null);
         setShowEyeTesting(false);
         setEyeTestingData(null);
+        setShowColorBlindTest(false);
+        setColorBlindData(null);
         setShowHearingTest(false);
         setHearingTestData(null);
       }
+
     } catch (error: any) {
       const msg = error.message || "";
       if (msg.toLowerCase().includes("already used")) {
@@ -608,14 +615,25 @@ const VitalsPage = () => {
       {/* ── RAPID TESTING PAGE ── */}
       {showRapidTesting && (
         <RapidTestingPage
-          onNext={(data) => {
+          vitalsId={vitalsId}
+          prefetchedData={prefetchedRapidData}
+          onNext={async (data) => {
             setRapidTestingData(data);
+            if (vitalsId) {
+              try {
+                await apiService.saveRapidTesting(vitalsId, data);
+                setShowRapidToast(true);
+                setTimeout(() => setShowRapidToast(false), 3000);
+              } catch (err) {
+                console.error("Rapid testing save failed:", err);
+              }
+            }
             setShowRapidTesting(false);
             setShowEyeTesting(true);
           }}
           onSkip={() => {
             setShowRapidTesting(false);
-            setStep(1);
+            setShowEyeTesting(true);
           }}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
@@ -623,18 +641,31 @@ const VitalsPage = () => {
       )}
       {showEyeTesting && (
         <EyeTestingpage
-          onNext={(data) => {
+          vitalsId={vitalsId}
+          prefetchedData={prefetchedEyeData}
+          onNext={async (data) => {
             setEyeTestingData(data);
+            if (vitalsId && !data.skipped) {
+              try {
+                await apiService.saveEyeTesting(vitalsId, {
+                  chartType: data.chartType ?? "Not Performed",
+                  leftEye: data.leftEye ?? "Not Performed",
+                  rightEye: data.rightEye ?? "Not Performed",
+                });
+                setShowEyeToast(true);
+                setTimeout(() => setShowEyeToast(false), 3000);
+              } catch (err) {
+                console.error("Eye testing save failed:", err);
+              }
+            }
             setShowEyeTesting(false);
             setShowColorBlindTest(true);
           }}
           onSkip={() => {
-            // ← Back → go to Rapid Testing
             setShowEyeTesting(false);
             setShowRapidTesting(true);
           }}
           onSkipToColorBlind={() => {
-            // Skip → go to Color Blind Test
             setShowEyeTesting(false);
             setShowColorBlindTest(true);
           }}
@@ -645,14 +676,30 @@ const VitalsPage = () => {
 
       {showColorBlindTest && (
         <ColorBlindTestPage
-          onNext={(data) => {
+          vitalsId={vitalsId}
+          prefetchedData={prefetchedColorBlindData}
+          onNext={async (data) => {
             setColorBlindData(data);
+            if (vitalsId && !data.skipped) {
+              try {
+                await apiService.saveColorBlind(vitalsId, {
+                  plate1: data.plate1 ?? "Not Performed",
+                  plate2: data.plate2 ?? "Not Performed",
+                  plate3: data.plate3 ?? "Not Performed",
+                  colorBlindResult: data.colorBlindResult ?? "Not Performed",
+                });
+                setShowColorBlindToast(true);
+                setTimeout(() => setShowColorBlindToast(false), 3000);
+              } catch (err) {
+                console.error("Color blind save failed:", err);
+              }
+            }
             setShowColorBlindTest(false);
-            setShowHearingTest(true); {/* ← goes to Hearing next */ }
+            setShowHearingTest(true);
           }}
           onSkip={() => {
             setShowColorBlindTest(false);
-            setShowHearingTest(true); {/* ← skip also goes to Hearing */ }
+            setShowHearingTest(true);
           }}
           onBack={() => {
             setShowColorBlindTest(false);
@@ -665,8 +712,19 @@ const VitalsPage = () => {
 
       {showHearingTest && (
         <HearingTestPage
-          onNext={(data) => {
+          vitalsId={vitalsId}
+          prefetchedData={prefetchedHearingData}
+          onNext={async (data) => {
             setHearingTestData(data);
+            if (vitalsId && !data.skipped) {
+              try {
+                await apiService.saveHearingTest(vitalsId, data);
+                setShowHearingToast(true);
+                setTimeout(() => setShowHearingToast(false), 3000);
+              } catch (err) {
+                console.error("Hearing test save failed:", err);
+              }
+            }
             setShowHearingTest(false);
             setStep(2);
           }}
@@ -767,7 +825,67 @@ const VitalsPage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                Vitals recorded successfully!
+                Vitals saved successfully!
+              </div>
+            </div>
+
+            {/* Rapid Testing Toast */}
+            <div className={`fixed top-24 right-6 z-100 transition-all duration-500 ${showRapidToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+              <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+                <div className="bg-white/20 rounded-full p-1">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                Rapid Testing saved successfully!
+              </div>
+            </div>
+
+            {/* Eye Testing Toast */}
+            <div className={`fixed top-24 right-6 z-100 transition-all duration-500 ${showEyeToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+              <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+                <div className="bg-white/20 rounded-full p-1">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                Eye Testing saved successfully!
+              </div>
+            </div>
+
+            {/* Color Blind Toast */}
+            <div className={`fixed top-24 right-6 z-100 transition-all duration-500 ${showColorBlindToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+              <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+                <div className="bg-white/20 rounded-full p-1">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                Color Blind Test saved successfully!
+              </div>
+            </div>
+
+            {/* Hearing Test Toast */}
+            <div className={`fixed top-24 right-6 z-100 transition-all duration-500 ${showHearingToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+              <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+                <div className="bg-white/20 rounded-full p-1">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                Hearing Test saved successfully!
+              </div>
+            </div>
+
+            {/* Symptoms Toast */}
+            <div className={`fixed top-6 right-6 z-100 transition-all duration-500 ${showSymptomsToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+              <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+                <div className="bg-white/20 rounded-full p-1">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                Symptoms saved successfully!
               </div>
             </div>
 
@@ -901,21 +1019,15 @@ const VitalsPage = () => {
                         </div>
                       </div>
                     </div>
-                    {vitalsError && (
-                      <div className="flex justify-end mt-4">
-                        <div className="bg-purple-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
-                          <span>⚠️ Please fill all the vitals before proceeding.</span>
-                        </div>
-                      </div>
-                    )}
 
                     {/* Next Button */}
                     <div className="flex justify-end mt-6">
                       <Button
                         onClick={handleNextStep}
+                        disabled={loading}
                         className="px-8 py-5 text-base font-bold"
                       >
-                        Next →
+                        {loading ? <><Loader2 className="animate-spin mr-2 h-4 w-4" />Saving...</> : 'Next →'}
                       </Button>
                     </div>
                   </>
@@ -1028,14 +1140,10 @@ const VitalsPage = () => {
                       )}
                     </div>
                   )} */}
-                        <Button onClick={handleAddVitals} disabled={loading} className="px-8 py-5 text-base font-bold">
+                        <Button onClick={handleAddSymptoms} disabled={loading} className="px-8 py-5 text-base font-bold">
                           {loading ? (
-                            <><Loader2 className="animate-spin mr-2 h-4 w-4" />{vitalsSaved ? 'Updating...' : 'Saving...'}</>
-                          ) : vitalsSaved ? (
-                            showSuccessToast ? "Updated ✓" : "Update Vitals"
-                          ) : (
-                            showSuccessToast ? "Vitals Added ✓" : "Add Vitals"
-                          )}
+                            <><Loader2 className="animate-spin mr-2 h-4 w-4" />Saving...</>
+                          ) : showSymptomsToast ? "Symptoms Saved ✓" : "Add Symptoms"}
                         </Button>
                       </div>
                     </div>

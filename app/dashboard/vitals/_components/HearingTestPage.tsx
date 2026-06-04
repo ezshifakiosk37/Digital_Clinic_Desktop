@@ -16,6 +16,8 @@ interface HearingTestPageProps {
     onBack: () => void
     sessionName?: string
     sessionPhone?: string
+    vitalsId?: string
+    prefetchedData?: any
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -252,6 +254,8 @@ const EarIcon = ({ className }: { className?: string }) => (
 const HearingTestPage: React.FC<HearingTestPageProps> = ({
     onNext, onSkip, onBack,
     sessionName = '', sessionPhone = '',
+    vitalsId,
+    prefetchedData,
 }) => {
     const [showModal, setShowModal] = useState(true)
     const [currentHz, setCurrentHz] = useState(250)

@@ -17,6 +17,8 @@ interface ColorBlindTestPageProps {
     onBack: () => void
     sessionName?: string
     sessionPhone?: string
+    vitalsId?: string
+    prefetchedData?: any
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -33,6 +35,8 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
     onBack,
     sessionName = '',
     sessionPhone = '',
+    vitalsId,
+    prefetchedData,
 }) => {
 
     const [currentIndex, setCurrentIndex] = useState(0)

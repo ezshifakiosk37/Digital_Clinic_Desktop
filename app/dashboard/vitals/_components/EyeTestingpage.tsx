@@ -236,6 +236,8 @@ interface EyeTestingPageProps {
     onSkipToColorBlind: () => void
     sessionName?: string
     sessionPhone?: string
+    vitalsId?: string
+    prefetchedData?: any
 }
 
 type Stage = 'select' | 'info_stand' | 'info_cover_left' | 'test_right' | 'info_cover_right' | 'test_left'
@@ -246,6 +248,8 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
     onSkipToColorBlind,
     sessionName = '',
     sessionPhone = '',
+    vitalsId,
+    prefetchedData,
 }) => {
     const [chartType, setChartType] = useState<ChartType>('English')
     const [stage, setStage] = useState<Stage>('select')

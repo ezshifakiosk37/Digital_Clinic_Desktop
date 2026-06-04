@@ -216,6 +216,8 @@ interface RapidTestingPageProps {
     onSkip: () => void
     sessionName?: string
     sessionPhone?: string
+    vitalsId?: string
+    prefetchedData?: any
 }
 
 const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
@@ -223,6 +225,8 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     onSkip,
     sessionName = '',
     sessionPhone = '',
+    vitalsId,
+    prefetchedData,
 }) => {
     const [bloodSugar, setBloodSugar] = useState<BloodSugar>({ value: '', type: 'Random' })
     const [sugarTypeOpen, setSugarTypeOpen] = useState(false)
