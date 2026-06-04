@@ -72,7 +72,7 @@ const FONT_SIZES = [
 
 // ─── Info Dialog ─────────────────────────────────────────────────────────────
 const InfoDialog = ({ message, onOk }: { message: string; onOk: () => void }) => (
-    <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-6">
+    <div className="fixed inset-0 bg-black/40 z-60 flex items-center justify-center p-6">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-[#0297d6] flex items-center justify-center text-white font-bold text-xl">i</div>
             <p className="text-base font-bold text-slate-800 text-center">{message}</p>
@@ -255,6 +255,9 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
     const [stage, setStage] = useState<Stage>('select')
     const [leftEyeResult, setLeftEyeResult] = useState('')
     const [rightEyeResult, setRightEyeResult] = useState('')
+    const [showPrefetchDialog, setShowPrefetchDialog] = useState(
+        !!(prefetchedData && prefetchedData.leftEye && prefetchedData.leftEye !== 'Not Performed')
+    )
 
     const handleTypeSelect = (type: ChartType) => setChartType(type)
     const handleBegin = () => setStage('info_stand')
@@ -278,6 +281,44 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
 
     return (
         <div className="fixed inset-0 bg-slate-50 z-50 overflow-hidden md:ml-16">
+
+            {/* ── Previous Result Dialog ── */}
+            {showPrefetchDialog && prefetchedData && (
+                <div className="fixed inset-0 bg-black/40 z-80 flex items-center justify-center p-6">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 flex flex-col items-center gap-5">
+                        <div className="w-12 h-12 rounded-full bg-[#0297d6] flex items-center justify-center text-white text-2xl">👁</div>
+                        <h2 className="text-lg font-black text-slate-800 text-center">Previous Eye Test Result</h2>
+                        <div className="w-full bg-slate-50 rounded-xl p-4 flex flex-col gap-2">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-slate-500 font-medium">Chart Type</span>
+                                <span className="font-bold text-slate-800">{prefetchedData.chartType ?? '—'}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-slate-500 font-medium">Left Eye</span>
+                                <span className="font-bold text-[#0297d6]">{prefetchedData.leftEye ?? '—'}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-slate-500 font-medium">Right Eye</span>
+                                <span className="font-bold text-[#0297d6]">{prefetchedData.rightEye ?? '—'}</span>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 w-full">
+                            <button
+                                onClick={() => setShowPrefetchDialog(false)}
+                                className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50"
+                            >
+                                Perform Again
+                            </button>
+                            <button
+                                onClick={() => onSkipToColorBlind()}
+                                className="flex-1 py-3 rounded-xl bg-[#0297d6] text-white font-bold text-sm hover:bg-[#0280bb]"
+                            >
+                                Next →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ── Navbar ── */}
             <nav className="w-full bg-[#0297d6] text-white px-4 py-4 shadow-md shrink-0 sticky top-0 z-10">

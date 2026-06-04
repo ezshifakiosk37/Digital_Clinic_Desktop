@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/popover"
 
 const DemographicPage: React.FC = () => {
-  const { profile } = useUserProfile()
+  const { profile, loading } = useUserProfile()
 
   const [form, setForm] = useState<any>({
     country: '',
@@ -46,7 +46,6 @@ const DemographicPage: React.FC = () => {
     gender: '',
     countryCode: '+92'
   });
-
   const [entryId, setEntryId] = useState<string | null>(null);
   const [isFinding, setIsFinding] = useState<{ [key: string]: boolean }>({ phone: false, cnic: false });
   const [isSaving, setIsSaving] = useState(false); // New Loading State
@@ -66,13 +65,21 @@ const DemographicPage: React.FC = () => {
     if (!profile) return
     setForm((prev: any) => ({
       ...prev,
-      country: prev.country || profile.country || '',
-      city: prev.city || profile.city || '',
+      country: profile.country || prev.country || '',
+      city: profile.city || prev.city || '',
+      stAddress: profile.location || prev.stAddress || '',
+      province: '',
     }))
+    setTimeout(() => {
+      setForm((prev: any) => ({
+        ...prev,
+        province: profile.province || '',
+      }))
+    }, 300)
   }, [profile])
   const countries = useMemo(() => Country.getAllCountries(), []);
-  const states = useMemo(() => form.country ? State.getStatesOfCountry(form.country) : [], [form.country]);
-  const cities = useMemo(() => (form.country && form.province) ? City.getCitiesOfState(form.country, form.province) : [], [form.country, form.province]);
+  const states = useMemo(() => State.getStatesOfCountry(form.country), [form.country]);
+  const cities = useMemo(() => City.getCitiesOfState(form.country, form.province), [form.country, form.province]);
 
   const toggleSelection = (key: string, value: string) => {
     const currentValues = Array.isArray(form[key]) ? form[key] : [];
@@ -140,7 +147,11 @@ const DemographicPage: React.FC = () => {
           cnic: clean(data.fields.cnic),
           dob: clean(data.fields.dob),
           age: clean(data.fields.age),
-          languages: clean(data.fields.languages),
+          languages: data.fields.languages
+            ? (Array.isArray(data.fields.languages)
+              ? data.fields.languages
+              : data.fields.languages.split(',').map((l: string) => l.trim()).filter(Boolean))
+            : [],
           stAddress: clean(data.fields.stAddress),
           country: clean(data.fields.country),
           province: clean(data.fields.province),
@@ -163,7 +174,7 @@ const DemographicPage: React.FC = () => {
 
   // handleNextStep with this:
   const handleNextStep = async () => {
-    const required = ['phoneNumber', 'firstName', 'gender', 'dob', 'age', 'country', 'city', 'province'];
+    const required = ['phoneNumber', 'firstName', 'gender', 'dob', 'age', 'country', 'city'];
     const missing = required.filter(field => !form[field]);
 
     if (missing.length > 0) return showNotification("Please Fill the required fields marked with *.");
@@ -197,9 +208,10 @@ const DemographicPage: React.FC = () => {
 
   const resetForm = () => {
     setForm({
-      country: profile?.country || '',
-      province: '',
-      city: profile?.city || '',
+      country: (profile as any)?.country || '',
+      province: (profile as any)?.province || '',
+      city: (profile as any)?.city || '',
+      stAddress: (profile as any)?.location || '',
       phoneNumber: '',
       gender: '',
       countryCode: '+92',
@@ -468,13 +480,19 @@ const DemographicPage: React.FC = () => {
 
             {/* Languages */}
             <div className="grid grid-cols-1 gap-4 mt-4">
-              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Primary Language </Label>
+              <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Languages</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50">
-                    <span className={form.languages ? "text-slate-800" : "text-slate-400"}>
-                      {form.languages || "Select Language..."}
-                    </span>
+                  <Button variant="outline" className="w-full justify-between h-auto min-h-9 py-0 text-left bg-slate-50/50">
+                    <div className="flex flex-wrap gap-1 py-1">
+                      {Array.isArray(form.languages) && form.languages.length > 0 ? (
+                        form.languages.map((lang: string) => (
+                          <span key={lang} className="bg-[#0297d6]/10 text-[#0297d6] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20">{lang}</span>
+                        ))
+                      ) : (
+                        <span className="text-slate-400 text-sm">Select languages...</span>
+                      )}
+                    </div>
                     <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
                   </Button>
                 </PopoverTrigger>
@@ -484,12 +502,27 @@ const DemographicPage: React.FC = () => {
                     <CommandList>
                       <CommandEmpty>No language found.</CommandEmpty>
                       <CommandGroup className="max-h-60 overflow-y-auto">
-                        {languageList.map((lang) => (
-                          <CommandItem key={lang.code} onSelect={() => updateForm('languages', lang.name)}>
-                            <Check className={cn("mr-2 h-4 w-4", form.languages === lang.name ? "opacity-100" : "opacity-0")} />
-                            {lang.name} {lang.nativeName !== lang.name ? `(${lang.nativeName})` : ''}
-                          </CommandItem>
-                        ))}
+                        {languageList.map((lang) => {
+                          const selected = Array.isArray(form.languages) && form.languages.includes(lang.name)
+                          return (
+                            <CommandItem
+                              key={lang.code}
+                              onSelect={() => {
+                                const current = Array.isArray(form.languages) ? form.languages : []
+                                const updated = selected
+                                  ? current.filter((l: string) => l !== lang.name)
+                                  : [...current, lang.name]
+                                updateForm('languages', updated)
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <div className={cn("flex h-4 w-4 items-center justify-center rounded border border-primary", selected ? "bg-primary text-primary-foreground" : "opacity-50")}>
+                                {selected && <Check className="h-3 w-3" />}
+                              </div>
+                              {lang.name} {lang.nativeName !== lang.name ? `(${lang.nativeName})` : ''}
+                            </CommandItem>
+                          )
+                        })}
                       </CommandGroup>
                     </CommandList>
                   </Command>
@@ -540,11 +573,11 @@ const DemographicPage: React.FC = () => {
                   </Popover>
                 </div>
                 <div>
-                  <Label className="text-[10px] font-bold text-slate-400 uppercase">Province <span className='text-red-500'>*</span></Label>
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase">Province</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50" disabled={!states.length}>
-                        <span className={form.province ? "text-slate-800" : "text-slate-400"}>
+                        <span className={`truncate ${form.province ? "text-slate-800" : "text-slate-400"}`}>
                           {states.find(s => s.isoCode === form.province)?.name || "Select Province..."}
                         </span>
                         <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
@@ -572,7 +605,7 @@ const DemographicPage: React.FC = () => {
                   <Label className="text-[10px] font-bold text-slate-400 uppercase">City <span className='text-red-500'>*</span></Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50" disabled={!cities.length}>
+                      <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50">
                         <span className={form.city ? "text-slate-800" : "text-slate-400"}>
                           {form.city || "Select City..."}
                         </span>

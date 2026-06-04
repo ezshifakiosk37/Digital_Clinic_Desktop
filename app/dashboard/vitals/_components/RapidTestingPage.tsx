@@ -121,7 +121,7 @@ const ResultDropdown = ({
                 <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
             </button>
             {open && (
-                <div className="absolute z-50 top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden w-full min-w-[160px]">
+                <div className="absolute z-50 top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden w-full min-w-160px">
                     {RESULT_OPTIONS.map(opt => (
                         <button
                             key={opt}
@@ -229,7 +229,13 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     vitalsId,
     prefetchedData,
 }) => {
-    const [bloodSugar, setBloodSugar] = useState<BloodSugar>({ value: '', type: 'Random' })
+    const [bloodSugar, setBloodSugar] = useState<BloodSugar>(() => {
+        if (prefetchedData?.bloodSugar && prefetchedData.bloodSugar !== 'Not Performed') {
+            const match = prefetchedData.bloodSugar.match(/^([\d.]+)\s*\((\w+)\)$/)
+            if (match) return { value: match[1], type: match[2] as 'Random' | 'Fasting' }
+        }
+        return { value: '', type: 'Random' }
+    })
     const [sugarTypeOpen, setSugarTypeOpen] = useState(false)
     const [glucosePopup, setGlucosePopup] = useState({
         visible: false,
@@ -240,10 +246,46 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
         visible: false,
         filename: '',
     })
-    const [tests, setTests] = useState<TestItem[]>(DEFAULT_TESTS)
-    const [moreTests, setMoreTests] = useState<MoreTest[]>([])
-    const [showGlucosePopup, setShowGlucosePopup] = useState(false)
-    const [lastGlucoseValue, setLastGlucoseValue] = useState<number | null>(null)
+    const [tests, setTests] = useState<TestItem[]>(() => {
+        if (!prefetchedData) return DEFAULT_TESTS
+        return DEFAULT_TESTS.map(t => {
+            const fieldMap: Record<string, string> = {
+                ecg: 'ecg',
+                hiv: 'hiv',
+                hepatitis: 'hepatitis',
+                hbsag: 'hbsag',
+                hcvab: 'hcvAb',
+                hiv12ab: 'hivAb',
+                dengue: 'dengueNs1Ag',
+                syphilis: 'syphilisAb',
+                typhoid: 'typhoidAb',
+                tb: 'tuberculosis',
+                malaria: 'malariaPfPvAg',
+            }
+            const key = fieldMap[t.id]
+            const val = key ? prefetchedData[key] : null
+            return val && val !== 'Not Performed' ? { ...t, result: val as TestResult } : t
+        })
+    })
+    const [moreTests, setMoreTests] = useState<MoreTest[]>(() => {
+        if (!prefetchedData) return []
+        const result: MoreTest[] = []
+        const moreMap = [
+            { id: 'hemoglobin', key: 'hemoglobin' },
+            { id: 'cholesterol', key: 'cholesterol' },
+            { id: 'bodyfat', key: 'bodyFat' },
+        ]
+        for (const { id, key } of moreMap) {
+            const val = prefetchedData[key]
+            if (val) {
+                const def = MORE_TEST_OPTIONS.find(o => o.id === id)!
+                result.push({ ...def, value: val })
+            }
+        }
+        return result
+    })
+    // const [showGlucosePopup, setShowGlucosePopup] = useState(false)
+    // const [lastGlucoseValue, setLastGlucoseValue] = useState<number | null>(null)
     const [showMoreDialog, setShowMoreDialog] = useState(false)
 
     useEffect(() => {
@@ -384,7 +426,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                                     <ChevronDown className="w-3.5 h-3.5" />
                                 </button>
                                 {sugarTypeOpen && (
-                                    <div className="absolute z-50 top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[110px]">
+                                    <div className="absolute z-50 top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-110px">
                                         {(['Random', 'Fasting'] as const).map(opt => (
                                             <button
                                                 key={opt}

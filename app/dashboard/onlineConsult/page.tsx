@@ -5,6 +5,7 @@ import { apiService } from '@/app/_utils/apiService'
 import { VideoConsultModel } from '../vitals/_components/VideoConsultModel'
 import { PatientResult, Doctor, QueueItem } from '@/app/_utils/types'
 import Navbar from '../_components/Navbar'
+import { COMMON_SYMPTOMS } from '../vitals/vitals'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const parseSymptoms = (raw: string | null | undefined): string[] => {
@@ -17,6 +18,72 @@ const parseSymptoms = (raw: string | null | undefined): string[] => {
 }
 
 type SearchMode = 'token' | 'name' | 'phone'
+// ── Symptom Searchable Dropdown ───────────────────────────────────────────────
+const SymptomDropdown = ({
+  selected,
+  onChange,
+}: {
+  selected: string[]
+  onChange: (s: string[]) => void
+}) => {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const filtered = COMMON_SYMPTOMS.filter(s =>
+    s.toLowerCase().includes(query.toLowerCase()) && !selected.includes(s)
+  )
+
+  return (
+    <div className="relative" ref={ref}>
+      <div
+        onClick={() => setOpen(p => !p)}
+        className="flex items-center gap-2 w-full border border-slate-200 rounded-xl px-3 py-2.5 cursor-pointer hover:border-[#0297d6] focus-within:border-[#0297d6] focus-within:ring-2 focus-within:ring-[#0297d6]/10 transition-all bg-white"
+      >
+        <Search size={14} className="text-slate-400 shrink-0" />
+        <input
+          type="text"
+          value={query}
+          onChange={e => { setQuery(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+          placeholder="Search symptoms..."
+          className="flex-1 text-sm outline-none text-slate-700 placeholder:text-slate-400 bg-transparent"
+        />
+        <ChevronDown size={14} className={`text-slate-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </div>
+
+      {open && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+          <div className="max-h-48 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-slate-400 text-center">No symptoms found</div>
+            ) : (
+              filtered.map(symptom => (
+                <button
+                  key={symptom}
+                  onClick={() => { onChange([...selected, symptom]); setQuery('') }}
+                  className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-[#0297d6]/5 hover:text-[#0297d6] transition-colors flex items-center justify-between group"
+                >
+                  <span>{symptom}</span>
+                  <span className="text-[10px] font-bold text-[#0297d6] opacity-0 group-hover:opacity-100 transition-opacity">+ Add</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const OnlineConsultPage = () => {
@@ -128,10 +195,20 @@ const OnlineConsultPage = () => {
 
   const handleConsultClick = (patient: PatientResult) => {
     if (!patient.vitalsId) return
+    const symptoms = parseSymptoms(patient.symptoms)
+    const hasSymptoms = symptoms.length > 0 && !symptoms.every(s => s.toLowerCase() === 'unknown')
+    if (!hasSymptoms) {
+      setSymptomsPatient(patient)
+      setPendingSymptoms([])
+      return
+    }
     setPickerPatient(patient)
   }
 
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null)
+  const [symptomsPatient, setSymptomsPatient] = useState<PatientResult | null>(null)
+  const [pendingSymptoms, setPendingSymptoms] = useState<string[]>([])
+  const [savingSymptoms, setSavingSymptoms] = useState(false)
 
   const handleDoctorPick = (doctor: Doctor) => {
     if (!pickerPatient?.vitalsId) return
@@ -362,6 +439,90 @@ const OnlineConsultPage = () => {
           </div>
         </div>
       </div>
+
+      {/* ── Symptoms Required Dialog ───────────────────────────────────────── */}
+      {symptomsPatient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-5 border-b border-slate-100 flex items-start justify-between">
+              <div>
+                <h3 className="font-bold text-slate-800 text-base">No Symptoms Recorded</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Please select symptoms for{' '}
+                  <span className="font-semibold text-slate-600">
+                    {symptomsPatient.firstName} {symptomsPatient.lastName}
+                  </span>
+                  {' '}before starting the consultation.
+                </p>
+              </div>
+              <button
+                onClick={() => setSymptomsPatient(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="px-6 py-4">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Select Symptoms</p>
+
+              {/* Selected tags */}
+              {pendingSymptoms.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {pendingSymptoms.map(s => (
+                    <span key={s} className="flex items-center gap-1 text-[10px] font-bold bg-[#0297d6]/10 text-[#0297d6] px-2 py-1 rounded-full">
+                      {s}
+                      <button
+                        onClick={() => setPendingSymptoms(prev => prev.filter(x => x !== s))}
+                        className="hover:text-red-400 ml-0.5 leading-none"
+                      >×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Searchable dropdown */}
+              <SymptomDropdown selected={pendingSymptoms} onChange={setPendingSymptoms} />
+            </div>
+
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-between items-center">
+              <button
+                onClick={() => setSymptomsPatient(null)}
+                className="text-sm font-bold text-slate-400 hover:text-slate-600"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={pendingSymptoms.length === 0 || savingSymptoms}
+                onClick={async () => {
+                  if (!symptomsPatient?.vitalsId || pendingSymptoms.length === 0) return
+                  setSavingSymptoms(true)
+                  try {
+                    await apiService.updateSymptoms(symptomsPatient.vitalsId, pendingSymptoms)
+                    // Update local search results so the symptoms show
+                    setSearchResults(prev => prev.map(p =>
+                      p.id === symptomsPatient.id
+                        ? { ...p, symptoms: pendingSymptoms.join(',') }
+                        : p
+                    ))
+                    setPickerPatient({ ...symptomsPatient, symptoms: pendingSymptoms.join(',') })
+                    setSymptomsPatient(null)
+                  } catch (err) {
+                    console.error('Failed to save symptoms', err)
+                  } finally {
+                    setSavingSymptoms(false)
+                  }
+                }}
+                className="px-6 py-2.5 bg-[#0297d6] hover:bg-[#0286c2] disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors flex items-center gap-2"
+              >
+                {savingSymptoms
+                  ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</>
+                  : 'Save & Continue →'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Doctor Picker Modal ─────────────────────────────────────────────── */}
       {pickerPatient && (

@@ -74,11 +74,11 @@ const HEIGHTS = Array.from({ length: 40 }, (_, i) =>
 )
 
 const WaveformBars = ({ playing }: { playing: boolean }) => (
-    <div className="flex items-end justify-center gap-[2px] h-12 md:h-16 w-full px-2">
+    <div className="flex items-end justify-center gap-0.5 h-12 md:h-16 w-full px-2">
         {HEIGHTS.map((h, i) => (
             <div
                 key={i}
-                className="flex-1 max-w-[10px] rounded-t-sm"
+                className="flex-1 max-w-2.5 rounded-t-sm"
                 style={{
                     height: `${h}px`,
                     backgroundColor: '#0297d6',
@@ -196,28 +196,28 @@ const FreqKnob = ({ hz, onChange }: { hz: number; onChange: (hz: number) => void
 
 // ─── dB vertical scale ────────────────────────────────────────────────────────
 const DbScale = ({ currentDb }: { currentDb: number }) => (
-    <div className="flex flex-col-reverse items-end lg:gap-[2px] md:gap-[30px] shrink-0 select-none">
+    <div className="flex flex-col-reverse items-end lg:gap-0.5 md:gap-7.5 shrink-0 select-none">
         {DB_LEVELS.map(db => (
-            <div key={db} className="flex items-center gap-[3px]">
+            <div key={db} className="flex items-center gap-0.75">
                 <span className="text-[9px] md:text-[15px] lg:text-[14px] text-slate-400 w-7 text-right leading-none tabular-nums">
                     {db}
                 </span>
                 <div
-                    className="h-[8px] md:h-[9px] w-[5px] md:w-[6px] rounded-sm transition-colors duration-150"
+                    className="h-2 md:h-2.25 w-1.25 md:w-1.5 rounded-sm transition-colors duration-150"
                     style={{ backgroundColor: currentDb >= db ? '#0297d6' : '#f1f5f9' }}
                 />
             </div>
         ))}
-        <div className="flex items-center gap-[3px] mt-0.5">
+        <div className="flex items-center gap-0.75 mt-0.5">
             <span className="text-[9px] font-black text-[#0297d6] w-7 text-right">◄</span>
-            <div className="w-[5px] md:w-[6px]" />
+            <div className="w-1.25 md:w-1.5" />
         </div>
     </div>
 )
 
 // ─── Headphone modal ──────────────────────────────────────────────────────────
 const HeadphoneModal = ({ onConfirm, onSkip }: { onConfirm: () => void; onSkip: () => void }) => (
-    <div className="fixed inset-0 bg-black/40 z-[70] flex items-center justify-center p-6">
+    <div className="fixed inset-0 bg-black/40 z-70 flex items-center justify-center p-6">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 flex flex-col items-center gap-5">
             <div className="text-6xl">🎧</div>
             <h2 className="text-lg font-black text-slate-800 text-center">Connect Headphones First</h2>
@@ -257,7 +257,13 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
     vitalsId,
     prefetchedData,
 }) => {
-    const [showModal, setShowModal] = useState(true)
+    const hasPrefetchedResult = !!(
+        prefetchedData &&
+        prefetchedData.leftEarResult &&
+        prefetchedData.leftEarResult !== 'Not Performed'
+    )
+    const [showPrefetchDialog, setShowPrefetchDialog] = useState(hasPrefetchedResult)
+    const [showModal, setShowModal] = useState(!hasPrefetchedResult)
     const [currentHz, setCurrentHz] = useState(250)
     const [currentDb, setCurrentDb] = useState(20)
     const [activeEar, setActiveEar] = useState<'left' | 'right'>('left')
@@ -353,6 +359,47 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
          * md:ml-16 → accounts for sidebar, same as EyeTestingPage
          */
         <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-y-auto md:overflow-hidden md:ml-16">
+
+            {/* ── Previous Result Dialog ── */}
+            {showPrefetchDialog && prefetchedData && (
+                <div className="fixed inset-0 bg-black/40 z-80 flex items-center justify-center p-6">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 flex flex-col items-center gap-5">
+                        <div className="text-5xl">🎧</div>
+                        <h2 className="text-lg font-black text-slate-800 text-center">Previous Hearing Test Result</h2>
+                        <div className="w-full bg-slate-50 rounded-xl p-4 flex flex-col gap-2">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-slate-500 font-medium">Left Ear</span>
+                                <span className={`font-bold ${prefetchedData.leftEarResult === 'Normal' ? 'text-green-500' : 'text-orange-500'}`}>
+                                    {prefetchedData.leftEarResult ?? '—'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-slate-500 font-medium">Right Ear</span>
+                                <span className={`font-bold ${prefetchedData.rightEarResult === 'Normal' ? 'text-green-500' : 'text-orange-500'}`}>
+                                    {prefetchedData.rightEarResult ?? '—'}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 w-full">
+                            <button
+                                onClick={() => {
+                                    setShowPrefetchDialog(false)
+                                    setShowModal(true)
+                                }}
+                                className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50"
+                            >
+                                Perform Again
+                            </button>
+                            <button
+                                onClick={() => onSkip()}
+                                className="flex-1 py-3 rounded-xl bg-[#0297d6] text-white font-bold text-sm hover:bg-[#0280bb]"
+                            >
+                                Next →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Headphone modal */}
             {showModal && (

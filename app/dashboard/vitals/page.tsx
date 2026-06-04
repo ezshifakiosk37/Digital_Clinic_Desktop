@@ -262,7 +262,9 @@ const VitalsPage = () => {
     }
     setLoading(true);
     try {
-      await apiService.updateSymptoms(vitalsId, vitals.symptoms);
+      if (symptomsChanged(vitals.symptoms, prefetchedVitals)) {
+        await apiService.updateSymptoms(vitalsId, vitals.symptoms);
+      }
       setShowSymptomsToast(true);
       setTimeout(() => setShowSymptomsToast(false), 3000);
     } catch (error: any) {
@@ -610,6 +612,62 @@ const VitalsPage = () => {
     });
   };
 
+  const rapidChanged = (data: RapidTestingData, prefetched: any): boolean => {
+    if (!prefetched) return true;
+    const bloodSugarStr = data.bloodSugar.value
+      ? `${data.bloodSugar.value} (${data.bloodSugar.type})`
+      : 'Not Performed';
+    if (bloodSugarStr !== (prefetched.bloodSugar ?? 'Not Performed')) return true;
+    const fieldMap: Record<string, string> = {
+      ecg: 'ecg', hiv: 'hiv', hepatitis: 'hepatitis', hbsag: 'hbsag',
+      hcvab: 'hcvAb', hiv12ab: 'hivAb', dengue: 'dengueNs1Ag',
+      syphilis: 'syphilisAb', typhoid: 'typhoidAb', tb: 'tuberculosis', malaria: 'malariaPfPvAg',
+    };
+    for (const t of data.tests) {
+      const key = fieldMap[t.id];
+      if (key && t.result !== (prefetched[key] ?? 'Not Performed')) return true;
+    }
+    return false;
+  };
+
+  const eyeChanged = (data: EyeTestingData, prefetched: any): boolean => {
+    if (!prefetched) return true;
+    return (
+      (data.chartType ?? 'Not Performed') !== (prefetched.chartType ?? 'Not Performed') ||
+      (data.leftEye ?? 'Not Performed') !== (prefetched.leftEye ?? 'Not Performed') ||
+      (data.rightEye ?? 'Not Performed') !== (prefetched.rightEye ?? 'Not Performed')
+    );
+  };
+
+  const colorBlindChanged = (data: ColorBlindTestData, prefetched: any): boolean => {
+    if (!prefetched) return true;
+    return (
+      (data.plate1 ?? 'Not Performed') !== (prefetched.plate1 ?? 'Not Performed') ||
+      (data.plate2 ?? 'Not Performed') !== (prefetched.plate2 ?? 'Not Performed') ||
+      (data.plate3 ?? 'Not Performed') !== (prefetched.plate3 ?? 'Not Performed') ||
+      (data.colorBlindResult ?? 'Not Performed') !== (prefetched.colorBlindResult ?? 'Not Performed')
+    );
+  };
+
+  const hearingChanged = (data: HearingTestData, prefetched: any): boolean => {
+    if (!prefetched) return true;
+    return (
+      (data.leftResult ?? 'Not Performed') !== (prefetched.leftEarResult ?? 'Not Performed') ||
+      (data.rightResult ?? 'Not Performed') !== (prefetched.rightEarResult ?? 'Not Performed')
+    );
+  };
+
+  const symptomsChanged = (current: string[], prefetched: any): boolean => {
+    if (!prefetched) return true;
+    const prev = prefetched.symptoms
+      ? (typeof prefetched.symptoms === 'string'
+        ? prefetched.symptoms.split(',').map((s: string) => s.trim())
+        : prefetched.symptoms)
+      : [];
+    if (current.length !== prev.length) return true;
+    return current.some((s, i) => s !== prev[i]);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* ── RAPID TESTING PAGE ── */}
@@ -619,7 +677,7 @@ const VitalsPage = () => {
           prefetchedData={prefetchedRapidData}
           onNext={async (data) => {
             setRapidTestingData(data);
-            if (vitalsId) {
+            if (vitalsId && rapidChanged(data, prefetchedRapidData)) {
               try {
                 await apiService.saveRapidTesting(vitalsId, data);
                 setShowRapidToast(true);
@@ -645,7 +703,7 @@ const VitalsPage = () => {
           prefetchedData={prefetchedEyeData}
           onNext={async (data) => {
             setEyeTestingData(data);
-            if (vitalsId && !data.skipped) {
+            if (vitalsId && !data.skipped && eyeChanged(data, prefetchedEyeData)) {
               try {
                 await apiService.saveEyeTesting(vitalsId, {
                   chartType: data.chartType ?? "Not Performed",
@@ -680,7 +738,7 @@ const VitalsPage = () => {
           prefetchedData={prefetchedColorBlindData}
           onNext={async (data) => {
             setColorBlindData(data);
-            if (vitalsId && !data.skipped) {
+            if (vitalsId && !data.skipped && colorBlindChanged(data, prefetchedColorBlindData)) {
               try {
                 await apiService.saveColorBlind(vitalsId, {
                   plate1: data.plate1 ?? "Not Performed",
@@ -716,7 +774,7 @@ const VitalsPage = () => {
           prefetchedData={prefetchedHearingData}
           onNext={async (data) => {
             setHearingTestData(data);
-            if (vitalsId && !data.skipped) {
+            if (vitalsId && !data.skipped && hearingChanged(data, prefetchedHearingData)) {
               try {
                 await apiService.saveHearingTest(vitalsId, data);
                 setShowHearingToast(true);
@@ -740,10 +798,59 @@ const VitalsPage = () => {
           sessionPhone={sessionPhone}
         />
       )}
+      {/* ── TOASTS — always mounted regardless of which page is showing ── */}
+      {/* Success Toast */}
+      <div className={`fixed top-6 right-6 z-200 transition-all duration-500 ${showSuccessToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+        <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+          <div className="bg-white/20 rounded-full p-1">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+          </div>
+          Vitals saved successfully!
+        </div>
+      </div>
+      <div className={`fixed top-24 right-6 z-200 transition-all duration-500 ${showRapidToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+        <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+          <div className="bg-white/20 rounded-full p-1">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+          </div>
+          Rapid Testing saved successfully!
+        </div>
+      </div>
+      <div className={`fixed top-24 right-6 z-200 transition-all duration-500 ${showEyeToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+        <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+          <div className="bg-white/20 rounded-full p-1">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+          </div>
+          Eye Testing saved successfully!
+        </div>
+      </div>
+      <div className={`fixed top-24 right-6 z-200 transition-all duration-500 ${showColorBlindToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+        <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+          <div className="bg-white/20 rounded-full p-1">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+          </div>
+          Color Blind Test saved successfully!
+        </div>
+      </div>
+      <div className={`fixed top-24 right-6 z-200 transition-all duration-500 ${showHearingToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+        <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+          <div className="bg-white/20 rounded-full p-1">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+          </div>
+          Hearing Test saved successfully!
+        </div>
+      </div>
+      <div className={`fixed top-6 right-6 z-200 transition-all duration-500 ${showSymptomsToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+        <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
+          <div className="bg-white/20 rounded-full p-1">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+          </div>
+          Symptoms saved successfully!
+        </div>
+      </div>
+
       {!showRapidTesting && !showEyeTesting && !showColorBlindTest && !showHearingTest && (
         <>
-
-
           <Navbar
             variant="vitals"
             onAddToken={() => setOpenTokenDialog(true)}
@@ -815,77 +922,6 @@ const VitalsPage = () => {
                   </svg>
                 </div>
                 Please enter a token to start recording vitals.
-              </div>
-            </div>
-            {/* Success Toast */}
-            <div className={`fixed top-6 right-6 z-100 transition-all duration-500 ${showSuccessToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
-              <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
-                <div className="bg-white/20 rounded-full p-1">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                Vitals saved successfully!
-              </div>
-            </div>
-
-            {/* Rapid Testing Toast */}
-            <div className={`fixed top-24 right-6 z-100 transition-all duration-500 ${showRapidToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
-              <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
-                <div className="bg-white/20 rounded-full p-1">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                Rapid Testing saved successfully!
-              </div>
-            </div>
-
-            {/* Eye Testing Toast */}
-            <div className={`fixed top-24 right-6 z-100 transition-all duration-500 ${showEyeToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
-              <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
-                <div className="bg-white/20 rounded-full p-1">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                Eye Testing saved successfully!
-              </div>
-            </div>
-
-            {/* Color Blind Toast */}
-            <div className={`fixed top-24 right-6 z-100 transition-all duration-500 ${showColorBlindToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
-              <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
-                <div className="bg-white/20 rounded-full p-1">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                Color Blind Test saved successfully!
-              </div>
-            </div>
-
-            {/* Hearing Test Toast */}
-            <div className={`fixed top-24 right-6 z-100 transition-all duration-500 ${showHearingToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
-              <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
-                <div className="bg-white/20 rounded-full p-1">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                Hearing Test saved successfully!
-              </div>
-            </div>
-
-            {/* Symptoms Toast */}
-            <div className={`fixed top-6 right-6 z-100 transition-all duration-500 ${showSymptomsToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
-              <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
-                <div className="bg-white/20 rounded-full p-1">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                Symptoms saved successfully!
               </div>
             </div>
 

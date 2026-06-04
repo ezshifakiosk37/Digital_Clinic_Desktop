@@ -7,6 +7,7 @@ interface UserProfile {
   location: string
   country:  string
   city:     string
+  province: string
 }
 
 interface UserProfileContextType {
@@ -38,6 +39,7 @@ export const UserProfileProvider = ({ children }: { children: React.ReactNode })
             location: data.user.location || '',
             country:  data.user.country  || '',
             city:     data.user.city     || '',
+            province: data.user.province || '',
           })
         }
       })

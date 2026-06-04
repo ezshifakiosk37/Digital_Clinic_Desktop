@@ -41,6 +41,9 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
 
     const [currentIndex, setCurrentIndex] = useState(0)
     const [answers, setAnswers] = useState<Record<number, string>>({})
+    const [showPrefetchDialog, setShowPrefetchDialog] = useState(
+        !!(prefetchedData && prefetchedData.colorBlindResult && prefetchedData.colorBlindResult !== 'Not Performed')
+    )
 
     const current = PLATES[currentIndex]
     const selected = answers[currentIndex] ?? ''
@@ -97,6 +100,50 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
 
     return (
         <div className="h-screen bg-white flex flex-col overflow-hidden">
+
+            {/* ── Previous Result Dialog ── */}
+            {showPrefetchDialog && prefetchedData && (
+                <div className="fixed inset-0 bg-black/40 z-80 flex items-center justify-center p-6">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 flex flex-col items-center gap-5">
+                        <div className="w-12 h-12 rounded-full bg-[#0297d6] flex items-center justify-center text-white text-2xl">🎨</div>
+                        <h2 className="text-lg font-black text-slate-800 text-center">Previous Color Blind Result</h2>
+                        <div className="w-full bg-slate-50 rounded-xl p-4 flex flex-col gap-2">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-slate-500 font-medium">Plate 1</span>
+                                <span className="font-bold text-slate-800">{prefetchedData.plate1 ?? '—'}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-slate-500 font-medium">Plate 2</span>
+                                <span className="font-bold text-slate-800">{prefetchedData.plate2 ?? '—'}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-slate-500 font-medium">Plate 3</span>
+                                <span className="font-bold text-slate-800">{prefetchedData.plate3 ?? '—'}</span>
+                            </div>
+                            <div className="flex justify-between text-sm border-t border-slate-200 pt-2 mt-1">
+                                <span className="text-slate-500 font-medium">Result</span>
+                                <span className={`font-bold ${prefetchedData.colorBlindResult === 'Passed' ? 'text-green-500' : 'text-red-500'}`}>
+                                    {prefetchedData.colorBlindResult ?? '—'}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 w-full">
+                            <button
+                                onClick={() => setShowPrefetchDialog(false)}
+                                className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50"
+                            >
+                                Perform Again
+                            </button>
+                            <button
+                                onClick={() => onSkip()}
+                                className="flex-1 py-3 rounded-xl bg-[#0297d6] text-white font-bold text-sm hover:bg-[#0280bb]"
+                            >
+                                Next →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ── Navbar ── */}
             <nav className="w-full bg-[#0297d6] text-white px-4 py-4 shadow-md shrink-0 sticky top-0 z-10">
