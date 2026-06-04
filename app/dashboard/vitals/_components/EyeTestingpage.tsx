@@ -70,7 +70,7 @@ const FONT_SIZES = [
     'text-[40px]', 'text-[32px]', 'text-[26px]', 'text-[22px]',
 ]
 
-// ─── Info Dialog ─────────────────────────────────────────────────────────────
+// ─── Info Dialog ──────────────────────────────────────────────────────────
 const InfoDialog = ({ message, onOk }: { message: string; onOk: () => void }) => (
     <div className="fixed inset-0 bg-black/40 z-60 flex items-center justify-center p-6">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-4">
