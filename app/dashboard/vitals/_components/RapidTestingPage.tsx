@@ -660,7 +660,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                                 onLoadSuccess={({ numPages }) => setNumPages(numPages)}
                                 loading="Loading PDF..."
                             >
-                                <Page pageNumber={pageNumber} />
+                                <Page pageNumber={pageNumber} width={600} />
                             </Document>
                         </div>
                         {numPages && numPages > 1 && (
