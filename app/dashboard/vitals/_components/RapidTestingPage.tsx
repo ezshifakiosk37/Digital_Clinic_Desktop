@@ -1,7 +1,15 @@
 'use client'
+import dynamic from 'next/dynamic';
 import React, { useState, useEffect, useRef } from 'react'
-import { Document, Page, pdfjs } from 'react-pdf';
-pdfjs.GlobalWorkerOptions.workerSrc = '/pdf-worker/pdf.worker.min.js';
+// Dynamically import react-pdf components (client-only)
+const PDFDocument = dynamic(
+    () => import('react-pdf').then(mod => mod.Document),
+    { ssr: false }
+);
+const PDFPage = dynamic(
+    () => import('react-pdf').then(mod => mod.Page),
+    { ssr: false }
+);
 import {
     ChevronDown, Check, ArrowLeft, ArrowRight,
     Activity, Droplets, Shield, Microscope, Bug,
@@ -248,7 +256,6 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
         visible: false,
         value: null as number | null,
     })
-
     const [ecgPopup, setEcgPopup] = useState({
         visible: false,
         filename: '',
@@ -294,124 +301,71 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     // const [showGlucosePopup, setShowGlucosePopup] = useState(false)
     // const [lastGlucoseValue, setLastGlucoseValue] = useState<number | null>(null)
     const [showMoreDialog, setShowMoreDialog] = useState(false)
-    const [annotatedPdfUrl, setAnnotatedPdfUrl] = useState<string | null>(null);
-    const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
-    const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
-    const [numPages, setNumPages] = useState<number | null>(null);
-    const [pageNumber, setPageNumber] = useState(1);
-    const sessionDataRef = useRef({ name: sessionName, age: '', gender: '' });
+    const [annotatedPdfUrl, setAnnotatedPdfUrl] = useState<string | null>(null)
+    const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
+    const sessionDataRef = useRef({ name: sessionName, age: '', gender: '' })
 
     useEffect(() => {
         sessionDataRef.current = {
             name: sessionName,
             age: sessionAge || '',
             gender: sessionGender || '',
-        };
-    }, [sessionName, sessionAge, sessionGender]);
-
+        }
+    }, [sessionName, sessionAge, sessionGender])
 
     useEffect(() => {
         window.onGlucoseReceived = (mgdl) => {
-            console.log('Glucose received: ', mgdl);
+            console.log('Glucose received: ', mgdl)
             setBloodSugar({ value: mgdl.toString(), type: "Random" })
             setGlucosePopup({ visible: true, value: mgdl })
-        };
-        return () => { delete window.onGlucoseReceived; };
-    }, []);
+        }
+        return () => { delete window.onGlucoseReceived }
+    }, [])
 
-    // useEffect(() => {
-    //     const showPopup = (filename: string) => {
-    //         if (!filename) return;
-    //         console.log('🎉 Showing ECG popup for:', filename);
-    //         setEcgPopup({ visible: true, filename });
-    //     };
-
-    //     // Polling check (modify the existing one)
-    //     const checkNativePending = () => {
-    //         if (window.AndroidNative?.getPendingEcgFile) {
-    //             const file = window.AndroidNative.getPendingEcgFile();
-    //             if (file) {
-    //                 console.log('📦 Found pending ECG file:', file);
-    //                 setEcgPopup({ visible: true, filename: file });
-    //                 setEcgFileName(file);  // store the local file name
-    //                 // Optionally clear pending on native side
-    //                 if (window.AndroidNative?.clearPendingEcgFile) {
-    //                     window.AndroidNative.clearPendingEcgFile();
-    //                 }
-    //             }
-    //         }
-    //     };
-
-    //     // Poll every 2 seconds while the page is visible
-    //     const interval = setInterval(() => {
-    //         if (document.visibilityState === 'visible') {
-    //             checkNativePending();
-    //         }
-    //     }, 2000);
-
-    //     // Also check when the page becomes visible
-    //     const onVisibilityChange = () => {
-    //         if (document.visibilityState === 'visible') {
-    //             checkNativePending();
-    //         }
-    //     };
-    //     document.addEventListener('visibilitychange', onVisibilityChange);
-
-    //     // Immediate check on mount
-    //     checkNativePending();
-
-    //     return () => {
-    //         clearInterval(interval);
-    //         document.removeEventListener('visibilitychange', onVisibilityChange);
-    //     };
-    // }, []);
 
     useEffect(() => {
-        let currentUrl: string | null = null;
+        let currentUrl: string | null = null
 
-        (window as any).receiveEcgFile = async (base64: string, filename: string) => {
-            console.log('📄 Received ECG file:', filename);
-            setEcgPopup({ visible: true, filename });
+            ; (window as any).receiveEcgFile = async (base64: string, filename: string) => {
+                console.log('📄 Received ECG file:', filename)
+                setEcgPopup({ visible: true, filename })
 
-            try {
-                // Remove line breaks from Base64
-                const cleanBase64 = base64.replace(/\s/g, '');
-                const binaryString = atob(cleanBase64);
-                const bytes = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+                try {
+                    // Remove line breaks from Base64
+                    const cleanBase64 = base64.replace(/\s/g, '')
+                    const binaryString = atob(cleanBase64)
+                    const bytes = new Uint8Array(binaryString.length)
+                    for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i)
 
-                // Revoke previous blob URL if it exists
-                if (currentUrl) URL.revokeObjectURL(currentUrl);
+                    // Revoke previous blob URL if it exists
+                    if (currentUrl) URL.revokeObjectURL(currentUrl)
 
-                // Create a new blob and store it in state for react-pdf
-                const blob = new Blob([bytes], { type: 'application/pdf' });
-                setPdfBlob(blob);                         // ✅ Required for the modal
-
-                // Also keep a blob URL for potential downloads / fallback
-                const url = URL.createObjectURL(blob);
-                currentUrl = url;
-                setAnnotatedPdfUrl(url);
-                console.log('Blob URL created:', url);
-            } catch (err) {
-                console.error('Error creating blob URL:', err);
+                    // Create blob URL for the embed modal
+                    const blob = new Blob([bytes], { type: 'application/pdf' })
+                    const url = URL.createObjectURL(blob)
+                    currentUrl = url
+                    setAnnotatedPdfUrl(url)
+                    console.log('Blob URL created:', url)
+                } catch (err) {
+                    console.error('Error creating blob URL:', err)
+                }
             }
-        };
 
         return () => {
-            delete (window as any).receiveEcgFile;
-            if (currentUrl) URL.revokeObjectURL(currentUrl);
-        };
-    }, []); // runs once; session data is not needed for this non‑annotation test
+            delete (window as any).receiveEcgFile
+            if (currentUrl) URL.revokeObjectURL(currentUrl)
+        }
+    }, []) // runs once; session data is not needed for this non-annotation test
 
     const handleCheckECG = () => {
-        const bridge = window.AndroidNative;
+        const bridge = window.AndroidNative
         if (bridge?.openKardiaApp) {
-            bridge.openKardiaApp();
+            bridge.openKardiaApp()
         } else {
-            console.warn("Native bridge not found");
+            console.warn("Native bridge not found")
             // Optional: show a toast or alert
         }
-    };
+    }
 
     const updateTest = (id: string, result: TestResult) =>
         setTests(prev => prev.map(t => (t.id === id ? { ...t, result } : t)))
@@ -560,7 +514,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                             Check ECG
                         </button>
 
-                        {/* Secondary action: only visible when a report exists*/}
+                        {/* Secondary action: only visible when a report exists */}
                         {annotatedPdfUrl && (
                             <div className="text-center -mt-1">
                                 <button
@@ -631,6 +585,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                     </p>
                 </div>
             </div>
+
             {/* Inline buttons — scroll with page just like vitals Next button */}
             <div className="flex justify-between items-center px-4 md:px-6 py-6">
                 <button
@@ -646,34 +601,31 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                     Next →
                 </button>
             </div>
+
             {/* PDF Modal */}
-            {isPdfModalOpen && pdfBlob && (
+            {isPdfModalOpen && annotatedPdfUrl && (
                 <div className="fixed inset-0 md:inset-y-0 md:left-16 md:right-0 z-50 bg-black/75 p-4 flex items-center justify-center">
                     <div className="relative bg-white rounded-lg w-full max-w-4xl h-[90vh] flex flex-col">
                         <div className="flex justify-between items-center p-3 border-b">
                             <h3 className="text-lg font-semibold">ECG Report</h3>
                             <button onClick={() => setIsPdfModalOpen(false)} className="text-slate-500 hover:text-slate-700 text-xl">✕</button>
                         </div>
-                        <div className="flex-1 overflow-auto p-2 flex justify-center">
-                            <Document
-                                file={URL.createObjectURL(pdfBlob)}
-                                onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-                                loading="Loading PDF..."
-                            >
-                                <Page
-                                    pageNumber={pageNumber}
-                                    renderAnnotationLayer={false}
-                                    renderTextLayer={false}
-                                />
-                            </Document>
+                        <div className="flex-1 overflow-auto p-2">
+                            <embed
+                                src={annotatedPdfUrl}
+                                type="application/pdf"
+                                className="w-full h-full"
+                            />
                         </div>
-                        {numPages && numPages > 1 && (
-                            <div className="flex justify-center gap-2 p-2 border-t">
-                                <button onClick={() => setPageNumber(p => Math.max(1, p - 1))} disabled={pageNumber <= 1} className="px-2 py-1 bg-slate-100 rounded">Prev</button>
-                                <span>Page {pageNumber} of {numPages}</span>
-                                <button onClick={() => setPageNumber(p => Math.min(numPages, p + 1))} disabled={pageNumber >= numPages} className="px-2 py-1 bg-slate-100 rounded">Next</button>
-                            </div>
-                        )}
+                        <div className="text-center p-2 border-t">
+                            <a
+                                href={annotatedPdfUrl}
+                                download="ecg_report.pdf"
+                                className="text-xs text-[#0297d6] hover:underline"
+                            >
+                                Download PDF
+                            </a>
+                        </div>
                     </div>
                 </div>
             )}
