@@ -297,43 +297,54 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
         return () => { delete window.onGlucoseReceived; };
     }, []);
 
-    // ECG file detection from Android (global event listener)
+    // ECG file detection from Android (global event listener with polling fallback)
     useEffect(() => {
         const showPopup = (filename: string) => {
-            console.log('🎉 ECG popup triggered for:', filename);
+            console.log('🎉 Showing ECG popup for:', filename);
             setEcgPopup({ visible: true, filename });
             // Clear the stored file to prevent duplicate
             delete (window as any).__lastEcgFile;
         };
 
-        // Handler for the custom event
-        const handleEcgEvent = (e: CustomEvent<string>) => {
-            showPopup(e.detail);
-        };
-
-        // Listen to the custom event – make sure the name matches the dispatch
-        window.addEventListener('ecg:fileDetected', handleEcgEvent as EventListener);
-
-        // Check for a pending file when the component mounts
-        const pendingFile = (window as any).__lastEcgFile;
-        if (pendingFile) {
-            showPopup(pendingFile);
-        }
-
-        // Also check when the user returns to the tab (e.g., from Kardia app)
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                const fileOnReturn = (window as any).__lastEcgFile;
-                if (fileOnReturn) {
-                    showPopup(fileOnReturn);
-                }
+        // Check for a pending file in the global variable
+        const checkForPendingFile = () => {
+            const pending = (window as any).__lastEcgFile;
+            if (pending) {
+                console.log('📦 Pending ECG file found via check:', pending);
+                showPopup(pending);
             }
         };
-        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Listen for the custom event dispatched by EcgGlobalListener
+        const handleCustomEvent = (e: CustomEvent<string>) => {
+            console.log('🔥 Custom event received:', e.detail);
+            showPopup(e.detail);
+        };
+        window.addEventListener('ecg:fileDetected', handleCustomEvent as EventListener);
+
+        // Check once on mount
+        checkForPendingFile();
+
+        // Check when the page becomes visible again (user returns from Kardia)
+        const onVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                console.log('👁️ Page became visible, checking for pending ECG');
+                checkForPendingFile();
+            }
+        };
+        document.addEventListener('visibilitychange', onVisibilityChange);
+
+        // 🔁 Poll every 2 seconds while the page is visible (catches missed events)
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                checkForPendingFile();
+            }
+        }, 2000);
 
         return () => {
-            window.removeEventListener('ecg:fileDetected', handleEcgEvent as EventListener);
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('ecg:fileDetected', handleCustomEvent as EventListener);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+            clearInterval(interval);
         };
     }, []); // Runs once on mount
 
