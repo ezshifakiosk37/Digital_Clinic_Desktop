@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react'
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { Document, Page } from 'react-pdf';
 import {
     ChevronDown, Check, ArrowLeft, ArrowRight,
     Activity, Droplets, Shield, Microscope, Bug,
@@ -295,6 +295,9 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     const [showMoreDialog, setShowMoreDialog] = useState(false)
     const [annotatedPdfUrl, setAnnotatedPdfUrl] = useState<string | null>(null);
     const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+    const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+    const [numPages, setNumPages] = useState<number | null>(null);
+    const [pageNumber, setPageNumber] = useState(1);
     const sessionDataRef = useRef({ name: sessionName, age: '', gender: '' });
 
     useEffect(() => {
@@ -376,13 +379,18 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                 const bytes = new Uint8Array(binaryString.length);
                 for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
 
-                // Create blob URL directly from original bytes (no annotation)
+                // Revoke previous blob URL if it exists
                 if (currentUrl) URL.revokeObjectURL(currentUrl);
+
+                // Create a new blob and store it in state for react-pdf
                 const blob = new Blob([bytes], { type: 'application/pdf' });
+                setPdfBlob(blob);                         // ✅ Required for the modal
+
+                // Also keep a blob URL for potential downloads / fallback
                 const url = URL.createObjectURL(blob);
                 currentUrl = url;
                 setAnnotatedPdfUrl(url);
-                console.log('Blob URL created (no annotation):', url);
+                console.log('Blob URL created:', url);
             } catch (err) {
                 console.error('Error creating blob URL:', err);
             }
@@ -392,7 +400,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
             delete (window as any).receiveEcgFile;
             if (currentUrl) URL.revokeObjectURL(currentUrl);
         };
-    }, []);
+    }, []); // runs once; session data is not needed for this non‑annotation test
 
     const handleCheckECG = () => {
         const bridge = window.AndroidNative;
@@ -638,23 +646,29 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                 </button>
             </div>
             {/* PDF Modal */}
-            {isPdfModalOpen && annotatedPdfUrl && (
+            {isPdfModalOpen && pdfBlob && (
                 <div className="fixed inset-0 md:inset-y-0 md:left-16 md:right-0 z-50 bg-black/75 p-4 flex items-center justify-center">
                     <div className="relative bg-white rounded-lg w-full max-w-4xl h-[90vh] flex flex-col">
                         <div className="flex justify-between items-center p-3 border-b">
                             <h3 className="text-lg font-semibold">ECG Report</h3>
-                            <button
-                                onClick={() => setIsPdfModalOpen(false)}
-                                className="text-slate-500 hover:text-slate-700 text-xl"
-                            >
-                                ✕
-                            </button>
+                            <button onClick={() => setIsPdfModalOpen(false)} className="text-slate-500 hover:text-slate-700 text-xl">✕</button>
                         </div>
-                        <embed
-                            src={annotatedPdfUrl}
-                            type="application/pdf"
-                            className="flex-1 w-full rounded-b-lg"
-                        />
+                        <div className="flex-1 overflow-auto p-2">
+                            <Document
+                                file={URL.createObjectURL(pdfBlob)}
+                                onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                                loading="Loading PDF..."
+                            >
+                                <Page pageNumber={pageNumber} />
+                            </Document>
+                        </div>
+                        {numPages && numPages > 1 && (
+                            <div className="flex justify-center gap-2 p-2 border-t">
+                                <button onClick={() => setPageNumber(p => Math.max(1, p - 1))} disabled={pageNumber <= 1} className="px-2 py-1 bg-slate-100 rounded">Prev</button>
+                                <span>Page {pageNumber} of {numPages}</span>
+                                <button onClick={() => setPageNumber(p => Math.min(numPages, p + 1))} disabled={pageNumber >= numPages} className="px-2 py-1 bg-slate-100 rounded">Next</button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
