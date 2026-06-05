@@ -345,4 +345,39 @@ export const AndroidBridge = {
       onEcgFileDetected(filename);
     };
   },
+
+    // ─────────────────────────────────────────────────────────────────────────
+  // ECG PENDING FILE (polling from native storage)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Retrieves any pending ECG file name stored by the native side.
+   * Returns the filename (e.g., "ecg-2025-01-15.pdf") or null if none.
+   */
+  getPendingEcgFile: () => {
+    const bridge = window.AndroidNative;
+    if (bridge && typeof bridge.getPendingEcgFile === 'function') {
+      try {
+        const filename = bridge.getPendingEcgFile();
+        if (filename && filename !== "") {
+          console.log("📄 Retrieved pending ECG file from native:", filename);
+          return filename;
+        }
+      } catch (err) {
+        console.error("Failed to get pending ECG file:", err);
+      }
+    }
+    return null;
+  },
+
+  /**
+   * Explicitly clears the stored pending ECG file on the native side.
+   */
+  clearPendingEcgFile: () => {
+    const bridge = window.AndroidNative;
+    if (bridge && typeof bridge.clearPendingEcgFile === 'function') {
+      bridge.clearPendingEcgFile();
+      console.log("🧹 Cleared pending ECG file on native side");
+    }
+  },
 }; // End of AndroidBridge object

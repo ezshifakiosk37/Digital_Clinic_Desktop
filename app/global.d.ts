@@ -45,6 +45,21 @@ declare global {
       // ─────────────────────────────────────────────────────────────────────────
       /** Opens the external Kardia ECG app. */
       openKardiaApp: () => void;
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // ECG PENDING FILE (polling from native storage)
+      // ─────────────────────────────────────────────────────────────────────────
+      /** 
+       * Called by the web layer to retrieve any pending ECG file name.
+       * Returns the file name (e.g., "ecg-2025-01-15.pdf") or an empty string.
+       * After calling, the stored file name is cleared on native side.
+       */
+      getPendingEcgFile: () => string;
+
+      /**
+       * Explicitly clears the stored pending ECG file on the native side.
+       */
+      clearPendingEcgFile: () => void;
     };
 
     /** * NEW: Receives the FCM token from Android. 

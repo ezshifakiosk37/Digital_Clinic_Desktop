@@ -297,56 +297,47 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
         return () => { delete window.onGlucoseReceived; };
     }, []);
 
-    // ECG file detection from Android (global event listener with polling fallback)
     useEffect(() => {
         const showPopup = (filename: string) => {
+            if (!filename) return;
             console.log('🎉 Showing ECG popup for:', filename);
             setEcgPopup({ visible: true, filename });
-            // Clear the stored file to prevent duplicate
-            delete (window as any).__lastEcgFile;
         };
 
-        // Check for a pending file in the global variable
-        const checkForPendingFile = () => {
-            const pending = (window as any).__lastEcgFile;
-            if (pending) {
-                console.log('📦 Pending ECG file found via check:', pending);
-                showPopup(pending);
+        // Check for a pending file directly from native storage
+        const checkNativePending = () => {
+            if (window.AndroidNative?.getPendingEcgFile) {
+                const file = window.AndroidNative.getPendingEcgFile();
+                if (file) {
+                    console.log('📦 Found pending ECG via native poll:', file);
+                    showPopup(file);
+                }
             }
         };
 
-        // Listen for the custom event dispatched by EcgGlobalListener
-        const handleCustomEvent = (e: CustomEvent<string>) => {
-            console.log('🔥 Custom event received:', e.detail);
-            showPopup(e.detail);
-        };
-        window.addEventListener('ecg:fileDetected', handleCustomEvent as EventListener);
+        // Poll every 2 seconds while the page is visible
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                checkNativePending();
+            }
+        }, 2000);
 
-        // Check once on mount
-        checkForPendingFile();
-
-        // Check when the page becomes visible again (user returns from Kardia)
+        // Also check when the page becomes visible
         const onVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
-                console.log('👁️ Page became visible, checking for pending ECG');
-                checkForPendingFile();
+                checkNativePending();
             }
         };
         document.addEventListener('visibilitychange', onVisibilityChange);
 
-        // 🔁 Poll every 2 seconds while the page is visible (catches missed events)
-        const interval = setInterval(() => {
-            if (document.visibilityState === 'visible') {
-                checkForPendingFile();
-            }
-        }, 2000);
+        // Immediate check on mount
+        checkNativePending();
 
         return () => {
-            window.removeEventListener('ecg:fileDetected', handleCustomEvent as EventListener);
-            document.removeEventListener('visibilitychange', onVisibilityChange);
             clearInterval(interval);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
         };
-    }, []); // Runs once on mount
+    }, []);
 
     const handleCheckECG = () => {
         const bridge = window.AndroidNative;
