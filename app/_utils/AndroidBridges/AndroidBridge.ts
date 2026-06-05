@@ -380,4 +380,14 @@ export const AndroidBridge = {
       console.log("🧹 Cleared pending ECG file on native side");
     }
   },
+
+  openLocalEcgFile: (filename: string) => {
+    const bridge = window.AndroidNative;
+    if (bridge?.openLocalEcgFile) {
+        bridge.openLocalEcgFile(filename);
+        return true;
+    }
+    console.warn("Native bridge not found: openLocalEcgFile failed");
+    return false;
+},
 }; // End of AndroidBridge object

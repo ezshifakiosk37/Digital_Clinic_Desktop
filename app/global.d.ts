@@ -17,7 +17,7 @@ declare global {
       /** * NEW: Deletes the current FCM token and unregisters the device.
        * Useful for security during Doctor Logout.
        */
-      unregisterFcmDevice: () => void; // <--- ADD THIS LINE
+      unregisterFcmDevice: () => void;
 
       /** Sends the specific 'c' character to calibrate the scale. */
       sendWeightCalibrationCommand: (command: string) => void;
@@ -45,6 +45,15 @@ declare global {
       // ─────────────────────────────────────────────────────────────────────────
       /** Opens the external Kardia ECG app. */
       openKardiaApp: () => void;
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // OPEN LOCAL ECG FILE
+      // ─────────────────────────────────────────────────────────────────────────
+      /**
+       * Opens the locally downloaded ECG PDF file using the system's default PDF viewer.
+       * @param filename - The name of the ECG file (e.g., "ecg-2025-01-15.pdf")
+       */
+      openLocalEcgFile: (filename: string) => void;
 
       // ─────────────────────────────────────────────────────────────────────────
       // ECG PENDING FILE (polling from native storage)

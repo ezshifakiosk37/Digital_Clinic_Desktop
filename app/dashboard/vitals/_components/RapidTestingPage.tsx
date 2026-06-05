@@ -287,6 +287,8 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     // const [showGlucosePopup, setShowGlucosePopup] = useState(false)
     // const [lastGlucoseValue, setLastGlucoseValue] = useState<number | null>(null)
     const [showMoreDialog, setShowMoreDialog] = useState(false)
+    const [ecgFileName, setEcgFileName] = useState<string | null>(null);
+
 
     useEffect(() => {
         window.onGlucoseReceived = (mgdl) => {
@@ -304,13 +306,18 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
             setEcgPopup({ visible: true, filename });
         };
 
-        // Check for a pending file directly from native storage
+        // Polling check (modify the existing one)
         const checkNativePending = () => {
             if (window.AndroidNative?.getPendingEcgFile) {
                 const file = window.AndroidNative.getPendingEcgFile();
                 if (file) {
-                    console.log('📦 Found pending ECG via native poll:', file);
-                    showPopup(file);
+                    console.log('📦 Found pending ECG file:', file);
+                    setEcgPopup({ visible: true, filename: file });
+                    setEcgFileName(file);  // store the local file name
+                    // Optionally clear pending on native side
+                    if (window.AndroidNative?.clearPendingEcgFile) {
+                        window.AndroidNative.clearPendingEcgFile();
+                    }
                 }
             }
         };
@@ -486,10 +493,26 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                                 <Activity className="w-7 h-7 text-[#0297d6]" />
                             </div>
                         </div>
-                        <button onClick={handleCheckECG} className="bg-[#0297d6] text-white text-sm font-bold rounded-lg py-2 px-3 hover:bg-[#0280bb] transition-colors flex items-center justify-center gap-2">
-                            <Activity className="w-4 h-4" />
-                            Check ECG
-                        </button>
+
+                        {/* Show the appropriate button based on whether we have a local ECG file */}
+                        {ecgFileName ? (
+                            <button
+                                onClick={() => window.AndroidNative?.openLocalEcgFile(ecgFileName)}
+                                className="bg-green-100 text-green-700 text-sm font-bold rounded-lg py-2 px-3 text-center hover:bg-green-200 transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Activity className="w-4 h-4" />
+                                View ECG Report
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleCheckECG}
+                                className="bg-[#0297d6] text-white text-sm font-bold rounded-lg py-2 px-3 hover:bg-[#0280bb] transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Activity className="w-4 h-4" />
+                                Check ECG
+                            </button>
+                        )}
+
                         <ResultDropdown value={ecgTest.result} onChange={v => updateTest('ecg', v)} />
                     </div>
 
