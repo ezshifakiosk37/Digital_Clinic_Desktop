@@ -290,12 +290,10 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
         }
         return result
     })
-    // const [showGlucosePopup, setShowGlucosePopup] = useState(false)
-    // const [lastGlucoseValue, setLastGlucoseValue] = useState<number | null>(null)
     const [showMoreDialog, setShowMoreDialog] = useState(false)
-    const [ecgFileName, setEcgFileName] = useState<string | null>(null);
     const [annotatedPdfUrl, setAnnotatedPdfUrl] = useState<string | null>(null);
     const [annotatedPdfBlob, setAnnotatedPdfBlob] = useState<Blob | null>(null);
+    const sessionDataRef = useRef({ name: sessionName, age: sessionAge, sex: sessionSex });
 
 
     useEffect(() => {
@@ -308,26 +306,36 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     }, []);
 
 
-    // ECG file Receiver
+
     useEffect(() => {
-        window.receiveEcgFile = async (base64: string, filename: string) => {
-            console.log('📄 Received ECG file from native:', filename);
+        sessionDataRef.current = { name: sessionName, age: sessionAge, sex: sessionSex };
+    }, [sessionName, sessionAge, sessionSex]);
+
+    useEffect(() => {
+        let currentUrl: string | null = null;
+
+        (window as any).receiveEcgFile = async (base64: string, filename: string) => {
+            console.log('📄 Received ECG file:', filename);
             setEcgPopup({ visible: true, filename });
 
             try {
-                const binaryString = atob(base64);
+                // Remove whitespace (line breaks) from Base64
+                const cleanBase64 = base64.replace(/\s/g, '');
+                const binaryString = atob(cleanBase64);
                 const bytes = new Uint8Array(binaryString.length);
                 for (let i = 0; i < binaryString.length; i++) {
                     bytes[i] = binaryString.charCodeAt(i);
                 }
 
+                // Load and annotate PDF
                 const pdfDoc = await PDFDocument.load(bytes);
                 const pages = pdfDoc.getPages();
                 if (pages.length > 0) {
                     const firstPage = pages[0];
                     const { height } = firstPage.getSize();
                     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-                    const patientInfo = `${sessionName}, ${sessionAge}y, ${sessionSex}`;
+                    const { name, age, sex } = sessionDataRef.current;
+                    const patientInfo = `${name}, ${age}y, ${sex}`;
                     firstPage.drawText(patientInfo, {
                         x: 50,
                         y: height - 50,
@@ -338,21 +346,31 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                 }
                 const modifiedPdfBytes = await pdfDoc.save();
 
-                // ✅ FIX: Wrap in new Uint8Array to satisfy BlobPart
+                // Create new blob and URL
                 const blob = new Blob([new Uint8Array(modifiedPdfBytes)], { type: 'application/pdf' });
                 const url = URL.createObjectURL(blob);
+
+                // Revoke old URL if exists (prevents memory leak)
+                if (currentUrl) {
+                    URL.revokeObjectURL(currentUrl);
+                }
+                currentUrl = url;
                 setAnnotatedPdfUrl(url);
                 setAnnotatedPdfBlob(blob);
             } catch (err) {
-                console.error('Error annotating PDF:', err);
+                console.error('Annotation error:', err);
+                // Optionally show a toast message
             }
         };
 
         return () => {
-            delete window.receiveEcgFile;
-            if (annotatedPdfUrl) URL.revokeObjectURL(annotatedPdfUrl);
+            delete (window as any).receiveEcgFile;
+            // Revoke the last URL when component unmounts
+            if (currentUrl) {
+                URL.revokeObjectURL(currentUrl);
+            }
         };
-    }, [sessionName, sessionAge, sessionSex]);
+    }, []); // runs once, function stays alive
 
     const handleCheckECG = () => {
         const bridge = window.AndroidNative;

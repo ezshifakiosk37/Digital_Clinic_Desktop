@@ -48,6 +48,8 @@ const VitalsPage = () => {
   const [openTokenDialog, setOpenTokenDialog] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [sessionName, setSessionName] = useState("");
+  const [sessionAge, setSessionAge] = useState();
+  const [sessionGender, setSessionGender] = useState();
   const [showExpiredToast, setShowExpiredToast] = useState(false);
   const [showInvalidToast, setShowInvalidToast] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
@@ -215,6 +217,8 @@ const VitalsPage = () => {
     localStorage.setItem("localClinic_entryId", patient.id);
     setSessionPhone(patient.phoneNumber);
     setSessionName(patient.firstName || "");
+    setSessionAge(patient.age)
+    setSessionGender(patient.gender)
     setTokenNumber(patient.token || "");
     setOpenTokenDialog(false);
     setHistory([]);
@@ -431,6 +435,8 @@ const VitalsPage = () => {
         localStorage.setItem("localClinic_entryId", res.patientId);
         setSessionPhone(res.phoneNumber);
         setSessionName(res.firstName || "");
+        setSessionAge(res.age || "")
+        setSessionGender(res.gender || "")
         setOpenTokenDialog(false);
         setHistory([]);
         setHistorySearchPhone("");
@@ -695,6 +701,8 @@ const VitalsPage = () => {
           }}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
+          sessionAge={sessionAge}
+          sessionSex={sessionGender}
         />
       )}
       {showEyeTesting && (
