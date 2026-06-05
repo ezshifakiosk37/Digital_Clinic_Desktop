@@ -529,7 +529,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                         <ResultDropdown value={ecgTest.result} onChange={v => updateTest('ecg', v)} />
                     </div>
 
-                    {/* All regular tests in same grid row */}
+                    {/* All regular tests in same grid row*/}
                     {regularTests.map(test => (
                         <TestCard
                             key={test.id}
