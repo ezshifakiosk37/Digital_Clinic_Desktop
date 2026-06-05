@@ -376,34 +376,15 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                 const bytes = new Uint8Array(binaryString.length);
                 for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
 
-                // Load and annotate PDF
-                const pdfDoc = await PDFDocument.load(bytes);
-                const pages = pdfDoc.getPages();
-                if (pages.length > 0) {
-                    const firstPage = pages[0];
-                    const { height } = firstPage.getSize();
-                    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-                    const { name, age, gender } = sessionDataRef.current;
-                    const patientInfo = `${name}, ${age}y, ${gender}`;
-                    firstPage.drawText(patientInfo, {
-                        x: 50,
-                        y: height - 50,
-                        size: 12,
-                        font,
-                        color: rgb(0, 0, 0),
-                    });
-                }
-                const modifiedPdfBytes = await pdfDoc.save();
-
-                // Create blob URL
+                // Create blob URL directly from original bytes (no annotation)
                 if (currentUrl) URL.revokeObjectURL(currentUrl);
-                const blob = new Blob([new Uint8Array(modifiedPdfBytes)], { type: 'application/pdf' });
+                const blob = new Blob([bytes], { type: 'application/pdf' });
                 const url = URL.createObjectURL(blob);
                 currentUrl = url;
                 setAnnotatedPdfUrl(url);
-                console.log("annotatedPdfUrl: " + annotatedPdfUrl)
+                console.log('Blob URL created (no annotation):', url);
             } catch (err) {
-                console.error('Annotation error:', err);
+                console.error('Error creating blob URL:', err);
             }
         };
 
@@ -411,7 +392,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
             delete (window as any).receiveEcgFile;
             if (currentUrl) URL.revokeObjectURL(currentUrl);
         };
-    }, []); // runs once; session data is accessed via ref
+    }, []);
 
     const handleCheckECG = () => {
         const bridge = window.AndroidNative;
