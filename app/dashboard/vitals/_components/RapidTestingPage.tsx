@@ -299,28 +299,43 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
 
     // ECG file detection from Android (global event listener)
     useEffect(() => {
-        const handleEcgFile = (e: CustomEvent<string>) => {
-            console.log('ECG file detected in component:', e.detail);
-            setEcgPopup({ visible: true, filename: e.detail });
-            // Clear pending flag after showing
-            delete (window as any).__pendingEcgFile;
+        const showPopup = (filename: string) => {
+            console.log('🎉 ECG popup triggered for:', filename);
+            setEcgPopup({ visible: true, filename });
+            // Clear the stored file to prevent duplicate
+            delete (window as any).__lastEcgFile;
         };
 
-        // Listen for the custom event dispatched by the global listener
-        window.addEventListener('ecg:file-detected', handleEcgFile as EventListener);
+        // Handler for the custom event
+        const handleEcgEvent = (e: CustomEvent<string>) => {
+            showPopup(e.detail);
+        };
 
-        // Check if a file was detected while this component was unmounted
-        const pendingFile = (window as any).__pendingEcgFile;
+        // Listen to the custom event – make sure the name matches the dispatch
+        window.addEventListener('ecg:fileDetected', handleEcgEvent as EventListener);
+
+        // Check for a pending file when the component mounts
+        const pendingFile = (window as any).__lastEcgFile;
         if (pendingFile) {
-            console.log('Pending ECG file found on mount:', pendingFile);
-            setEcgPopup({ visible: true, filename: pendingFile });
-            delete (window as any).__pendingEcgFile;
+            showPopup(pendingFile);
         }
 
-        return () => {
-            window.removeEventListener('ecg:file-detected', handleEcgFile as EventListener);
+        // Also check when the user returns to the tab (e.g., from Kardia app)
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                const fileOnReturn = (window as any).__lastEcgFile;
+                if (fileOnReturn) {
+                    showPopup(fileOnReturn);
+                }
+            }
         };
-    }, []); // No dependency array issues – runs once on mount
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener('ecg:fileDetected', handleEcgEvent as EventListener);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []); // Runs once on mount
 
     const handleCheckECG = () => {
         const bridge = window.AndroidNative;
