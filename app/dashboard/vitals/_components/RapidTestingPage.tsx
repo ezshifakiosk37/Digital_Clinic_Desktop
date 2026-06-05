@@ -504,7 +504,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                             Check ECG
                         </button>
 
-                        {/* Secondary action: only visible when a report exists */}
+                        {/* Secondary action: only visible when a report exists*/}
                         {ecgFileName && (
                             <div className="text-center -mt-1">
                                 <button
