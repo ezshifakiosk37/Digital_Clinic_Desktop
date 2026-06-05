@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react'
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import {
     ChevronDown, Check, ArrowLeft, ArrowRight,
     Activity, Droplets, Shield, Microscope, Bug,
@@ -218,6 +219,8 @@ interface RapidTestingPageProps {
     onSkip: () => void
     sessionName?: string
     sessionPhone?: string
+    sessionAge?: string
+    sessionSex?: string
     vitalsId?: string
     prefetchedData?: any
 }
@@ -227,6 +230,8 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     onSkip,
     sessionName = '',
     sessionPhone = '',
+    sessionAge,
+    sessionSex,
     vitalsId,
     prefetchedData,
 }) => {
@@ -289,6 +294,8 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     // const [lastGlucoseValue, setLastGlucoseValue] = useState<number | null>(null)
     const [showMoreDialog, setShowMoreDialog] = useState(false)
     const [ecgFileName, setEcgFileName] = useState<string | null>(null);
+    const [annotatedPdfUrl, setAnnotatedPdfUrl] = useState<string | null>(null);
+    const [annotatedPdfBlob, setAnnotatedPdfBlob] = useState<Blob | null>(null);
 
 
     useEffect(() => {
@@ -300,52 +307,52 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
         return () => { delete window.onGlucoseReceived; };
     }, []);
 
+
+    // ECG file Receiver
     useEffect(() => {
-        const showPopup = (filename: string) => {
-            if (!filename) return;
-            console.log('🎉 Showing ECG popup for:', filename);
+        window.receiveEcgFile = async (base64: string, filename: string) => {
+            console.log('📄 Received ECG file from native:', filename);
             setEcgPopup({ visible: true, filename });
-        };
 
-        // Polling check (modify the existing one)
-        const checkNativePending = () => {
-            if (window.AndroidNative?.getPendingEcgFile) {
-                const file = window.AndroidNative.getPendingEcgFile();
-                if (file) {
-                    console.log('📦 Found pending ECG file:', file);
-                    setEcgPopup({ visible: true, filename: file });
-                    setEcgFileName(file);  // store the local file name
-                    // Optionally clear pending on native side
-                    if (window.AndroidNative?.clearPendingEcgFile) {
-                        window.AndroidNative.clearPendingEcgFile();
-                    }
+            try {
+                const binaryString = atob(base64);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
                 }
+
+                const pdfDoc = await PDFDocument.load(bytes);
+                const pages = pdfDoc.getPages();
+                if (pages.length > 0) {
+                    const firstPage = pages[0];
+                    const { height } = firstPage.getSize();
+                    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+                    const patientInfo = `${sessionName}, ${sessionAge}y, ${sessionSex}`;
+                    firstPage.drawText(patientInfo, {
+                        x: 50,
+                        y: height - 50,
+                        size: 12,
+                        font,
+                        color: rgb(0, 0, 0),
+                    });
+                }
+                const modifiedPdfBytes = await pdfDoc.save();
+
+                // ✅ FIX: Wrap in new Uint8Array to satisfy BlobPart
+                const blob = new Blob([new Uint8Array(modifiedPdfBytes)], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                setAnnotatedPdfUrl(url);
+                setAnnotatedPdfBlob(blob);
+            } catch (err) {
+                console.error('Error annotating PDF:', err);
             }
         };
-
-        // Poll every 2 seconds while the page is visible
-        const interval = setInterval(() => {
-            if (document.visibilityState === 'visible') {
-                checkNativePending();
-            }
-        }, 2000);
-
-        // Also check when the page becomes visible
-        const onVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                checkNativePending();
-            }
-        };
-        document.addEventListener('visibilitychange', onVisibilityChange);
-
-        // Immediate check on mount
-        checkNativePending();
 
         return () => {
-            clearInterval(interval);
-            document.removeEventListener('visibilitychange', onVisibilityChange);
+            delete window.receiveEcgFile;
+            if (annotatedPdfUrl) URL.revokeObjectURL(annotatedPdfUrl);
         };
-    }, []);
+    }, [sessionName, sessionAge, sessionSex]);
 
     const handleCheckECG = () => {
         const bridge = window.AndroidNative;
@@ -504,16 +511,18 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                             Check ECG
                         </button>
 
-                        {/* Secondary action: only visible when a report exists*/}
-                        {ecgFileName && (
+                        {/* Secondary action: only visible when an annotated PDF is ready */}
+                        {annotatedPdfUrl && (
                             <div className="text-center -mt-1">
-                                <button
-                                    onClick={() => window.AndroidNative?.openLocalEcgFile(ecgFileName)}
+                                <a
+                                    href={annotatedPdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     className="text-xs text-[#0297d6] hover:text-[#0280bb] font-medium flex items-center justify-center gap-1"
                                 >
                                     <FileText className="w-3 h-3" />
                                     View latest ECG report
-                                </button>
+                                </a>
                             </div>
                         )}
 

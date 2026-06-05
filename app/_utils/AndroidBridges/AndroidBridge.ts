@@ -346,7 +346,7 @@ export const AndroidBridge = {
     };
   },
 
-    // ─────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
   // ECG PENDING FILE (polling from native storage)
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -384,10 +384,29 @@ export const AndroidBridge = {
   openLocalEcgFile: (filename: string) => {
     const bridge = window.AndroidNative;
     if (bridge?.openLocalEcgFile) {
-        bridge.openLocalEcgFile(filename);
-        return true;
+      bridge.openLocalEcgFile(filename);
+      return true;
     }
     console.warn("Native bridge not found: openLocalEcgFile failed");
     return false;
-},
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SEND ECG FILE CONTENT TO WEB (push instead of poll)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Reads the ECG file from Downloads and sends its Base64 content to the web page.
+   * The web side must define window.receiveEcgFile(base64, filename).
+   * @param filename - Name of the ECG file (e.g., "ecg-2025-01-15.pdf")
+   */
+  sendEcgFileToWeb: (filename: string): boolean => {
+    const bridge = window.AndroidNative;
+    if (bridge && typeof bridge.sendEcgFileToWeb === 'function') {
+      bridge.sendEcgFileToWeb(filename);
+      return true;
+    }
+    console.warn("Native bridge not found: sendEcgFileToWeb failed");
+    return false;
+  },
 }; // End of AndroidBridge object

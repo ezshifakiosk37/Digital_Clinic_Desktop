@@ -69,6 +69,12 @@ declare global {
        * Explicitly clears the stored pending ECG file on the native side.
        */
       clearPendingEcgFile: () => void;
+
+       /** 
+       * Reads the ECG file from Downloads and sends its Base64 content to the web page.
+       * The web side must define window.receiveEcgFile(base64, filename).
+       */
+      sendEcgFileToWeb: (filename: string) => void;
     };
 
     /** * NEW: Receives the FCM token from Android. 
@@ -99,5 +105,11 @@ declare global {
     // ─────────────────────────────────────────────────────────────────────────
     /** Called when the Android native code detects a new file starting with 'ecg-*' in the Downloads folder. */
     onEcgFileDetected?: (filename: string) => void;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // RECEIVE ECG FILE CONTENT (push from Android)
+    // ─────────────────────────────────────────────────────────────────────────
+    /** Called by Android when an ECG file is detected and its Base64 content is ready. */
+    receiveEcgFile?: (base64: string, filename: string) => void;
   }
 }
