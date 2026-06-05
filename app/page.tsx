@@ -3,19 +3,10 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { EcgGlobalListener } from "./dashboard/vitals/_components/EcgGlobalListener";
 
 export default function Home() {
   const router = useRouter();
-
-  useEffect(() => {
-    // Define the global handler once
-    window.onEcgFileDetected = (filename) => {
-      console.log('ECG file detected globally:', filename);
-      // You can dispatch an event or update a global state (e.g., using Zustand)
-      window.dispatchEvent(new CustomEvent('ecgFileDetected', { detail: filename }));
-    };
-    return () => { delete window.onEcgFileDetected; };
-  }, []);
 
   useEffect(() => {
     // Logic: Check the ID badge (token)
@@ -44,6 +35,7 @@ export default function Home() {
   // Logic: Display a clean, branded loader while the brain decides where to go
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-white">
+      <EcgGlobalListener/>
       <div className="flex flex-col items-center gap-4">
         {/* Replace with your actual logo if you want */}
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#0296d6] border-t-transparent"></div>

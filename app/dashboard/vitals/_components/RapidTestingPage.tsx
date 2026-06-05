@@ -297,14 +297,30 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
         return () => { delete window.onGlucoseReceived; };
     }, []);
 
-    // ECG file detection from Android
+    // ECG file detection from Android (global event listener)
     useEffect(() => {
-        window.onEcgFileDetected = (filename) => {
-            console.log('ECG file detected: ', filename);
-            setEcgPopup({ visible: true, filename })
+        const handleEcgFile = (e: CustomEvent<string>) => {
+            console.log('ECG file detected in component:', e.detail);
+            setEcgPopup({ visible: true, filename: e.detail });
+            // Clear pending flag after showing
+            delete (window as any).__pendingEcgFile;
         };
-        return () => { delete window.onEcgFileDetected; };
-    }, []);
+
+        // Listen for the custom event dispatched by the global listener
+        window.addEventListener('ecg:file-detected', handleEcgFile as EventListener);
+
+        // Check if a file was detected while this component was unmounted
+        const pendingFile = (window as any).__pendingEcgFile;
+        if (pendingFile) {
+            console.log('Pending ECG file found on mount:', pendingFile);
+            setEcgPopup({ visible: true, filename: pendingFile });
+            delete (window as any).__pendingEcgFile;
+        }
+
+        return () => {
+            window.removeEventListener('ecg:file-detected', handleEcgFile as EventListener);
+        };
+    }, []); // No dependency array issues – runs once on mount
 
     const handleCheckECG = () => {
         const bridge = window.AndroidNative;
