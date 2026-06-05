@@ -657,7 +657,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
             </div>
             {/* PDF Modal */}
             {isPdfModalOpen && annotatedPdfUrl && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
+                <div className="fixed inset-0 md:inset-y-0 md:left-16 md:right-0 z-50 bg-black/75 p-4 flex items-center justify-center">
                     <div className="relative bg-white rounded-lg w-full max-w-4xl h-[90vh] flex flex-col">
                         <div className="flex justify-between items-center p-3 border-b">
                             <h3 className="text-lg font-semibold">ECG Report</h3>
