@@ -356,6 +356,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                 }
                 currentUrl = url;
                 setAnnotatedPdfUrl(url);
+                console.log('Annotated PDF URL created:', url);
                 setAnnotatedPdfBlob(blob);
             } catch (err) {
                 console.error('Annotation error:', err);
@@ -532,15 +533,20 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                         {/* Secondary action: only visible when an annotated PDF is ready */}
                         {annotatedPdfUrl && (
                             <div className="text-center -mt-1">
-                                <a
-                                    href={annotatedPdfUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                <button
+                                    onClick={() => {
+                                        if (annotatedPdfUrl) {
+                                            console.log('Opening ECG PDF:', annotatedPdfUrl);
+                                            window.open(annotatedPdfUrl, '_blank');
+                                        } else {
+                                            console.warn('annotatedPdfUrl is null, cannot open');
+                                        }
+                                    }}
                                     className="text-xs text-[#0297d6] hover:text-[#0280bb] font-medium flex items-center justify-center gap-1"
                                 >
                                     <FileText className="w-3 h-3" />
                                     View latest ECG report
-                                </a>
+                                </button>
                             </div>
                         )}
 
