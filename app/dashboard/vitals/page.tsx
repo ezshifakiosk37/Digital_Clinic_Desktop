@@ -701,6 +701,8 @@ const VitalsPage = () => {
           }}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
+          sessionAge={sessionAge}
+          sessionGender={sessionGender}
         />
       )}
       {showEyeTesting && (

@@ -219,6 +219,8 @@ interface RapidTestingPageProps {
     onSkip: () => void
     sessionName?: string
     sessionPhone?: string
+    sessionAge?: string
+    sessionGender?: string
     vitalsId?: string
     prefetchedData?: any
 }
@@ -228,6 +230,8 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     onSkip,
     sessionName = '',
     sessionPhone = '',
+    sessionAge = "",
+    sessionGender = "",
     vitalsId,
     prefetchedData,
 }) => {
@@ -289,7 +293,17 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     // const [showGlucosePopup, setShowGlucosePopup] = useState(false)
     // const [lastGlucoseValue, setLastGlucoseValue] = useState<number | null>(null)
     const [showMoreDialog, setShowMoreDialog] = useState(false)
-    const [ecgFileName, setEcgFileName] = useState<string | null>(null);
+    const [annotatedPdfUrl, setAnnotatedPdfUrl] = useState<string | null>(null);
+    const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+    const sessionDataRef = useRef({ name: sessionName, age: '', gender: '' });
+
+    useEffect(() => {
+        sessionDataRef.current = {
+            name: sessionName,
+            age: sessionAge || '',
+            gender: sessionGender || '',
+        };
+    }, [sessionName, sessionAge, sessionGender]);
 
 
     useEffect(() => {
@@ -301,52 +315,102 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
         return () => { delete window.onGlucoseReceived; };
     }, []);
 
+    // useEffect(() => {
+    //     const showPopup = (filename: string) => {
+    //         if (!filename) return;
+    //         console.log('🎉 Showing ECG popup for:', filename);
+    //         setEcgPopup({ visible: true, filename });
+    //     };
+
+    //     // Polling check (modify the existing one)
+    //     const checkNativePending = () => {
+    //         if (window.AndroidNative?.getPendingEcgFile) {
+    //             const file = window.AndroidNative.getPendingEcgFile();
+    //             if (file) {
+    //                 console.log('📦 Found pending ECG file:', file);
+    //                 setEcgPopup({ visible: true, filename: file });
+    //                 setEcgFileName(file);  // store the local file name
+    //                 // Optionally clear pending on native side
+    //                 if (window.AndroidNative?.clearPendingEcgFile) {
+    //                     window.AndroidNative.clearPendingEcgFile();
+    //                 }
+    //             }
+    //         }
+    //     };
+
+    //     // Poll every 2 seconds while the page is visible
+    //     const interval = setInterval(() => {
+    //         if (document.visibilityState === 'visible') {
+    //             checkNativePending();
+    //         }
+    //     }, 2000);
+
+    //     // Also check when the page becomes visible
+    //     const onVisibilityChange = () => {
+    //         if (document.visibilityState === 'visible') {
+    //             checkNativePending();
+    //         }
+    //     };
+    //     document.addEventListener('visibilitychange', onVisibilityChange);
+
+    //     // Immediate check on mount
+    //     checkNativePending();
+
+    //     return () => {
+    //         clearInterval(interval);
+    //         document.removeEventListener('visibilitychange', onVisibilityChange);
+    //     };
+    // }, []);
+
     useEffect(() => {
-        const showPopup = (filename: string) => {
-            if (!filename) return;
-            console.log('🎉 Showing ECG popup for:', filename);
+        let currentUrl: string | null = null;
+
+        (window as any).receiveEcgFile = async (base64: string, filename: string) => {
+            console.log('📄 Received ECG file:', filename);
             setEcgPopup({ visible: true, filename });
-        };
 
-        // Polling check (modify the existing one)
-        const checkNativePending = () => {
-            if (window.AndroidNative?.getPendingEcgFile) {
-                const file = window.AndroidNative.getPendingEcgFile();
-                if (file) {
-                    console.log('📦 Found pending ECG file:', file);
-                    setEcgPopup({ visible: true, filename: file });
-                    setEcgFileName(file);  // store the local file name
-                    // Optionally clear pending on native side
-                    if (window.AndroidNative?.clearPendingEcgFile) {
-                        window.AndroidNative.clearPendingEcgFile();
-                    }
+            try {
+                // Remove line breaks from Base64
+                const cleanBase64 = base64.replace(/\s/g, '');
+                const binaryString = atob(cleanBase64);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+
+                // Load and annotate PDF
+                const pdfDoc = await PDFDocument.load(bytes);
+                const pages = pdfDoc.getPages();
+                if (pages.length > 0) {
+                    const firstPage = pages[0];
+                    const { height } = firstPage.getSize();
+                    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+                    const { name, age, gender } = sessionDataRef.current;
+                    const patientInfo = `${name}, ${age}y, ${gender}`;
+                    firstPage.drawText(patientInfo, {
+                        x: 50,
+                        y: height - 50,
+                        size: 12,
+                        font,
+                        color: rgb(0, 0, 0),
+                    });
                 }
+                const modifiedPdfBytes = await pdfDoc.save();
+
+                // Create blob URL
+                if (currentUrl) URL.revokeObjectURL(currentUrl);
+                const blob = new Blob([new Uint8Array(modifiedPdfBytes)], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                currentUrl = url;
+                setAnnotatedPdfUrl(url);
+            } catch (err) {
+                console.error('Annotation error:', err);
             }
         };
-
-        // Poll every 2 seconds while the page is visible
-        const interval = setInterval(() => {
-            if (document.visibilityState === 'visible') {
-                checkNativePending();
-            }
-        }, 2000);
-
-        // Also check when the page becomes visible
-        const onVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                checkNativePending();
-            }
-        };
-        document.addEventListener('visibilitychange', onVisibilityChange);
-
-        // Immediate check on mount
-        checkNativePending();
 
         return () => {
-            clearInterval(interval);
-            document.removeEventListener('visibilitychange', onVisibilityChange);
+            delete (window as any).receiveEcgFile;
+            if (currentUrl) URL.revokeObjectURL(currentUrl);
         };
-    }, []);
+    }, []); // runs once; session data is accessed via ref
 
     const handleCheckECG = () => {
         const bridge = window.AndroidNative;
@@ -506,10 +570,10 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                         </button>
 
                         {/* Secondary action: only visible when a report exists*/}
-                        {ecgFileName && (
+                        {annotatedPdfUrl && (
                             <div className="text-center -mt-1">
                                 <button
-                                    onClick={() => window.AndroidNative?.openLocalEcgFile(ecgFileName)}
+                                    onClick={() => setIsPdfModalOpen(true)}
                                     className="text-xs text-[#0297d6] hover:text-[#0280bb] font-medium flex items-center justify-center gap-1"
                                 >
                                     <FileText className="w-3 h-3" />
@@ -591,6 +655,28 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                     Next →
                 </button>
             </div>
+            {/* PDF Modal */}
+            {isPdfModalOpen && annotatedPdfUrl && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
+                    <div className="relative bg-white rounded-lg w-full max-w-4xl h-[90vh] flex flex-col">
+                        <div className="flex justify-between items-center p-3 border-b">
+                            <h3 className="text-lg font-semibold">ECG Report</h3>
+                            <button
+                                onClick={() => setIsPdfModalOpen(false)}
+                                className="text-slate-500 hover:text-slate-700 text-xl"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <iframe
+                            src={annotatedPdfUrl}
+                            className="flex-1 w-full rounded-b-lg"
+                            title="ECG Report"
+                        />
+                    </div>
+                </div>
+            )}
+
             {/* More Tests Dialog */}
             {showMoreDialog && (
                 <MoreTestsDialog
