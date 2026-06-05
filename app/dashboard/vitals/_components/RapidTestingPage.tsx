@@ -494,22 +494,23 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                             </div>
                         </div>
 
-                        {/* Show the appropriate button based on whether we have a local ECG file */}
-                        {ecgFileName ? (
+                        {/* Always show "Check ECG" button */}
+                        <button
+                            onClick={handleCheckECG}
+                            className="bg-[#0297d6] text-white text-sm font-bold rounded-lg py-2 px-3 hover:bg-[#0280bb] transition-colors flex items-center justify-center gap-2"
+                        >
+                            <Activity className="w-4 h-4" />
+                            Check ECG
+                        </button>
+
+                        {/* Show "View ECG Report" button only if a local file exists */}
+                        {ecgFileName && (
                             <button
                                 onClick={() => window.AndroidNative?.openLocalEcgFile(ecgFileName)}
                                 className="bg-green-100 text-green-700 text-sm font-bold rounded-lg py-2 px-3 text-center hover:bg-green-200 transition-colors flex items-center justify-center gap-2"
                             >
                                 <Activity className="w-4 h-4" />
                                 View ECG Report
-                            </button>
-                        ) : (
-                            <button
-                                onClick={handleCheckECG}
-                                className="bg-[#0297d6] text-white text-sm font-bold rounded-lg py-2 px-3 hover:bg-[#0280bb] transition-colors flex items-center justify-center gap-2"
-                            >
-                                <Activity className="w-4 h-4" />
-                                Check ECG
                             </button>
                         )}
 
