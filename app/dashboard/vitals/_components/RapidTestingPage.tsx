@@ -401,6 +401,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                 const url = URL.createObjectURL(blob);
                 currentUrl = url;
                 setAnnotatedPdfUrl(url);
+                console.log("annotatedPdfUrl: " + annotatedPdfUrl)
             } catch (err) {
                 console.error('Annotation error:', err);
             }
@@ -668,10 +669,10 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                                 ✕
                             </button>
                         </div>
-                        <iframe
+                        <embed
                             src={annotatedPdfUrl}
+                            type="application/pdf"
                             className="flex-1 w-full rounded-b-lg"
-                            title="ECG Report"
                         />
                     </div>
                 </div>
