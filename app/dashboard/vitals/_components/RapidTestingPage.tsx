@@ -654,13 +654,17 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                             <h3 className="text-lg font-semibold">ECG Report</h3>
                             <button onClick={() => setIsPdfModalOpen(false)} className="text-slate-500 hover:text-slate-700 text-xl">✕</button>
                         </div>
-                        <div className="flex-1 overflow-auto p-2">
+                        <div className="flex-1 overflow-auto p-2 flex justify-center">
                             <Document
                                 file={URL.createObjectURL(pdfBlob)}
                                 onLoadSuccess={({ numPages }) => setNumPages(numPages)}
                                 loading="Loading PDF..."
                             >
-                                <Page pageNumber={pageNumber} width={Math.min(window.innerWidth * 0.8, 800)} />
+                                <Page
+                                    pageNumber={pageNumber}
+                                    renderAnnotationLayer={false}
+                                    renderTextLayer={false}
+                                />
                             </Document>
                         </div>
                         {numPages && numPages > 1 && (
