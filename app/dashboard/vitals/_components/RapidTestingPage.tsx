@@ -445,7 +445,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     const ecgTest = tests.find(t => t.id === 'ecg')!
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="relative min-h-screen bg-slate-50">
             {/* Toast popup */}
             {/* Glucose Success Popup */}
             <ToastPopup
