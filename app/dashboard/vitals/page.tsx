@@ -25,6 +25,8 @@ import RapidTestingPage, { RapidTestingData } from './_components/RapidTestingPa
 import EyeTestingpage, { EyeTestingData } from './_components/EyeTestingpage'
 import ColorBlindTestPage, { ColorBlindTestData } from './_components/ColorBlindTestPage'
 import HearingTestPage, { HearingTestData } from './_components/HearingTestPage'
+import VitalReportModal from './_components/VitalReportModal'
+
 
 const VitalsPage = () => {
   const [vitals, setVitals] = useState({
@@ -80,7 +82,7 @@ const VitalsPage = () => {
   const [colorBlindData, setColorBlindData] = useState<ColorBlindTestData | null>(null);
   const [showHearingTest, setShowHearingTest] = useState(false);
   const [hearingTestData, setHearingTestData] = useState<HearingTestData | null>(null);
-
+  const [showVitalReport, setShowVitalReport] = useState(false)
   // ── Prefetched data for comparison (Change 3 & 4) ──
   const [prefetchedVitals, setPrefetchedVitals] = useState<any>(null);
   const [prefetchedRapidData, setPrefetchedRapidData] = useState<any>(null);
@@ -216,7 +218,7 @@ const VitalsPage = () => {
   const startSessionFromQueue = (patient: any) => {
     localStorage.setItem("localClinic_entryId", patient.id);
     setSessionPhone(patient.phoneNumber);
-    setSessionName(patient.firstName || "");
+    setSessionName(`${patient.firstName || ""} ${patient.lastName || ""}`.trim());
     setSessionAge(patient.age)
     setSessionGender(patient.gender)
     setTokenNumber(patient.token || "");
@@ -366,7 +368,6 @@ const VitalsPage = () => {
 
     try {
       const res = await apiService.verifyToken(parseInt(tokenNumber).toString());
-
       if (res.success) {
         // Fetch latest vitals for this specific token
         const latestRes = await apiService.getLatestVitals(res.patientId, tokenNumber);
@@ -434,7 +435,10 @@ const VitalsPage = () => {
         setVitals(initialVitals);
         localStorage.setItem("localClinic_entryId", res.patientId);
         setSessionPhone(res.phoneNumber);
-        setSessionName(res.firstName || "");
+        setSessionName(
+          `${res.firstName || res.first_name || ""} ${res.lastName || res.last_name || ""}`.trim()
+          || res.name || res.fullName || ""
+        );
         setSessionAge(res.age || "")
         setSessionGender(res.gender || "")
         setOpenTokenDialog(false);
@@ -806,6 +810,12 @@ const VitalsPage = () => {
           sessionPhone={sessionPhone}
         />
       )}
+      {/* ── VITAL REPORT MODAL ── */}
+      <VitalReportModal
+        isOpen={showVitalReport}
+        onClose={() => setShowVitalReport(false)}
+        vitalsId={vitalsId}
+      />
       {/* ── TOASTS — always mounted regardless of which page is showing ── */}
       {/* Success Toast */}
       <div className={`fixed top-6 right-6 z-200 transition-all duration-500 ${showSuccessToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
@@ -1167,23 +1177,13 @@ const VitalsPage = () => {
                         ← Back
                       </Button>
                       <div className="flex gap-3">
-                        {/* {patientType === 'Online Consultation' && (
-                    <div className="relative group">
-                      <Button
-                        onClick={() => vitalsId && setIsVideoModalOpen(true)}
-                        variant="outline"
-                        className={`px-6 py-5 transition-all ${!vitalsId ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        Online Consult
-                      </Button>
-                      {!vitalsId && (
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-800 text-white text-xs font-semibold rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                          Add vitals first
-                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
-                        </div>
-                      )}
-                    </div>
-                  )} */}
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowVitalReport(true)}
+                          className="px-6 py-5 font-bold"
+                        >
+                          📋 Vital Report
+                        </Button>
                         <Button onClick={handleAddSymptoms} disabled={loading} className="px-8 py-5 text-base font-bold">
                           {loading ? (
                             <><Loader2 className="animate-spin mr-2 h-4 w-4" />Saving...</>
