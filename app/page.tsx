@@ -8,6 +8,16 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
+    // Define the global handler once
+    window.onEcgFileDetected = (filename) => {
+      console.log('ECG file detected globally:', filename);
+      // You can dispatch an event or update a global state (e.g., using Zustand)
+      window.dispatchEvent(new CustomEvent('ecgFileDetected', { detail: filename }));
+    };
+    return () => { delete window.onEcgFileDetected; };
+  }, []);
+
+  useEffect(() => {
     // Logic: Check the ID badge (token)
     // const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
 
@@ -20,7 +30,7 @@ export default function Home() {
     // }
 
     const staffToken = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
-    const docToken   = typeof window !== 'undefined' ? localStorage.getItem("doc_token") : null;
+    const docToken = typeof window !== 'undefined' ? localStorage.getItem("doc_token") : null;
 
     if (docToken) {
       router.replace("/dashboard/consultation");
