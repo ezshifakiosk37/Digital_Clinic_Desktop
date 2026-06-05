@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import {
     ChevronDown, Check, ArrowLeft, ArrowRight,
     Activity, Droplets, Shield, Microscope, Bug,
-    Zap, Wind, Stethoscope, FlaskConical, TestTube, Heart
+    Zap, Wind, Stethoscope, FlaskConical, TestTube, Heart,
+    FileText
 } from 'lucide-react'
 import ToastPopup from './ToastPopup'
 
@@ -485,7 +486,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                         </p>
                     </div>
 
-                    {/* ECG */}
+                    {/* ECG Card */}
                     <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
                         <div className="flex items-center justify-between">
                             <p className="text-sm font-bold text-slate-700">ECG</p>
@@ -494,7 +495,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                             </div>
                         </div>
 
-                        {/* Always show "Check ECG" button */}
+                        {/* Primary action: always visible */}
                         <button
                             onClick={handleCheckECG}
                             className="bg-[#0297d6] text-white text-sm font-bold rounded-lg py-2 px-3 hover:bg-[#0280bb] transition-colors flex items-center justify-center gap-2"
@@ -503,15 +504,17 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                             Check ECG
                         </button>
 
-                        {/* Show "View ECG Report" button only if a local file exists */}
+                        {/* Secondary action: only visible when a report exists */}
                         {ecgFileName && (
-                            <button
-                                onClick={() => window.AndroidNative?.openLocalEcgFile(ecgFileName)}
-                                className="bg-green-100 text-green-700 text-sm font-bold rounded-lg py-2 px-3 text-center hover:bg-green-200 transition-colors flex items-center justify-center gap-2"
-                            >
-                                <Activity className="w-4 h-4" />
-                                View ECG Report
-                            </button>
+                            <div className="text-center -mt-1">
+                                <button
+                                    onClick={() => window.AndroidNative?.openLocalEcgFile(ecgFileName)}
+                                    className="text-xs text-[#0297d6] hover:text-[#0280bb] font-medium flex items-center justify-center gap-1"
+                                >
+                                    <FileText className="w-3 h-3" />
+                                    View latest ECG report
+                                </button>
+                            </div>
                         )}
 
                         <ResultDropdown value={ecgTest.result} onChange={v => updateTest('ecg', v)} />
