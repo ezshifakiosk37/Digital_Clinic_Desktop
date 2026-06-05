@@ -35,7 +35,6 @@ export default function Home() {
   // Logic: Display a clean, branded loader while the brain decides where to go
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-white">
-      <EcgGlobalListener/>
       <div className="flex flex-col items-center gap-4">
         {/* Replace with your actual logo if you want */}
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#0296d6] border-t-transparent"></div>
