@@ -409,4 +409,28 @@ export const AndroidBridge = {
     console.warn("Native bridge not found: sendEcgFileToWeb failed");
     return false;
   },
+
+  /**
+ * Sends vital report data to the native Android thermal printer.
+ * Falls back to system print if not running in Android.
+ */
+  printVitalReport: (data: any) => {
+    if (typeof window === "undefined") return false;
+    const bridge = window.AndroidNative;
+
+    if (bridge && typeof bridge.printVitalReport === "function") {
+      try {
+        const payload = JSON.stringify(data);
+        bridge.printVitalReport(payload);
+        return true;
+      } catch (err) {
+        console.error("JSON Stringify Error for Vital Report Print:", err);
+        return false;
+      }
+    } else {
+      console.warn("Native printVitalReport not found. Falling back to system print.");
+      window.print();
+      return true;
+    }
+  },
 }; // End of AndroidBridge object

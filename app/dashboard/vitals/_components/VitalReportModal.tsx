@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { Printer, X, Loader2 } from 'lucide-react'
 import { BluetoothPrinterModal } from '@/app/dashboard/consultation/components/BluetoothPrinterModel'
 import { apiService } from '@/app/_utils/apiService'
+import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge'
 
 interface VitalReportModalProps {
     isOpen: boolean
@@ -165,7 +166,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         setTimeout(() => {
             try {
                 const payload = buildPrintPayload()
-                if (payload) (window as any).AndroidNative.printThermal(JSON.stringify(payload))
+                if (payload) AndroidBridge.printVitalReport(payload)  // ← replaces the (window as any).AndroidNative.printThermal line
                 else alert('No data to print')
             } catch (err) {
                 console.error('[VitalReport] Thermal print error:', err)

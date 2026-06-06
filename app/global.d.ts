@@ -21,7 +21,7 @@ declare global {
 
       /** Sends the specific 'c' character to calibrate the scale. */
       sendWeightCalibrationCommand: (command: string) => void;
-      
+
       /** Existing IoT/Hardware methods */
       sendMedicinePacket: (jsonString: string) => void;
       connectUsb: () => void;
@@ -30,7 +30,13 @@ declare global {
       /** Print raw text or ESC/POS commands. */
       printReceipt: (text: string) => void;
       printRawJSON: (jsonString: string) => void;
-      
+
+      /** NEW: Sends structured vital report JSON to native thermal printer. */
+      printVitalReport: (jsonString: string) => void;
+
+      /** NEW: Sends structured prescription JSON to native thermal printer. */
+      printThermal: (jsonString: string) => void;
+
       /** NEW: Send a Base64 encoded PNG/JPG. */
       printImage: (base64Data: string) => void;
 
@@ -70,10 +76,10 @@ declare global {
        */
       clearPendingEcgFile: () => void;
 
-       /** 
-       * Reads the ECG file from Downloads and sends its Base64 content to the web page.
-       * The web side must define window.receiveEcgFile(base64, filename).
-       */
+      /** 
+      * Reads the ECG file from Downloads and sends its Base64 content to the web page.
+      * The web side must define window.receiveEcgFile(base64, filename).
+      */
       sendEcgFileToWeb: (filename: string) => void;
     };
 
