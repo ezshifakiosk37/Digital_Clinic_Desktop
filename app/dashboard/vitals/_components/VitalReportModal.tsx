@@ -94,7 +94,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
             if (rapidLines.length) sections.push('--- RAPID TESTING ---\n' + rapidLines.join('\n'))
         }
 
-        // Eye Testing
+        //  Eye Testing
         if (eyeTesting && (shouldShow(eyeTesting.leftEye) || shouldShow(eyeTesting.rightEye))) {
             const eyeLines = []
             if (shouldShow(eyeTesting.chartType)) eyeLines.push(`Chart: ${eyeTesting.chartType}`)
@@ -337,7 +337,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                     </div>
                 </div>
             </div>
-            
+
             <BluetoothPrinterModal
                 isOpen={isBTModalOpen}
                 onClose={() => { if (!isPrinting) setIsBTModalOpen(false) }}
