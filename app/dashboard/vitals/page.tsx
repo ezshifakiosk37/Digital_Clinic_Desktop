@@ -208,7 +208,7 @@ const VitalsPage = () => {
     // 1. Tell the hardware to stop waiting
     AndroidBridge.cancelCalibration();
 
-    // 2. Close the UI
+    // 2. Close theUI
     setIsCalibrateModalOpen(false);
 
     // 3. Reset local input
