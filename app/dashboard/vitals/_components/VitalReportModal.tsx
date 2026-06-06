@@ -154,20 +154,35 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
     }
 
     const handlePrintClick = () => {
+        console.log("1. handlePrintClick fired")
+        console.log("2. AndroidNative exists?", !!(window as any).AndroidNative)
+
         if ((window as any).AndroidNative) {
+            console.log("3. Opening BT modal")
             setIsBTModalOpen(true)
         } else {
+            console.log("3. No AndroidNative, doing web print")
             handleWebPrint()
         }
     }
 
     const executeThermalPrint = useCallback(() => {
+        console.log("4. executeThermalPrint fired")
+        console.log("5. payload:", buildPrintPayload())
+
         setIsPrinting(true)
         setTimeout(() => {
             try {
                 const payload = buildPrintPayload()
-                if (payload) AndroidBridge.printVitalReport(payload)  // ← replaces the (window as any).AndroidNative.printThermal line
-                else alert('No data to print')
+                console.log("6. AndroidBridge.printVitalReport exists?", typeof AndroidBridge.printVitalReport)
+
+                if (payload) {
+                    AndroidBridge.printVitalReport(payload)
+                    console.log("7. printVitalReport called")
+                } else {
+                    console.log("7. payload was null!")
+                    alert('No data to print')
+                }
             } catch (err) {
                 console.error('[VitalReport] Thermal print error:', err)
                 alert('Failed to prepare report for printing.')
@@ -181,12 +196,6 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
 
     return (
         <>
-            <BluetoothPrinterModal
-                isOpen={isBTModalOpen}
-                onClose={() => { if (!isPrinting) setIsBTModalOpen(false) }}
-                onPrint={executeThermalPrint}
-                isPrinting={isPrinting}
-            />
 
             <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
                 <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -328,6 +337,14 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                     </div>
                 </div>
             </div>
+            
+            <BluetoothPrinterModal
+                isOpen={isBTModalOpen}
+                onClose={() => { if (!isPrinting) setIsBTModalOpen(false) }}
+                onPrint={executeThermalPrint}
+                isPrinting={isPrinting}
+            />
+
         </>
     )
 }
