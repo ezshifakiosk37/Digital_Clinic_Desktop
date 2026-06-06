@@ -56,6 +56,25 @@ export const BluetoothPrinterModal: React.FC<BluetoothPrinterModalProps> = ({
         };
     }, [isOpen]);
 
+    // ── Listen for print result from Android ──────────────────────────────
+    useEffect(() => {
+        if (!isOpen) return;
+
+        (window as any).onPrintResult = (success: boolean, message: string) => {
+            if (success) {
+                setStep('list')
+                onClose()  // ← auto close on success
+            } else {
+                setStep('ready')  // ← go back to ready so user can retry
+                setConnectionError(message || 'Print failed. Try again.')
+            }
+        };
+
+        return () => {
+            delete (window as any).onPrintResult;
+        };
+    }, [isOpen, onClose]);
+
     // ── Auto-fetch on open ─────────────────────────────────────────────────
     useEffect(() => {
         if (!isOpen) return;
