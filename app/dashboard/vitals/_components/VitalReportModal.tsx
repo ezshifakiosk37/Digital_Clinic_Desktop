@@ -81,6 +81,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         if (shouldShow(vitals.Temperature)) vitalsLines.push(`Temp: ${vitals.Temperature}°C`)
         if (shouldShow(vitals.Weight)) vitalsLines.push(`Weight: ${vitals.Weight} kg`)
         if (shouldShow(vitals.Height)) vitalsLines.push(`Height: ${formatHeight(vitals.Height)}`)
+        if (shouldShow(vitals.bmi)) vitalsLines.push(`BMI: ${vitals.bmi}`)   
         if (vitalsLines.length) sections.push('--- VITALS ---\n' + vitalsLines.join('\n'))
 
         // Rapid Testing
@@ -193,6 +194,8 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
     }, [buildPrintPayload])
 
     if (!isOpen) return null
+
+    console.log(report)
 
     return (
         <>
