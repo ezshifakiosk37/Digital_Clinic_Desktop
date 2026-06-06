@@ -269,7 +269,7 @@ const VitalsPage = () => {
     setLoading(true);
     try {
       if (symptomsChanged(vitals.symptoms, prefetchedVitals)) {
-        await apiService.updateSymptoms(vitalsId, vitals.symptoms);
+        await apiService.updateSymptoms(vitalsId, vitals.symptoms, bmi?.value ?? null);
       }
       setShowSymptomsToast(true);
       setTimeout(() => setShowSymptomsToast(false), 3000);

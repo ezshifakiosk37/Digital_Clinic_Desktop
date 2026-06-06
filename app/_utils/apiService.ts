@@ -143,13 +143,14 @@ export const apiService = {
         return handleResponse(response);
     },
 
-    updateSymptoms: async (vitalsId: string, symptoms: string[]) => {
+    updateSymptoms: async (vitalsId: string, symptoms: string[], bmi?: string | null) => {
         const response = await fetch(`${API_BASE_URL}/api/vitals/update/${vitalsId}`, {
             method: 'PATCH',
             headers: getHeaders(),
             body: JSON.stringify({
                 vitals: {
                     symptoms: symptoms.length ? symptoms : ['Unknown'],
+                    ...(bmi !== undefined && { bmi }),
                 }
             }),
         });
