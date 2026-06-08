@@ -356,32 +356,25 @@ const DemographicPage: React.FC = () => {
                 onChange={(e) => { e.target.files?.[0] && handlePhotoUpload(e.target.files[0]); setShowPhotoOptions(false); }}
               />
 
-              {/* Photo Options Dialog */}
-              <Dialog open={showPhotoOptions} onOpenChange={setShowPhotoOptions}>
-                <DialogContent className="sm:max-w-xs text-center py-8">
-                  <DialogHeader>
-                    <DialogTitle className="text-center text-lg font-bold">Upload Photo</DialogTitle>
-                  </DialogHeader>
-                  <div className="flex flex-col gap-3 mt-4">
-                    <Button
-                      variant="outline"
-                      className="h-12 text-base font-semibold flex gap-3 items-center justify-center"
-                      onClick={() => { cameraInputRef.current?.click(); }}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[#0297d6]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
-                      Camera
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="h-12 text-base font-semibold flex gap-3 items-center justify-center"
-                      onClick={() => { fileInputRef.current?.click(); }}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[#0297d6]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
-                      Pick from Gallery
-                    </Button>
+              {/* Profile Photo Upload - Direct */}
+              <div className="flex flex-col items-center gap-1">
+                <div className="relative group">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && handlePhotoUpload(e.target.files[0])}
+                  />
+                  <div
+                    className="w-14 h-14 rounded-full border-2 border-dashed border-[#0297d6] bg-blue-50 overflow-hidden flex items-center justify-center cursor-pointer hover:border-solid hover:bg-blue-100 transition-all"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {photoUploading ? <Loader2 className="animate-spin" /> : photoUrl ? <img src={photoUrl} alt="Patient" className="w-full h-full object-cover" /> : <User className="w-6 h-6 text-[#0297d6] opacity-50" />}
                   </div>
-                </DialogContent>
-              </Dialog>
+                </div>
+                <span className="text-[9px] text-slate-400 font-medium">Photo</span>
+              </div>
             </div>
           </div>
           <div className="mx-6 text-center px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[12px] text-slate-500">
@@ -693,7 +686,7 @@ const DemographicPage: React.FC = () => {
                 </div>
                 <div>
                   <Label className="text-[10px] font-bold text-slate-400 uppercase">City <span className='text-red-500'>*</span></Label>
-                 <Popover open={openCity} onOpenChange={setOpenCity}>
+                  <Popover open={openCity} onOpenChange={setOpenCity}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50">
                         <span className={form.city ? "text-slate-800" : "text-slate-400"}>
