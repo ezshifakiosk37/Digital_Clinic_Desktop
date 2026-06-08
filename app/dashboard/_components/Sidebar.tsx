@@ -22,10 +22,10 @@ export default function Sidebar() {
   const router = useRouter();
 
   const staffMenuItems: MenuItem[] = [
-    { name: "Demographic", path: "/dashboard/demographic", icon: <User size={20} /> },
-    { name: "Vitals", path: "/dashboard/vitals", icon: <Activity size={20} /> },
-    { name: "Online Consultation", path: "/dashboard/onlineConsult", icon: <Stethoscope size={20} /> },
-    { name: "Pharmacy", path: "/dashboard/pharmacy", icon: <BriefcaseMedical size={20} /> },
+    { name: "Demographic", path: "/dashboard/demographic", icon: <User size={22} /> },
+    { name: "Vitals", path: "/dashboard/vitals", icon: <Activity size={22} /> },
+    { name: "Online Consultation", path: "/dashboard/onlineConsult", icon: <Stethoscope size={22} /> },
+    { name: "Pharmacy", path: "/dashboard/pharmacy", icon: <BriefcaseMedical size={22} /> },
   ];
 
   const doctorMenuItems: MenuItem[] = [
@@ -112,7 +112,7 @@ export default function Sidebar() {
             onClick={() => setIsOpen(prev => !prev)}
             className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors shrink-0"
           >
-            {isOpen ? <X size={22} /> : <Menu size={22} />}
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
 
@@ -164,7 +164,7 @@ export default function Sidebar() {
             className="w-full flex items-center cursor-pointer gap-3 px-2 py-3 text-slate-500 font-bold hover:bg-red-50 hover:text-red-500 rounded-2xl transition-all group justify-center"
           >
             <div className="bg-slate-100 group-hover:bg-red-100 p-2 rounded-lg transition-colors shrink-0">
-              <LogOut size={18} />
+              <LogOut size={22} />
             </div>
             {isOpen && (
               <span className="text-sm whitespace-nowrap">Sign Out</span>
