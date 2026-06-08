@@ -464,11 +464,30 @@ const DemographicPage: React.FC = () => {
             {/* DOB + Age */}
             <div className="grid grid-cols-2 gap-4 items-end">
               <div>
-                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">DOB <span className='text-red-500'>*</span></Label>
-                <Input className="h-9 py-0" type="date" value={form.dob || ""} onChange={(e) => updateForm('dob', e.target.value)} onKeyDown={handleKeyDown} />
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">
+                  DOB <span className='text-red-500'>*</span>
+                </Label>
+                <Input
+                  className="h-9 py-0"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="DD/MM/YYYY"
+                  maxLength={10}
+                  value={form.dob || ""}
+                  onChange={(e) => {
+                    let val = e.target.value.replace(/[^\d]/g, ""); // strip non-digits
+                    if (val.length >= 3) val = val.slice(0, 2) + "/" + val.slice(2);
+                    if (val.length >= 6) val = val.slice(0, 5) + "/" + val.slice(5);
+                    val = val.slice(0, 10);
+                    updateForm('dob', val);
+                  }}
+                  onKeyDown={handleKeyDown}
+                />
               </div>
               <div>
-                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase block">Age <span className='text-red-500'>*</span></Label>
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase block">
+                  Age <span className='text-red-500'>*</span>
+                </Label>
                 <Input
                   type="number"
                   value={form.age || ""}
