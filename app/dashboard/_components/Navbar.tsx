@@ -61,7 +61,7 @@ const Navbar: React.FC<NavbarProps> = ({ variant, onAddToken }) => {
                   <>
                     {profile?.name && (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[12px] font-black uppercase tracking-widest text-white/100">
+                        <span className="text-[12px] font-black uppercase tracking-widest text-white">
                           Project:
                         </span>
                         <span className="text-sm font-bold text-white whitespace-nowrap">
@@ -71,7 +71,7 @@ const Navbar: React.FC<NavbarProps> = ({ variant, onAddToken }) => {
                     )}
                     {profile?.location && (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] font-black uppercase tracking-widest text-white/100">
+                        <span className="text-[11px] font-black uppercase tracking-widest text-white">
                           Location:
                         </span>
                         <span className="text-sm font-bold text-white whitespace-nowrap">

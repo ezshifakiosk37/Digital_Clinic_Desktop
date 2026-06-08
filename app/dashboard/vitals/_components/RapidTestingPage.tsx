@@ -1,6 +1,7 @@
 'use client'
 import dynamic from 'next/dynamic';
 import React, { useState, useEffect, useRef } from 'react'
+import NavBarTestPages from './NavBarTestPages'
 // Dynamically import react-pdf components (client-only)
 const PDFDocument = dynamic(
     () => import('react-pdf').then(mod => mod.Document),
@@ -226,6 +227,7 @@ interface RapidTestingPageProps {
     onBack: () => void
     sessionName?: string
     sessionPhone?: string
+    sessionToken?: string
     sessionAge?: string
     sessionGender?: string
     vitalsId?: string
@@ -238,6 +240,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     onBack,
     sessionName = '',
     sessionPhone = '',
+    sessionToken = '',
     sessionAge = "",
     sessionGender = "",
     vitalsId,
@@ -401,39 +404,13 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                 message={`ECG report "${ecgPopup.filename}" downloaded successfully.`}
             />
 
-            {/* ── Navbar — matches existing Navbar component style exactly ── */}
-            <nav className="w-full bg-[#0297d6] text-white px-4 py-4 shadow-md sticky top-0 z-10">
-                <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
-                    {/* Left: EZShifa branding */}
-                    <div className="flex items-center gap-3 min-w-0">
-                        <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-2xl font-bold tracking-tight whitespace-nowrap">EZShifa</span>
-                                <span className="opacity-40 text-lg shrink-0">|</span>
-                                <span className="text-lg font-semibold whitespace-nowrap">Digital Health Clinic</span>
-                            </div>
-                            <p className="text-sm font-bold text-white mt-0.5 leading-none tracking-wide">Rapid Testing</p>
-                        </div>
-                    </div>
-                    {/* Right: patient session info */}
-                    {(sessionName || sessionPhone) && (
-                        <div className="flex flex-col items-end gap-0.5 shrink-0">
-                            {sessionName && (
-                                <span className="text-white text-xs font-medium">
-                                    <span className="text-white/100 uppercase tracking-wider text-[10px] lg:text-sm md:text-lg mr-1">NAME:</span>
-                                    <span className="font-bold md:text-lg lg:text-sm ">{sessionName}</span>
-                                </span>
-                            )}
-                            {sessionPhone && (
-                                <span className="text-white text-xs font-medium">
-                                    <span className="text-white/100 uppercase tracking-wider text-[10px] mr-1 lg:text-sm  md:text-lg">PHONE:</span>
-                                    <span className="font-bold md:text-lg lg:text-sm">{sessionPhone}</span>
-                                </span>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </nav>
+            {/* ── Navbar ── */}
+            <NavBarTestPages
+                title="Rapid Testing"
+                sessionName={sessionName}
+                sessionPhone={sessionPhone}
+                sessionToken={sessionToken}
+            />
 
             {/* ── Scrollable Content ── */}
             <div className="p-4 md:p-6 space-y-2">

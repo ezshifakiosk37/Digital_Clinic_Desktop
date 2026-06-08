@@ -1,7 +1,7 @@
 'use client'
 import React, { useState } from 'react'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
-
+import NavBarTestPages from './NavBarTestPages'
 // ─── Types ───────────────────────────────────────────────────────────────────
 export interface ColorBlindTestData {
     plate1: string;
@@ -17,6 +17,7 @@ interface ColorBlindTestPageProps {
     onBack: () => void
     sessionName?: string
     sessionPhone?: string
+    sessionToken?: string
     vitalsId?: string
     prefetchedData?: any
 }
@@ -35,6 +36,7 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
     onBack,
     sessionName = '',
     sessionPhone = '',
+    sessionToken = '',
     vitalsId,
     prefetchedData,
 }) => {
@@ -151,45 +153,22 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
             )}
 
             {/* ── Navbar ── */}
-            <nav className="w-full bg-[#0297d6] text-white px-4 py-4 shadow-md shrink-0 sticky top-0 z-10">
-                <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-2xl font-bold tracking-tight whitespace-nowrap">EZShifa</span>
-                            <span className="opacity-40 text-lg shrink-0">|</span>
-                            <span className="text-lg font-semibold whitespace-nowrap">Digital Health Clinic</span>
-                        </div>
-                        <p className="text-sm font-bold text-white mt-0.5 leading-none">Color Blind Screening</p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                        {(sessionName || sessionPhone) && (
-                            <div className="flex flex-col items-end gap-0.5">
-                                {sessionName && (
-                                    <span className="text-white text-xs font-medium">
-                                        <span className="text-white/100 uppercase tracking-wider text-[10px] md:text-lg mr-1 lg:text-sm">NAME:</span>
-                                        <span className="font-bold md:text-lg lg:text-sm ">{sessionName}</span>
-                                    </span>
-                                )}
-                                {sessionPhone && (
-                                    <span className="text-white text-xs font-medium">
-                                        <span className="text-white/100 uppercase tracking-wider text-[10px] mr-1 md:text-lg lg:text-sm">PHONE:</span>
-                                        <span className="font-bold md:text-lg lg:text-sm">{sessionPhone}</span>
-                                    </span>
-                                )}
-                            </div>
-                        )}
-                        {isFirstPlate && (
-                            <button
-                                onClick={handleSkip}
-                                className="bg-white text-[#0297d6] font-bold px-6 py-2 mt-1 mr-1 rounded-full hover:text-[#000000] transition-colors shadow-md"
-                            >
-                                Skip
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </nav>
-
+            <NavBarTestPages
+                title="Color Blind Screening"
+                sessionName={sessionName}
+                sessionPhone={sessionPhone}
+                sessionToken={sessionToken}
+                rightSlot={
+                    isFirstPlate ? (
+                        <button
+                            onClick={handleSkip}
+                            className="bg-white text-[#0297d6] font-bold px-6 py-2 mt-1 mr-1 rounded-full hover:text-[#000000] transition-colors shadow-md"
+                        >
+                            Skip
+                        </button>
+                    ) : undefined
+                }
+            />
             {/* Main Content */}
             <div className="flex-1 flex flex-col items-center justify-between px-4 py-3">
 

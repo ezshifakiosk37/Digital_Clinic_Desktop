@@ -50,6 +50,7 @@ const VitalsPage = () => {
   const [openTokenDialog, setOpenTokenDialog] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [sessionName, setSessionName] = useState("");
+  const [sessionToken, setSessionToken] = useState("");
   const [sessionAge, setSessionAge] = useState();
   const [sessionGender, setSessionGender] = useState();
   const [showExpiredToast, setShowExpiredToast] = useState(false);
@@ -101,7 +102,7 @@ const VitalsPage = () => {
   const router = useRouter()
 
   // ── Compare two vitals objects field by field ──
-const vitalsChanged = (current: any, prefetched: any): boolean => {
+  const vitalsChanged = (current: any, prefetched: any): boolean => {
     if (!prefetched) return true;
     const norm = (v: any) => (v ?? '').toString().trim();
     return (
@@ -224,6 +225,7 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
     setSessionAge(patient.age)
     setSessionGender(patient.gender)
     setTokenNumber(patient.token || "");
+    setSessionToken(patient.token?.toString() || "");
     setOpenTokenDialog(false);
     setHistory([]);
     setHistorySearchPhone("");
@@ -481,6 +483,7 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
         );
         setSessionAge(res.age || "")
         setSessionGender(res.gender || "")
+        setSessionToken(tokenNumber)
         setOpenTokenDialog(false);
         setHistory([]);
         setHistorySearchPhone("");
@@ -769,6 +772,7 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
           }}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
+          sessionToken={sessionToken}
           sessionAge={sessionAge}
           sessionGender={sessionGender}
         />
@@ -805,6 +809,7 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
           }}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
+          sessionToken={sessionToken}
         />
       )}
 
@@ -841,6 +846,7 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
           }}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
+          sessionToken={sessionToken}
         />
       )}
 
@@ -872,6 +878,7 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
           }}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
+          sessionToken={sessionToken}
         />
       )}
       {/* ── VITAL REPORT MODAL ── */}
