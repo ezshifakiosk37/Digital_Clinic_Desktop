@@ -84,9 +84,8 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         if (shouldShow(vitals.bmi)) vitalsLines.push(`BMI: ${vitals.bmi}`)
         if (vitalsLines.length) sections.push('--- VITALS ---\n' + vitalsLines.join('\n'))
 
-        // Rapid Testing
+        // Rapid Testing fields appended to vitals section (no separate heading)
         if (rapidTesting) {
-            const rapidLines: string[] = []
             const unitMap: Record<string, string> = {
                 bloodSugar: 'mg/dL',
                 cholesterol: 'mg/dL',
@@ -100,9 +99,8 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                 const val = typeof raw === 'string' && raw.toLowerCase() === 'consultation required' ? 'Consult Req' : raw
                 const unit = unitMap[field] ? ` ${unitMap[field]}` : ''
                 const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())
-                rapidLines.push(`${label}: ${val}${unit}`)
+                vitalsLines.push(`${label}: ${val}${unit}`)
             })
-            if (rapidLines.length) sections.push('--- RAPID TESTING ---\n' + rapidLines.join('\n'))
         }
 
         //  Eye Testing
@@ -245,11 +243,20 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                     <Row label="Date" value={new Date().toLocaleDateString()} />
                                 </div>
 
-                                {/* Vitals */}
+                                {/* Vitals + Rapid Testing merged */}
                                 {(() => {
                                     const v = report.vitals
-                                    const hasAny = shouldShow(v.PulseRate) || shouldShow(v.BloodOxygen) || shouldShow(v.Systolic) || shouldShow(v.Temperature) || shouldShow(v.Weight) || shouldShow(v.Height)
-                                    if (!hasAny) return null
+                                    const rt = report.rapidTesting
+                                    const unitMap: Record<string, string> = {
+                                        bloodSugar: 'mg/dL',
+                                        cholesterol: 'mg/dL',
+                                        bodyFat: '%',
+                                        hemoglobin: 'g/dL',
+                                    }
+                                    const rapidFields = ['bloodSugar', 'ecg', 'hiv', 'hepatitis', 'hbsag', 'hcvAb', 'hivAb', 'dengueNs1Ag', 'syphilisAb', 'typhoidAb', 'tuberculosis', 'malariaPfPvAg', 'hemoglobin', 'cholesterol', 'bodyFat']
+                                    const hasVitals = shouldShow(v.PulseRate) || shouldShow(v.BloodOxygen) || shouldShow(v.Systolic) || shouldShow(v.Temperature) || shouldShow(v.Weight) || shouldShow(v.Height)
+                                    const hasRapid = rt && rapidFields.some(f => shouldShow(rt[f]))
+                                    if (!hasVitals && !hasRapid) return null
                                     return (
                                         <>
                                             <SectionTitle title="Vitals" />
@@ -260,31 +267,8 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                             {shouldShow(v.Weight) && <Row label="Weight" value={`${v.Weight} kg`} />}
                                             {shouldShow(v.Height) && <Row label="Height" value={formatHeight(v.Height)} />}
                                             {shouldShow(v.bmi) && <Row label="BMI" value={v.bmi} />}
-                                            {report.rapidTesting && (() => {
-                                                const rt = report.rapidTesting
-                                                if (shouldShow(rt.bloodSugar)) return <Row label="Blood Sugar" value={`${rt.bloodSugar} mg/dL`} />
-                                            })()}
-                                        </>
-                                    )
-                                })()}
-
-                                {/* Rapid Testing */}
-                                {report.rapidTesting && (() => {
-                                    const rt = report.rapidTesting
-                                    const fields = ['bloodSugar', 'ecg', 'hiv', 'hepatitis', 'hbsag', 'hcvAb', 'hivAb', 'dengueNs1Ag', 'syphilisAb', 'typhoidAb', 'tuberculosis', 'malariaPfPvAg', 'hemoglobin', 'cholesterol', 'bodyFat']
-                                    const hasAny = fields.some(f => shouldShow(rt[f]))
-                                    if (!hasAny) return null
-                                    return (
-                                        <>
-                                            <SectionTitle title="Rapid Testing" />
-                                            {fields.map(f => {
+                                            {rt && rapidFields.map(f => {
                                                 if (!shouldShow(rt[f])) return null
-                                                const unitMap: Record<string, string> = {
-                                                    bloodSugar: 'mg/dL',
-                                                    cholesterol: 'mg/dL',
-                                                    bodyFat: '%',
-                                                    hemoglobin: 'g/dL',
-                                                }
                                                 const rawVal = rt[f]
                                                 const shortened = typeof rawVal === 'string' && rawVal.toLowerCase() === 'consultation required' ? 'Consult Req' : rawVal
                                                 const unit = unitMap[f] ? ` ${unitMap[f]}` : ''
@@ -294,7 +278,6 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                         </>
                                     )
                                 })()}
-
                                 {/* Eye Testing */}
                                 {report.eyeTesting && (() => {
                                     const et = report.eyeTesting
