@@ -101,16 +101,17 @@ const VitalsPage = () => {
   const router = useRouter()
 
   // ── Compare two vitals objects field by field ──
-  const vitalsChanged = (current: any, prefetched: any): boolean => {
+const vitalsChanged = (current: any, prefetched: any): boolean => {
     if (!prefetched) return true;
+    const norm = (v: any) => (v ?? '').toString().trim();
     return (
-      current.PulseRate !== (prefetched.PulseRate || '') ||
-      current.Spo2 !== (prefetched.Spo2 || '') ||
-      current.BP?.value1 !== (prefetched.BP?.value1 || '') ||
-      current.BP?.value2 !== (prefetched.BP?.value2 || '') ||
-      current.Temperature !== (prefetched.Temperature || '') ||
-      current.Weight !== (prefetched.Weight || '') ||
-      current.Height !== (prefetched.Height || '')
+      norm(current.PulseRate) !== norm(prefetched.PulseRate) ||
+      norm(current.Spo2) !== norm(prefetched.Spo2) ||
+      norm(current.BP?.value1) !== norm(prefetched.BP?.value1) ||
+      norm(current.BP?.value2) !== norm(prefetched.BP?.value2) ||
+      norm(current.Temperature) !== norm(prefetched.Temperature) ||
+      norm(current.Weight) !== norm(prefetched.Weight) ||
+      norm(current.Height) !== norm(prefetched.Height)
     );
   };
 
@@ -435,7 +436,16 @@ const VitalsPage = () => {
                   : [])
               : []
           };
-          setPrefetchedVitals(initialVitals);
+          // Store in the SAME shape as vitalsToSave so comparison works correctly
+          setPrefetchedVitals({
+            PulseRate: v.PulseRate || '',
+            Spo2: v.BloodOxygen || '',
+            BP: { value1: v.Systolic || '', value2: v.Diastolic || '' },
+            Temperature: v.Temperature || '',
+            Weight: v.Weight || '',
+            Height: v.Height || '',
+            symptoms: initialVitals.symptoms,
+          });
 
           // ── Fetch all test data if vitalsId exists ──
           if (fetchedVitalsId) {
@@ -666,10 +676,11 @@ const VitalsPage = () => {
 
   const rapidChanged = (data: RapidTestingData, prefetched: any): boolean => {
     if (!prefetched) return true;
+    const norm = (v: any) => (v ?? 'Not Performed').toString().trim();
     const bloodSugarStr = data.bloodSugar.value
       ? `${data.bloodSugar.value} (${data.bloodSugar.type})`
       : 'Not Performed';
-    if (bloodSugarStr !== (prefetched.bloodSugar ?? 'Not Performed')) return true;
+    if (norm(bloodSugarStr) !== norm(prefetched.bloodSugar)) return true;
     const fieldMap: Record<string, string> = {
       ecg: 'ecg', hiv: 'hiv', hepatitis: 'hepatitis', hbsag: 'hbsag',
       hcvab: 'hcvAb', hiv12ab: 'hivAb', dengue: 'dengueNs1Ag',
@@ -677,7 +688,15 @@ const VitalsPage = () => {
     };
     for (const t of data.tests) {
       const key = fieldMap[t.id];
-      if (key && t.result !== (prefetched[key] ?? 'Not Performed')) return true;
+      if (key && norm(t.result) !== norm(prefetched[key])) return true;
+    }
+    // Check moreTests
+    const moreMap: Record<string, string> = {
+      hemoglobin: 'hemoglobin', cholesterol: 'cholesterol', bodyfat: 'bodyFat',
+    };
+    for (const m of data.moreTests) {
+      const key = moreMap[m.id];
+      if (key && norm(m.value || '') !== norm(prefetched[key] || '')) return true;
     }
     return false;
   };
@@ -744,6 +763,9 @@ const VitalsPage = () => {
           onSkip={() => {
             setShowRapidTesting(false);
             setShowEyeTesting(true);
+          }}
+          onBack={() => {
+            setShowRapidTesting(false);
           }}
           sessionName={sessionName}
           sessionPhone={sessionPhone}

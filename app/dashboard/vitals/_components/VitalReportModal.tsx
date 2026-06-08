@@ -74,30 +74,40 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         const sections: string[] = []
 
         // Vitals section
-        const vitalsLines = []
+        const vitalsLines: string[] = []
         if (vitals.Systolic && vitals.Diastolic) vitalsLines.push(`BP: ${vitals.Systolic}/${vitals.Diastolic} mmHg`)
         if (shouldShow(vitals.BloodOxygen)) vitalsLines.push(`SpO2: ${vitals.BloodOxygen}%`)
         if (shouldShow(vitals.PulseRate)) vitalsLines.push(`Pulse: ${vitals.PulseRate} bpm`)
         if (shouldShow(vitals.Temperature)) vitalsLines.push(`Temp: ${vitals.Temperature}°C`)
         if (shouldShow(vitals.Weight)) vitalsLines.push(`Weight: ${vitals.Weight} kg`)
         if (shouldShow(vitals.Height)) vitalsLines.push(`Height: ${formatHeight(vitals.Height)}`)
-        if (shouldShow(vitals.bmi)) vitalsLines.push(`BMI: ${vitals.bmi}`)   
+        if (shouldShow(vitals.bmi)) vitalsLines.push(`BMI: ${vitals.bmi}`)
         if (vitalsLines.length) sections.push('--- VITALS ---\n' + vitalsLines.join('\n'))
 
         // Rapid Testing
         if (rapidTesting) {
-            const rapidLines = []
-            if (shouldShow(rapidTesting.bloodSugar)) rapidLines.push(`Blood Sugar: ${rapidTesting.bloodSugar}`)
-            const rapidFields = ['ecg', 'hiv', 'hepatitis', 'hbsag', 'hcvAb', 'hivAb', 'dengueNs1Ag', 'syphilisAb', 'typhoidAb', 'tuberculosis', 'malariaPfPvAg', 'hemoglobin', 'cholesterol', 'bodyFat']
-            rapidFields.forEach(field => {
-                if (shouldShow(rapidTesting[field])) rapidLines.push(`${field}: ${rapidTesting[field]}`)
+            const rapidLines: string[] = []
+            const unitMap: Record<string, string> = {
+                bloodSugar: 'mg/dL',
+                cholesterol: 'mg/dL',
+                bodyFat: '%',
+                hemoglobin: 'g/dL',
+            }
+            const allRapidFields = ['bloodSugar', 'ecg', 'hiv', 'hepatitis', 'hbsag', 'hcvAb', 'hivAb', 'dengueNs1Ag', 'syphilisAb', 'typhoidAb', 'tuberculosis', 'malariaPfPvAg', 'hemoglobin', 'cholesterol', 'bodyFat']
+            allRapidFields.forEach(field => {
+                if (!shouldShow(rapidTesting[field])) return
+                const raw = rapidTesting[field]
+                const val = typeof raw === 'string' && raw.toLowerCase() === 'consultation required' ? 'Consult Req' : raw
+                const unit = unitMap[field] ? ` ${unitMap[field]}` : ''
+                const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())
+                rapidLines.push(`${label}: ${val}${unit}`)
             })
             if (rapidLines.length) sections.push('--- RAPID TESTING ---\n' + rapidLines.join('\n'))
         }
 
         //  Eye Testing
         if (eyeTesting && (shouldShow(eyeTesting.leftEye) || shouldShow(eyeTesting.rightEye))) {
-            const eyeLines = []
+            const eyeLines: string[] = []
             if (shouldShow(eyeTesting.chartType)) eyeLines.push(`Chart: ${eyeTesting.chartType}`)
             if (shouldShow(eyeTesting.leftEye)) eyeLines.push(`Left Eye: ${eyeTesting.leftEye}`)
             if (shouldShow(eyeTesting.rightEye)) eyeLines.push(`Right Eye: ${eyeTesting.rightEye}`)
@@ -111,7 +121,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
 
         // Hearing Test
         if (hearingTesting && (shouldShow(hearingTesting.leftEarResult) || shouldShow(hearingTesting.rightEarResult))) {
-            const hearingLines = []
+            const hearingLines: string[] = []
             if (shouldShow(hearingTesting.leftEarResult)) hearingLines.push(`Left Ear: ${hearingTesting.leftEarResult}`)
             if (shouldShow(hearingTesting.rightEarResult)) hearingLines.push(`Right Ear: ${hearingTesting.rightEarResult}`)
             if (hearingLines.length) sections.push('--- HEARING TEST ---\n' + hearingLines.join('\n'))
@@ -250,6 +260,10 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                             {shouldShow(v.Weight) && <Row label="Weight" value={`${v.Weight} kg`} />}
                                             {shouldShow(v.Height) && <Row label="Height" value={formatHeight(v.Height)} />}
                                             {shouldShow(v.bmi) && <Row label="BMI" value={v.bmi} />}
+                                            {report.rapidTesting && (() => {
+                                                const rt = report.rapidTesting
+                                                if (shouldShow(rt.bloodSugar)) return <Row label="Blood Sugar" value={`${rt.bloodSugar} mg/dL`} />
+                                            })()}
                                         </>
                                     )
                                 })()}
@@ -263,7 +277,20 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                     return (
                                         <>
                                             <SectionTitle title="Rapid Testing" />
-                                            {fields.map(f => shouldShow(rt[f]) && <Row key={f} label={f.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} value={rt[f]} />)}
+                                            {fields.map(f => {
+                                                if (!shouldShow(rt[f])) return null
+                                                const unitMap: Record<string, string> = {
+                                                    bloodSugar: 'mg/dL',
+                                                    cholesterol: 'mg/dL',
+                                                    bodyFat: '%',
+                                                    hemoglobin: 'g/dL',
+                                                }
+                                                const rawVal = rt[f]
+                                                const shortened = typeof rawVal === 'string' && rawVal.toLowerCase() === 'consultation required' ? 'Consult Req' : rawVal
+                                                const unit = unitMap[f] ? ` ${unitMap[f]}` : ''
+                                                const label = f.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
+                                                return <Row key={f} label={label} value={`${shortened}${unit}`} />
+                                            })}
                                         </>
                                     )
                                 })()}

@@ -329,23 +329,23 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
                             <span className="opacity-40 text-lg shrink-0">|</span>
                             <span className="text-lg font-semibold whitespace-nowrap">Digital Health Clinic</span>
                         </div>
-                        <p className="text-sm font-bold text-white mt-0.5 leading-none">Hearing Test</p>
+                        <p className="text-sm font-bold text-white mt-0.5 leading-none">Eye Screening</p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                         {(sessionName || sessionPhone) && (
                             <div className="flex flex-col items-end gap-0.5">
-                                {sessionName && (
-                                    <span className="text-white text-xs font-medium">
-                                        <span className="text-white/60 uppercase tracking-wider text-[10px] mr-1">NAME</span>
-                                        <span className="font-bold">{sessionName}</span>
-                                    </span>
-                                )}
-                                {sessionPhone && (
-                                    <span className="text-white text-xs font-medium">
-                                        <span className="text-white/60 uppercase tracking-wider text-[10px] mr-1">PHONE</span>
-                                        <span className="font-bold">{sessionPhone}</span>
-                                    </span>
-                                )}
+                                 {sessionName && (
+                                <span className="text-white text-xs font-medium">
+                                    <span className="text-white/100 uppercase tracking-wider text-[10px] md:text-lg lg:text-sm mr-1">NAME:</span>
+                                    <span className="font-bold md:text-lg lg:text-sm ">{sessionName}</span>
+                                </span>
+                            )}
+                            {sessionPhone && (
+                                <span className="text-white text-xs font-medium">
+                                    <span className="text-white/100 uppercase tracking-wider text-[10px] mr-1 md:text-lg lg:text-sm">PHONE:</span>
+                                    <span className="font-bold md:text-lg lg:text-sm">{sessionPhone}</span>
+                                </span>
+                            )}
                             </div>
                         )}
                         {/* Skip — top-right in navbar, same as EyeTestingPage */}
