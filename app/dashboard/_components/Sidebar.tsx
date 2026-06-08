@@ -164,7 +164,7 @@ export default function Sidebar() {
             className="w-full flex items-center cursor-pointer gap-3 px-2 py-3 text-slate-500 font-bold hover:bg-red-50 hover:text-red-500 rounded-2xl transition-all group justify-center"
           >
             <div className="bg-slate-100 group-hover:bg-red-100 p-2 rounded-lg transition-colors shrink-0">
-              <LogOut size={22} />
+              <LogOut size={24} />
             </div>
             {isOpen && (
               <span className="text-sm whitespace-nowrap">Sign Out</span>
