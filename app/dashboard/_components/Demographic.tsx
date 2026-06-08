@@ -497,7 +497,7 @@ const DemographicPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Languages */}
+            {/* Languages*/}
             <div className="grid grid-cols-1 gap-4 mt-4">
               <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Languages</Label>
               <Popover>
