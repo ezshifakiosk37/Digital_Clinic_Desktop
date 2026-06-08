@@ -44,7 +44,7 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
     const [showPrefetchDialog, setShowPrefetchDialog] = useState(
         !!(prefetchedData && prefetchedData.colorBlindResult && prefetchedData.colorBlindResult !== 'Not Performed')
     )
-
+    const [isSubmitting, setIsSubmitting] = useState(false)
     const current = PLATES[currentIndex]
     const selected = answers[currentIndex] ?? ''
     const isLastPlate = currentIndex === PLATES.length - 1
@@ -52,10 +52,15 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
 
     const handleSelect = (value: string) => {
         setAnswers(prev => ({ ...prev, [currentIndex]: value }))
+        // Auto move to next plate only if not the last plate
+        if (currentIndex !== PLATES.length - 1) {
+            setCurrentIndex(prev => prev + 1)
+        }
     }
 
     const handleNext = () => {
         if (isLastPlate) {
+            setIsSubmitting(true)
             const plate1 = answers[0] ?? ''
             const plate2 = answers[1] ?? ''
             const plate3 = answers[2] ?? ''
@@ -154,21 +159,21 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
                             <span className="opacity-40 text-lg shrink-0">|</span>
                             <span className="text-lg font-semibold whitespace-nowrap">Digital Health Clinic</span>
                         </div>
-                        <p className="text-sm font-bold text-white mt-0.5 leading-none">Hearing Test</p>
+                        <p className="text-sm font-bold text-white mt-0.5 leading-none">Color Blind Screening</p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                         {(sessionName || sessionPhone) && (
                             <div className="flex flex-col items-end gap-0.5">
                                 {sessionName && (
                                     <span className="text-white text-xs font-medium">
-                                        <span className="text-white/60 uppercase tracking-wider text-[10px] mr-1">NAME</span>
-                                        <span className="font-bold">{sessionName}</span>
+                                        <span className="text-white/100 uppercase tracking-wider text-[10px] md:text-lg mr-1 lg:text-sm">NAME:</span>
+                                        <span className="font-bold md:text-lg lg:text-sm ">{sessionName}</span>
                                     </span>
                                 )}
                                 {sessionPhone && (
                                     <span className="text-white text-xs font-medium">
-                                        <span className="text-white/60 uppercase tracking-wider text-[10px] mr-1">PHONE</span>
-                                        <span className="font-bold">{sessionPhone}</span>
+                                        <span className="text-white/100 uppercase tracking-wider text-[10px] mr-1 md:text-lg lg:text-sm">PHONE:</span>
+                                        <span className="font-bold md:text-lg lg:text-sm">{sessionPhone}</span>
                                     </span>
                                 )}
                             </div>
@@ -245,14 +250,24 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
 
                     <button
                         onClick={handleNext}
-                        disabled={!selected}
-                        className={`px-8 py-2.5 text-base font-bold rounded-lg transition-colors
-                            ${selected
-                                ? 'bg-[#0297d6] hover:bg-[#0280bb] text-white'
-                                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        disabled={!selected || isSubmitting}
+                        className={`px-8 py-2.5 text-base font-bold rounded-lg transition-colors flex items-center gap-2
+        ${(!selected || isSubmitting)
+                                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                : 'bg-[#0297d6] hover:bg-[#0280bb] text-white'
                             }`}
                     >
-                        {isLastPlate ? 'Finish' : 'Next →'}
+                        {isSubmitting ? (
+                            <>
+                                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Submitting...
+                            </>
+                        ) : (
+                            isLastPlate ? 'Finish' : 'Next →'
+                        )}
                     </button>
                 </div>
             </div>

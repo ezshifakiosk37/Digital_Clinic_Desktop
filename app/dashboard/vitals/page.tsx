@@ -72,6 +72,7 @@ const VitalsPage = () => {
   const [vitalsSearch, setVitalsSearch] = useState("");
   const [isHeightCameraOpen, setIsHeightCameraOpen] = useState(false);
   const [heightUnit, setHeightUnit] = useState<'ft' | 'cm'>('ft');
+  const [tempUnit, setTempUnit] = useState<'°C' | '°F'>('°C');
   const [showNoSessionToast, setShowNoSessionToast] = useState(false);
   const [showRapidTesting, setShowRapidTesting] = useState(false);
   const [rapidTestingData, setRapidTestingData] = useState<RapidTestingData | null>(null);
@@ -100,16 +101,17 @@ const VitalsPage = () => {
   const router = useRouter()
 
   // ── Compare two vitals objects field by field ──
-  const vitalsChanged = (current: any, prefetched: any): boolean => {
+const vitalsChanged = (current: any, prefetched: any): boolean => {
     if (!prefetched) return true;
+    const norm = (v: any) => (v ?? '').toString().trim();
     return (
-      current.PulseRate !== (prefetched.PulseRate || '') ||
-      current.Spo2 !== (prefetched.Spo2 || '') ||
-      current.BP?.value1 !== (prefetched.BP?.value1 || '') ||
-      current.BP?.value2 !== (prefetched.BP?.value2 || '') ||
-      current.Temperature !== (prefetched.Temperature || '') ||
-      current.Weight !== (prefetched.Weight || '') ||
-      current.Height !== (prefetched.Height || '')
+      norm(current.PulseRate) !== norm(prefetched.PulseRate) ||
+      norm(current.Spo2) !== norm(prefetched.Spo2) ||
+      norm(current.BP?.value1) !== norm(prefetched.BP?.value1) ||
+      norm(current.BP?.value2) !== norm(prefetched.BP?.value2) ||
+      norm(current.Temperature) !== norm(prefetched.Temperature) ||
+      norm(current.Weight) !== norm(prefetched.Weight) ||
+      norm(current.Height) !== norm(prefetched.Height)
     );
   };
 
@@ -255,6 +257,30 @@ const VitalsPage = () => {
     setVitals(prev => ({ ...prev, BP: { ...prev.BP, [field]: val } }));
   };
 
+  const handleTemperatureChange = (val: string) => {
+    const sanitized = val.replace(/[^0-9.]/g, '');
+    const parts = sanitized.split('.');
+    const result = parts.length > 1
+      ? `${parts[0]}.${parts[1].slice(0, 1)}`
+      : sanitized;
+    handleUpdate('Temperature', result);
+  };
+
+  const toggleTempUnit = () => {
+    setTempUnit(prev => {
+      if (prev === '°C') {
+        // °C → °F
+        const f = (parseFloat(vitals.Temperature) * 9 / 5 + 32).toFixed(1);
+        handleUpdate('Temperature', isNaN(parseFloat(f)) ? '' : f);
+        return '°F';
+      } else {
+        // °F → °C
+        const c = ((parseFloat(vitals.Temperature) - 32) * 5 / 9).toFixed(1);
+        handleUpdate('Temperature', isNaN(parseFloat(c)) ? '' : c);
+        return '°C';
+      }
+    });
+  };
   const handleAddSymptoms = async () => {
     if (!sessionPhone) {
       setOpenTokenDialog(true);
@@ -317,9 +343,14 @@ const VitalsPage = () => {
         })()
         : vitals.Height;
 
+      const tempInCelsius = tempUnit === '°F'
+        ? ((parseFloat(vitals.Temperature) - 32) * 5 / 9).toFixed(1)
+        : vitals.Temperature;
+
       const vitalsToSave = {
         ...vitals,
         Height: heightForSave,
+        Temperature: tempInCelsius,
         bmi: bmi?.value ?? null,
         patientType: 'walk-in',
       };
@@ -405,7 +436,16 @@ const VitalsPage = () => {
                   : [])
               : []
           };
-          setPrefetchedVitals(initialVitals);
+          // Store in the SAME shape as vitalsToSave so comparison works correctly
+          setPrefetchedVitals({
+            PulseRate: v.PulseRate || '',
+            Spo2: v.BloodOxygen || '',
+            BP: { value1: v.Systolic || '', value2: v.Diastolic || '' },
+            Temperature: v.Temperature || '',
+            Weight: v.Weight || '',
+            Height: v.Height || '',
+            symptoms: initialVitals.symptoms,
+          });
 
           // ── Fetch all test data if vitalsId exists ──
           if (fetchedVitalsId) {
@@ -570,10 +610,22 @@ const VitalsPage = () => {
 
   const bmi = useMemo(() => {
     const weight = parseFloat(vitals.Weight);
-    const feet = parseFloat(vitals.Height?.split('.')[0] || '0');
-    const inches = parseFloat(vitals.Height?.split('.')[1] || '0');
-    const heightMeters = ((feet * 12) + inches) * 0.0254;
-    if (!weight || !heightMeters) return null;
+    if (!weight || !vitals.Height) return null;
+
+    let heightMeters: number;
+    if (heightUnit === 'cm') {
+      // Height is stored as plain cm string e.g. "170.7"
+      const cm = parseFloat(vitals.Height);
+      if (!cm) return null;
+      heightMeters = cm / 100;
+    } else {
+      // Height is stored as "feet.inches" e.g. "5.6"
+      const feet = parseFloat(vitals.Height?.split('.')[0] || '0');
+      const inches = parseFloat(vitals.Height?.split('.')[1] || '0');
+      heightMeters = ((feet * 12) + inches) * 0.0254;
+    }
+
+    if (!heightMeters) return null;
     const value = weight / (heightMeters * heightMeters);
     let label = '';
     let color = '';
@@ -582,7 +634,7 @@ const VitalsPage = () => {
     else if (value < 30) { label = 'Overweight'; color = 'text-purple-500'; }
     else { label = 'Obese'; color = 'text-purple-500'; }
     return { value: value.toFixed(1), label, color };
-  }, [vitals.Weight, vitals.Height]);
+  }, [vitals.Weight, vitals.Height, heightUnit]);
 
   // Convert "feet.inches" string → total inches
   const feetDotInchesToInches = (val: string): number => {
@@ -624,10 +676,11 @@ const VitalsPage = () => {
 
   const rapidChanged = (data: RapidTestingData, prefetched: any): boolean => {
     if (!prefetched) return true;
+    const norm = (v: any) => (v ?? 'Not Performed').toString().trim();
     const bloodSugarStr = data.bloodSugar.value
       ? `${data.bloodSugar.value} (${data.bloodSugar.type})`
       : 'Not Performed';
-    if (bloodSugarStr !== (prefetched.bloodSugar ?? 'Not Performed')) return true;
+    if (norm(bloodSugarStr) !== norm(prefetched.bloodSugar)) return true;
     const fieldMap: Record<string, string> = {
       ecg: 'ecg', hiv: 'hiv', hepatitis: 'hepatitis', hbsag: 'hbsag',
       hcvab: 'hcvAb', hiv12ab: 'hivAb', dengue: 'dengueNs1Ag',
@@ -635,7 +688,15 @@ const VitalsPage = () => {
     };
     for (const t of data.tests) {
       const key = fieldMap[t.id];
-      if (key && t.result !== (prefetched[key] ?? 'Not Performed')) return true;
+      if (key && norm(t.result) !== norm(prefetched[key])) return true;
+    }
+    // Check moreTests
+    const moreMap: Record<string, string> = {
+      hemoglobin: 'hemoglobin', cholesterol: 'cholesterol', bodyfat: 'bodyFat',
+    };
+    for (const m of data.moreTests) {
+      const key = moreMap[m.id];
+      if (key && norm(m.value || '') !== norm(prefetched[key] || '')) return true;
     }
     return false;
   };
@@ -702,6 +763,9 @@ const VitalsPage = () => {
           onSkip={() => {
             setShowRapidTesting(false);
             setShowEyeTesting(true);
+          }}
+          onBack={() => {
+            setShowRapidTesting(false);
           }}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
@@ -880,15 +944,21 @@ const VitalsPage = () => {
             <div className="mb-4">
               <h2 className="text-xl sm:text-2xl font-extrabold text-slate-800">Patient Vitals</h2>
               {sessionPhone ? (
-                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
-                  <span className="text-sm text-slate-600">
-                    <span className="font-semibold text-slate-400 uppercase text-[10px] tracking-wide mr-1">NAME</span>
-                    <span className="font-bold text-slate-700">{sessionName || '—'}</span>
-                  </span>
-                  <span className="text-sm text-slate-600">
-                    <span className="font-semibold text-slate-400 uppercase text-[10px] tracking-wide mr-1">PHONE</span>
-                    <span className="font-bold text-slate-700">{sessionPhone}</span>
-                  </span>
+                <div className="flex items-start justify-between mt-1">
+                  <div>
+                    <span className="text-slate-400 uppercase text-xs lg:text-md font-bold tracking-wide">Token No.:</span>
+                    <span className="ml-2 text-2xl lg:text-xl font-black text-[#0297d6]">#{tokenNumber || '—'}</span>
+                  </div>
+                  <div className="flex flex-col gap-0.5 text-right">
+                    <div>
+                      <span className="text-slate-400 uppercase text-lg lg:text-sm font-bold tracking-wide">Name:</span>
+                      <span className="ml-1 text-xl lg:text-sm font-bold text-slate-700">{sessionName || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 uppercase text-lg lg:text-sm font-bold tracking-wide">Phone:</span>
+                      <span className="ml-1 text-xl lg:text-sm font-bold text-slate-600">{sessionPhone}</span>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <p className="text-xs text-slate-400 mt-0.5">No active session — enter token or start from queue below</p>
@@ -979,7 +1049,13 @@ const VitalsPage = () => {
                     <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
                       <VitalCard type={VitalType.PULSE_RATE} onChange={(val) => handleUpdate('PulseRate', val)} value={vitals.PulseRate} />
                       <VitalCard type={VitalType.BLOOD_PRESSURE} onChange1={(val) => handleBPUpdate('value1', val)} onChange2={(val) => handleBPUpdate('value2', val)} isDualValue value1={vitals.BP.value1} value2={vitals.BP.value2} />
-                      <VitalCard type={VitalType.TEMPERATURE} onChange={(val) => handleUpdate('Temperature', val)} value={vitals.Temperature} />
+                      <VitalCard
+                        type={VitalType.TEMPERATURE}
+                        onChange={handleTemperatureChange}
+                        value={vitals.Temperature}
+                        toggleTempUnit={toggleTempUnit}
+                        tempUnit={tempUnit}
+                      />
                       <VitalCard type={VitalType.BLOOD_OXYGEN} onChange={(val) => handleUpdate('Spo2', val)} value={vitals.Spo2} />
                       <VitalCard
                         type={VitalType.WEIGHT}
@@ -1019,7 +1095,7 @@ const VitalsPage = () => {
                               {heightUnit === 'ft' ? (
                                 <div className="flex items-baseline gap-1">
                                   <input
-                                    type="text" placeholder="--"
+                                    type="number" placeholder="--"
                                     value={vitals.Height?.split('.')[0] || ''}
                                     onChange={(e) => {
                                       const inches = vitals.Height?.split('.')[1] || '0';
@@ -1029,7 +1105,7 @@ const VitalsPage = () => {
                                   />
                                   <span className="text-slate-400 font-medium">ft</span>
                                   <input
-                                    type="text" placeholder="--"
+                                    type="number" placeholder="--"
                                     value={vitals.Height?.split('.')[1] || ''}
                                     onChange={(e) => {
                                       const feet = vitals.Height?.split('.')[0] || '0';
@@ -1042,7 +1118,7 @@ const VitalsPage = () => {
                               ) : (
                                 <div className="flex items-baseline gap-1">
                                   <input
-                                    type="text" placeholder="--"
+                                    type="number" placeholder="--"
                                     value={Math.round(parseFloat(vitals.Height)).toString() || ''}
                                     onChange={(e) => {
                                       const val = e.target.value.replace(/[^0-9]/g, '');

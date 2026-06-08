@@ -63,12 +63,9 @@ const TEST_ICONS: Record<string, React.ReactNode> = {
 }
 
 const MORE_ICONS: Record<string, React.ReactNode> = {
-    hemoglobin: <Droplets className="w-5 h-5 text-[#0297d6]" />,
-    cholesterol: <Heart className="w-5 h-5 text-[#0297d6]" />,
-    bodyfat: <Activity className="w-5 h-5 text-[#0297d6]" />,
-    // creatinine: <FlaskConical className="w-5 h-5 text-[#0297d6]" />,
-    // uricacid: <TestTube className="w-5 h-5 text-[#0297d6]" />,
-    // platelets: <Microscope className="w-5 h-5 text-[#0297d6]" />,
+    hemoglobin: <Droplets className="w-7 h-7 text-[#0297d6]" />,
+    cholesterol: <Heart className="w-7 h-7 text-[#0297d6]" />,
+    bodyfat: <Activity className="w-7 h-7 text-[#0297d6]" />,
 }
 
 const DEFAULT_TESTS: TestItem[] = [
@@ -226,6 +223,7 @@ const MoreTestsDialog = ({
 interface RapidTestingPageProps {
     onNext: (data: RapidTestingData) => void
     onSkip: () => void
+    onBack: () => void
     sessionName?: string
     sessionPhone?: string
     sessionAge?: string
@@ -237,6 +235,7 @@ interface RapidTestingPageProps {
 const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     onNext,
     onSkip,
+    onBack,
     sessionName = '',
     sessionPhone = '',
     sessionAge = "",
@@ -282,27 +281,20 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
         })
     })
     const [moreTests, setMoreTests] = useState<MoreTest[]>(() => {
-        if (!prefetchedData) return []
-        const result: MoreTest[] = []
-        const moreMap = [
-            { id: 'hemoglobin', key: 'hemoglobin' },
-            { id: 'cholesterol', key: 'cholesterol' },
-            { id: 'bodyfat', key: 'bodyFat' },
-        ]
-        for (const { id, key } of moreMap) {
-            const val = prefetchedData[key]
-            if (val) {
-                const def = MORE_TEST_OPTIONS.find(o => o.id === id)!
-                result.push({ ...def, value: val })
+        return MORE_TEST_OPTIONS.map(opt => {
+            const keyMap: Record<string, string> = {
+                hemoglobin: 'hemoglobin',
+                cholesterol: 'cholesterol',
+                bodyfat: 'bodyFat',
             }
-        }
-        return result
+            const val = prefetchedData?.[keyMap[opt.id]]
+            return { ...opt, value: val || '' }
+        })
     })
-    // const [showGlucosePopup, setShowGlucosePopup] = useState(false)
-    // const [lastGlucoseValue, setLastGlucoseValue] = useState<number | null>(null)
-    const [showMoreDialog, setShowMoreDialog] = useState(false)
+
     const [annotatedPdfUrl, setAnnotatedPdfUrl] = useState<string | null>(null)
     const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
+    const [isNextLoading, setIsNextLoading] = useState(false)
     const sessionDataRef = useRef({ name: sessionName, age: '', gender: '' })
 
     useEffect(() => {
@@ -378,7 +370,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                 return existing ?? { ...def, value: '' }
             })
         )
-        setShowMoreDialog(false)
+
     }
 
     const updateMoreTest = (id: string, value: string) =>
@@ -428,14 +420,14 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                         <div className="flex flex-col items-end gap-0.5 shrink-0">
                             {sessionName && (
                                 <span className="text-white text-xs font-medium">
-                                    <span className="text-white/60 uppercase tracking-wider text-[10px] mr-1">NAME</span>
-                                    <span className="font-bold">{sessionName}</span>
+                                    <span className="text-white/100 uppercase tracking-wider text-[10px] lg:text-sm md:text-lg mr-1">NAME:</span>
+                                    <span className="font-bold md:text-lg lg:text-sm ">{sessionName}</span>
                                 </span>
                             )}
                             {sessionPhone && (
                                 <span className="text-white text-xs font-medium">
-                                    <span className="text-white/60 uppercase tracking-wider text-[10px] mr-1">PHONE</span>
-                                    <span className="font-bold">{sessionPhone}</span>
+                                    <span className="text-white/100 uppercase tracking-wider text-[10px] mr-1 lg:text-sm  md:text-lg">PHONE:</span>
+                                    <span className="font-bold md:text-lg lg:text-sm">{sessionPhone}</span>
                                 </span>
                             )}
                         </div>
@@ -492,7 +484,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                             </div>
                         </div>
                         <p className="text-[10px] text-slate-400 font-medium">
-                            Random: 80–180 / Fasting: 80–120
+                            Random: 80–180 mg/dL / Fasting: 80–120 mg/dL
                         </p>
                     </div>
 
@@ -540,41 +532,27 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                             onChange={v => updateTest(test.id, v)}
                         />
                     ))}
-                </div>
 
-                {/* More Tests */}
-                <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-                    <button
-                        onClick={() => setShowMoreDialog(true)}
-                        className="w-full flex items-center justify-between px-4 py-3.5 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors"
-                    >
-                        <span className="flex items-center gap-2">
-                            <FlaskConical className="w-4 h-4 text-[#0297d6]" />
-                            {moreTests.length > 0 ? `More Tests (${moreTests.length} selected)` : 'More Tests'}
-                        </span>
-                        <ChevronDown className="w-4 h-4 text-[#0297d6]" />
-                    </button>
-
-                    {moreTests.length > 0 && (
-                        <div className="px-4 pb-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 border-t border-slate-100 pt-3">
-                            {moreTests.map(test => (
-                                <div key={test.id} className="bg-slate-50 border border-slate-100 rounded-xl p-3 flex flex-col gap-2">
-                                    <div className="flex items-center gap-2">
-                                        {MORE_ICONS[test.id]}
-                                        <p className="text-sm font-bold text-slate-700">{test.label}</p>
-                                    </div>
-                                    <input
-                                        type="text"
-                                        value={test.value}
-                                        onChange={e => updateMoreTest(test.id, e.target.value)}
-                                        placeholder="enter value"
-                                        className="text-sm border border-dashed border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:border-[#0297d6] bg-white text-center text-slate-600"
-                                    />
-                                    <p className="text-[10px] text-slate-400">{test.normalRange}</p>
+                    {/* More Tests as regular cards */}
+                    {moreTests.map(test => (
+                        <div key={test.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm font-bold text-slate-700">{test.label}</p>
+                                <div className="p-2 rounded-xl bg-slate-100">
+                                    {MORE_ICONS[test.id]}
                                 </div>
-                            ))}
+                            </div>
+                            <p className="p-0 m-0 text-[10px] text-slate-400 font-medium">{test.normalRange}</p>
+                            <input
+                                type="text"
+                                inputMode="decimal"
+                                value={test.value}
+                                onChange={e => updateMoreTest(test.id, e.target.value)}
+                                placeholder="—"
+                                className="text-xl font-bold text-[#0297d6] border border-slate-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:border-[#0297d6]"
+                            />
                         </div>
-                    )}
+                    ))}
                 </div>
 
                 {/* Disclaimer */}
@@ -589,16 +567,25 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
             {/* Inline buttons — scroll with page just like vitals Next button */}
             <div className="flex justify-between items-center px-4 md:px-6 py-6">
                 <button
-                    onClick={onSkip}
+                    onClick={onBack}
                     className="px-6 py-2.5 text-sm font-bold border border-slate-200 bg-white rounded-lg text-slate-600 hover:bg-slate-50 transition-colors"
                 >
                     ← Back
                 </button>
                 <button
-                    onClick={handleNext}
-                    className="px-8 py-2.5 text-base font-bold bg-[#0297d6] hover:bg-[#0280bb] text-white rounded-lg transition-colors"
+                    onClick={async () => { setIsNextLoading(true); await handleNext(); setIsNextLoading(false); }}
+                    disabled={isNextLoading}
+                    className="px-8 py-2.5 text-base font-bold bg-[#0297d6] hover:bg-[#0280bb] text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-70"
                 >
-                    Next →
+                    {isNextLoading ? (
+                        <>
+                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                            </svg>
+                            Saving...
+                        </>
+                    ) : 'Next →'}
                 </button>
             </div>
 
@@ -629,16 +616,6 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                     </div>
                 </div>
             )}
-
-            {/* More Tests Dialog */}
-            {showMoreDialog && (
-                <MoreTestsDialog
-                    selected={moreTests.map(m => m.id)}
-                    onClose={() => setShowMoreDialog(false)}
-                    onConfirm={handleMoreConfirm}
-                />
-            )}
-
         </div>
     )
 }

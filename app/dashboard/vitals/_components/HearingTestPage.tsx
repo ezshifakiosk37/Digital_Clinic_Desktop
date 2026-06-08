@@ -264,6 +264,7 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
     )
     const [showPrefetchDialog, setShowPrefetchDialog] = useState(hasPrefetchedResult)
     const [showModal, setShowModal] = useState(!hasPrefetchedResult)
+    const [isFinishing, setIsFinishing] = useState(false)
     const [currentHz, setCurrentHz] = useState(250)
     const [currentDb, setCurrentDb] = useState(20)
     const [activeEar, setActiveEar] = useState<'left' | 'right'>('left')
@@ -339,6 +340,7 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
     }
 
     const handleFinish = () => {
+        setIsFinishing(true)
         stopCurrentTone()
         onNext({
             leftEar: leftThresholds,
@@ -418,21 +420,21 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
                             <span className="opacity-40 text-lg shrink-0">|</span>
                             <span className="text-lg font-semibold whitespace-nowrap">Digital Health Clinic</span>
                         </div>
-                        <p className="text-sm font-bold text-white mt-0.5 leading-none">Hearing Test</p>
+                        <p className="text-sm font-bold text-white mt-0.5 leading-none">Hearing Screening</p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                         {(sessionName || sessionPhone) && (
                             <div className="flex flex-col items-end gap-0.5">
                                 {sessionName && (
                                     <span className="text-white text-xs font-medium">
-                                        <span className="text-white/60 uppercase tracking-wider text-[10px] mr-1">NAME</span>
-                                        <span className="font-bold">{sessionName}</span>
+                                        <span className="text-white/100 uppercase tracking-wider text-[10px] md:text-lg mr-1 lg:text-sm">NAME:</span>
+                                        <span className="font-bold md:text-lg lg:text-sm">{sessionName}</span>
                                     </span>
                                 )}
                                 {sessionPhone && (
                                     <span className="text-white text-xs font-medium">
-                                        <span className="text-white/60 uppercase tracking-wider text-[10px] mr-1">PHONE</span>
-                                        <span className="font-bold">{sessionPhone}</span>
+                                        <span className="text-white/100 uppercase tracking-wider text-[10px] mr-1 md:text-lg lg:text-sm">PHONE:</span>
+                                        <span className="font-bold md:text-lg lg:text-sm">{sessionPhone}</span>
                                     </span>
                                 )}
                             </div>
@@ -595,12 +597,12 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
                     <button
                         onClick={() => recordAndAdvance(false)}
                         className="flex-1 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 font-black text-sm hover:bg-red-50 hover:border-red-300 hover:text-red-500 transition-all"
-                    >✗ Can't Hear</button>
+                    >Can't Hear</button>
 
                     <button
                         onClick={() => recordAndAdvance(true)}
                         className="flex-1 py-2.5 rounded-xl bg-[#0297d6] text-white font-black text-sm hover:bg-[#0280bb] transition-all shadow-md"
-                    >✓ YES, I Hear It</button>
+                    >YES, I Hear It</button>
 
                     <button
                         onClick={() => {
@@ -616,8 +618,21 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
                             }
                             handleFinish();
                         }}
-                        className="px-3 md:px-4 py-2.5 text-sm font-bold bg-green-500 hover:bg-green-600 text-white rounded-xl transition-colors shrink-0"
-                    >Finish
+                        disabled={isFinishing}
+                        className={`px-3 md:px-4 py-2.5 text-sm font-bold rounded-xl transition-colors shrink-0 flex items-center gap-2
+        ${isFinishing ? 'bg-green-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600 text-white'}`}
+                    >
+                        {isFinishing ? (
+                            <>
+                                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Saving...
+                            </>
+                        ) : (
+                            'Finish'
+                        )}
                     </button>
                 </div>
             </div>

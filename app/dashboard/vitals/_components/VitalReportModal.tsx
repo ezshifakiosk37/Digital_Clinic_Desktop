@@ -74,7 +74,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         const sections: string[] = []
 
         // Vitals section
-        const vitalsLines = []
+        const vitalsLines: string[] = []
         if (vitals.Systolic && vitals.Diastolic) vitalsLines.push(`BP: ${vitals.Systolic}/${vitals.Diastolic} mmHg`)
         if (shouldShow(vitals.BloodOxygen)) vitalsLines.push(`SpO2: ${vitals.BloodOxygen}%`)
         if (shouldShow(vitals.PulseRate)) vitalsLines.push(`Pulse: ${vitals.PulseRate} bpm`)
@@ -84,20 +84,28 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         if (shouldShow(vitals.bmi)) vitalsLines.push(`BMI: ${vitals.bmi}`)
         if (vitalsLines.length) sections.push('--- VITALS ---\n' + vitalsLines.join('\n'))
 
-        // Rapid Testing
+        // Rapid Testing fields appended to vitals section (no separate heading)
         if (rapidTesting) {
-            const rapidLines = []
-            if (shouldShow(rapidTesting.bloodSugar)) rapidLines.push(`Blood Sugar: ${rapidTesting.bloodSugar}`)
-            const rapidFields = ['ecg', 'hiv', 'hepatitis', 'hbsag', 'hcvAb', 'hivAb', 'dengueNs1Ag', 'syphilisAb', 'typhoidAb', 'tuberculosis', 'malariaPfPvAg', 'hemoglobin', 'cholesterol', 'bodyFat']
-            rapidFields.forEach(field => {
-                if (shouldShow(rapidTesting[field])) rapidLines.push(`${field}: ${rapidTesting[field]}`)
+            const unitMap: Record<string, string> = {
+                bloodSugar: 'mg/dL',
+                cholesterol: 'mg/dL',
+                bodyFat: '%',
+                hemoglobin: 'g/dL',
+            }
+            const allRapidFields = ['bloodSugar', 'ecg', 'hiv', 'hepatitis', 'hbsag', 'hcvAb', 'hivAb', 'dengueNs1Ag', 'syphilisAb', 'typhoidAb', 'tuberculosis', 'malariaPfPvAg', 'hemoglobin', 'cholesterol', 'bodyFat']
+            allRapidFields.forEach(field => {
+                if (!shouldShow(rapidTesting[field])) return
+                const raw = rapidTesting[field]
+                const val = typeof raw === 'string' && raw.toLowerCase() === 'consultation required' ? 'Consult Req' : raw
+                const unit = unitMap[field] ? ` ${unitMap[field]}` : ''
+                const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())
+                vitalsLines.push(`${label}: ${val}${unit}`)
             })
-            if (rapidLines.length) sections.push('--- RAPID TESTING ---\n' + rapidLines.join('\n'))
         }
 
         //  Eye Testing
         if (eyeTesting && (shouldShow(eyeTesting.leftEye) || shouldShow(eyeTesting.rightEye))) {
-            const eyeLines = []
+            const eyeLines: string[] = []
             if (shouldShow(eyeTesting.chartType)) eyeLines.push(`Chart: ${eyeTesting.chartType}`)
             if (shouldShow(eyeTesting.leftEye)) eyeLines.push(`Left Eye: ${eyeTesting.leftEye}`)
             if (shouldShow(eyeTesting.rightEye)) eyeLines.push(`Right Eye: ${eyeTesting.rightEye}`)
@@ -111,7 +119,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
 
         // Hearing Test
         if (hearingTesting && (shouldShow(hearingTesting.leftEarResult) || shouldShow(hearingTesting.rightEarResult))) {
-            const hearingLines = []
+            const hearingLines: string[] = []
             if (shouldShow(hearingTesting.leftEarResult)) hearingLines.push(`Left Ear: ${hearingTesting.leftEarResult}`)
             if (shouldShow(hearingTesting.rightEarResult)) hearingLines.push(`Right Ear: ${hearingTesting.rightEarResult}`)
             if (hearingLines.length) sections.push('--- HEARING TEST ---\n' + hearingLines.join('\n'))
@@ -244,11 +252,20 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                     <Row label="Date" value={new Date().toLocaleDateString()} />
                                 </div>
 
-                                {/* Vitals */}
+                                {/* Vitals + Rapid Testing merged */}
                                 {(() => {
                                     const v = report.vitals
-                                    const hasAny = shouldShow(v.PulseRate) || shouldShow(v.BloodOxygen) || shouldShow(v.Systolic) || shouldShow(v.Temperature) || shouldShow(v.Weight) || shouldShow(v.Height)
-                                    if (!hasAny) return null
+                                    const rt = report.rapidTesting
+                                    const unitMap: Record<string, string> = {
+                                        bloodSugar: 'mg/dL',
+                                        cholesterol: 'mg/dL',
+                                        bodyFat: '%',
+                                        hemoglobin: 'g/dL',
+                                    }
+                                    const rapidFields = ['bloodSugar', 'ecg', 'hiv', 'hepatitis', 'hbsag', 'hcvAb', 'hivAb', 'dengueNs1Ag', 'syphilisAb', 'typhoidAb', 'tuberculosis', 'malariaPfPvAg', 'hemoglobin', 'cholesterol', 'bodyFat']
+                                    const hasVitals = shouldShow(v.PulseRate) || shouldShow(v.BloodOxygen) || shouldShow(v.Systolic) || shouldShow(v.Temperature) || shouldShow(v.Weight) || shouldShow(v.Height)
+                                    const hasRapid = rt && rapidFields.some(f => shouldShow(rt[f]))
+                                    if (!hasVitals && !hasRapid) return null
                                     return (
                                         <>
                                             <SectionTitle title="Vitals" />
@@ -259,24 +276,17 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                             {shouldShow(v.Weight) && <Row label="Weight" value={`${v.Weight} kg`} />}
                                             {shouldShow(v.Height) && <Row label="Height" value={formatHeight(v.Height)} />}
                                             {shouldShow(v.bmi) && <Row label="BMI" value={v.bmi} />}
+                                            {rt && rapidFields.map(f => {
+                                                if (!shouldShow(rt[f])) return null
+                                                const rawVal = rt[f]
+                                                const shortened = typeof rawVal === 'string' && rawVal.toLowerCase() === 'consultation required' ? 'Consult Req' : rawVal
+                                                const unit = unitMap[f] ? ` ${unitMap[f]}` : ''
+                                                const label = f.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
+                                                return <Row key={f} label={label} value={`${shortened}${unit}`} />
+                                            })}
                                         </>
                                     )
                                 })()}
-
-                                {/* Rapid Testing */}
-                                {report.rapidTesting && (() => {
-                                    const rt = report.rapidTesting
-                                    const fields = ['bloodSugar', 'ecg', 'hiv', 'hepatitis', 'hbsag', 'hcvAb', 'hivAb', 'dengueNs1Ag', 'syphilisAb', 'typhoidAb', 'tuberculosis', 'malariaPfPvAg', 'hemoglobin', 'cholesterol', 'bodyFat']
-                                    const hasAny = fields.some(f => shouldShow(rt[f]))
-                                    if (!hasAny) return null
-                                    return (
-                                        <>
-                                            <SectionTitle title="Rapid Testing" />
-                                            {fields.map(f => shouldShow(rt[f]) && <Row key={f} label={f.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} value={rt[f]} />)}
-                                        </>
-                                    )
-                                })()}
-
                                 {/* Eye Testing */}
                                 {report.eyeTesting && (() => {
                                     const et = report.eyeTesting
@@ -284,7 +294,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                     if (!hasAny) return null
                                     return (
                                         <>
-                                            <SectionTitle title="Eye Testing" />
+                                            <SectionTitle title="Eye Screening" />
                                             {shouldShow(et.chartType) && <Row label="Chart Type" value={et.chartType} />}
                                             {shouldShow(et.leftEye) && <Row label="Left Eye" value={et.leftEye} />}
                                             {shouldShow(et.rightEye) && <Row label="Right Eye" value={et.rightEye} />}
@@ -295,7 +305,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                 {/* Color Blind Test */}
                                 {report.colorBlindTesting && shouldShow(report.colorBlindTesting.colorBlindResult) && (
                                     <>
-                                        <SectionTitle title="Color Blind Test" />
+                                        <SectionTitle title="Color Blind Screening" />
                                         <Row label="Result" value={report.colorBlindTesting.colorBlindResult} />
                                     </>
                                 )}
@@ -307,7 +317,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                     if (!hasAny) return null
                                     return (
                                         <>
-                                            <SectionTitle title="Hearing Test" />
+                                            <SectionTitle title="Hearing Screening" />
                                             {shouldShow(ht.leftEarResult) && <Row label="Left Ear" value={ht.leftEarResult} />}
                                             {shouldShow(ht.rightEarResult) && <Row label="Right Ear" value={ht.rightEarResult} />}
                                         </>
