@@ -285,7 +285,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                     if (!hasAny) return null
                                     return (
                                         <>
-                                            <SectionTitle title="Eye Testing" />
+                                            <SectionTitle title="Eye Screening" />
                                             {shouldShow(et.chartType) && <Row label="Chart Type" value={et.chartType} />}
                                             {shouldShow(et.leftEye) && <Row label="Left Eye" value={et.leftEye} />}
                                             {shouldShow(et.rightEye) && <Row label="Right Eye" value={et.rightEye} />}
@@ -296,7 +296,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                 {/* Color Blind Test */}
                                 {report.colorBlindTesting && shouldShow(report.colorBlindTesting.colorBlindResult) && (
                                     <>
-                                        <SectionTitle title="Color Blind Test" />
+                                        <SectionTitle title="Color Blind Screening" />
                                         <Row label="Result" value={report.colorBlindTesting.colorBlindResult} />
                                     </>
                                 )}
@@ -308,7 +308,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                     if (!hasAny) return null
                                     return (
                                         <>
-                                            <SectionTitle title="Hearing Test" />
+                                            <SectionTitle title="Hearing Screening" />
                                             {shouldShow(ht.leftEarResult) && <Row label="Left Ear" value={ht.leftEarResult} />}
                                             {shouldShow(ht.rightEarResult) && <Row label="Right Ear" value={ht.rightEarResult} />}
                                         </>
