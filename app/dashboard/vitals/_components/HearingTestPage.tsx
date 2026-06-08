@@ -5,8 +5,8 @@ import NavBarTestPages from './NavBarTestPages'
 export interface HearingTestData {
     leftEar: Record<number, number>
     rightEar: Record<number, number>
-    leftResult: 'Normal' | 'Mild Loss' | 'Moderate Loss' | 'Severe Loss' | 'Skipped'
-    rightResult: 'Normal' | 'Mild Loss' | 'Moderate Loss' | 'Severe Loss' | 'Skipped'
+    leftResult: 'Normal' | 'Consultation Required' | 'Skipped'
+    rightResult: 'Normal' | 'Consultation Required' | 'Skipped'
     skipped: boolean
 }
 
@@ -31,9 +31,9 @@ function getHearingResult(t: Record<number, number>): HearingTestData['leftResul
     if (!v.length) return 'Skipped'
     const avg = v.reduce((a, b) => a + b, 0) / v.length
     if (avg <= 25) return 'Normal'
-    if (avg <= 40) return 'Mild Loss'
-    if (avg <= 60) return 'Moderate Loss'
-    return 'Severe Loss'
+    if (avg <= 40) return 'Normal'
+    if (avg <= 60) return 'Consultation Required'
+    return 'Consultation Required'
 }
 
 // Mirrors Android TuneThread: samples[i] = (short)(amp * Math.sin(ph))

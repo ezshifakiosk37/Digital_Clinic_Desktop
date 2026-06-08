@@ -7,7 +7,7 @@ export interface ColorBlindTestData {
     plate1: string;
     plate2: string;
     plate3: string;
-    colorBlindResult: "Passed" | "Failed" | "Not Performed";
+    colorBlindResult: "Normal" | "Consultation Required" | "Not Performed";
     skipped: boolean;
 }
 
@@ -73,7 +73,7 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
                 plate3 === PLATES[2].correct
             ].filter(Boolean).length
 
-            const colorBlindResult = correctCount >= 2 ? "Passed" : "Failed"
+            const colorBlindResult = correctCount >= 2 ? "Normal" : "Consultation Required"
 
             onNext({
                 plate1,
@@ -115,21 +115,9 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
                         <div className="w-12 h-12 rounded-full bg-[#0297d6] flex items-center justify-center text-white text-2xl">🎨</div>
                         <h2 className="text-lg font-black text-slate-800 text-center">Previous Color Blind Result</h2>
                         <div className="w-full bg-slate-50 rounded-xl p-4 flex flex-col gap-2">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-slate-500 font-medium">Plate 1</span>
-                                <span className="font-bold text-slate-800">{prefetchedData.plate1 ?? '—'}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-slate-500 font-medium">Plate 2</span>
-                                <span className="font-bold text-slate-800">{prefetchedData.plate2 ?? '—'}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-slate-500 font-medium">Plate 3</span>
-                                <span className="font-bold text-slate-800">{prefetchedData.plate3 ?? '—'}</span>
-                            </div>
                             <div className="flex justify-between text-sm border-t border-slate-200 pt-2 mt-1">
                                 <span className="text-slate-500 font-medium">Result</span>
-                                <span className={`font-bold ${prefetchedData.colorBlindResult === 'Passed' ? 'text-green-500' : 'text-red-500'}`}>
+                                <span className={`font-bold ${prefetchedData.colorBlindResult === 'Normal' ? 'text-green-500' : 'text-red-500'}`}>
                                     {prefetchedData.colorBlindResult ?? '—'}
                                 </span>
                             </div>

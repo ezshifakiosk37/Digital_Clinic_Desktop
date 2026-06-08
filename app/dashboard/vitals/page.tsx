@@ -709,7 +709,9 @@ const VitalsPage = () => {
     return (
       (data.chartType ?? 'Not Performed') !== (prefetched.chartType ?? 'Not Performed') ||
       (data.leftEye ?? 'Not Performed') !== (prefetched.leftEye ?? 'Not Performed') ||
-      (data.rightEye ?? 'Not Performed') !== (prefetched.rightEye ?? 'Not Performed')
+      (data.rightEye ?? 'Not Performed') !== (prefetched.rightEye ?? 'Not Performed') ||
+      (data.leftEyeResult ?? 'Not Performed') !== (prefetched.leftEyeResult ?? 'Not Performed') ||
+      (data.rightEyeResult ?? 'Not Performed') !== (prefetched.rightEyeResult ?? 'Not Performed') 
     );
   };
 
@@ -789,6 +791,8 @@ const VitalsPage = () => {
                   chartType: data.chartType ?? "Not Performed",
                   leftEye: data.leftEye ?? "Not Performed",
                   rightEye: data.rightEye ?? "Not Performed",
+                  leftEyeResult: data.leftEyeResult ?? "Not Performed",
+                  rightEyeResult: data.rightEyeResult ?? "Not Performed",
                 });
                 setShowEyeToast(true);
                 setTimeout(() => setShowEyeToast(false), 3000);

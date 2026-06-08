@@ -10,6 +10,8 @@ export interface EyeTestingData {
     chartType: ChartType
     leftEye: string
     rightEye: string
+    leftEyeResult: 'Normal' | 'Consultation Required'
+    rightEyeResult: 'Normal' | 'Consultation Required'
     skipped: boolean
 }
 
@@ -255,8 +257,10 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
 }) => {
     const [chartType, setChartType] = useState<ChartType>('English')
     const [stage, setStage] = useState<Stage>('select')
-    const [leftEyeResult, setLeftEyeResult] = useState('')
-    const [rightEyeResult, setRightEyeResult] = useState('')
+    const [leftEyeRaw, setLeftEyeRaw] = useState('')
+    const [rightEyeRaw, setRightEyeRaw] = useState('')
+    const [leftEyeResult, setLeftEyeResult] = useState<'Normal' | 'Consultation Required'>('Normal')
+    const [rightEyeResult, setRightEyeResult] = useState<'Normal' | 'Consultation Required'>('Normal')
 
     const [showPrefetchDialog, setShowPrefetchDialog] = useState(
         !!(prefetchedData && prefetchedData.leftEye && prefetchedData.leftEye !== 'Not Performed')
@@ -268,15 +272,40 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
         setStage('info_stand');
     };
 
-    const handleLeftDone = (result: string) => {
-        setLeftEyeResult(result)
-        setStage('info_cover_right')
+    const classifyVision = (vision: string): 'Normal' | 'Consultation Required' => {
+        const denominator = parseInt(vision.split('/')[1], 10);
+        return denominator <= 40 ? 'Normal' : 'Consultation Required';
+    };
+
+    const handleLeftDone = (rawVision: string) => {
+        const classification = classifyVision(rawVision);
+        setLeftEyeRaw(rawVision);
+        setLeftEyeResult(classification);
+        setStage('info_cover_right');
     }
 
-    const handleRightDone = (result: string) => {
-        setRightEyeResult(result)
-        onNext({ chartType, leftEye: leftEyeResult, rightEye: result, skipped: false })
+    const handleRightDone = (rawVision: string) => {
+        const classification = classifyVision(rawVision);
+        setRightEyeRaw(rawVision);
+        setRightEyeResult(classification);
+        onNext({
+            chartType,
+            leftEye: leftEyeRaw,
+            rightEye: rawVision,
+            leftEyeResult: leftEyeResult,
+            rightEyeResult: classification,
+            skipped: false,
+        });
     }
+    // const handleLeftDone = (result: string) => {
+    //     setLeftEyeResult(result)
+    //     setStage('info_cover_right')
+    // }
+
+    // const handleRightDone = (result: string) => {
+    //     setRightEyeResult(result)
+    //     onNext({ chartType, leftEye: leftEyeResult, rightEye: result, skipped: false })
+    // }
 
     const CHART_OPTIONS = [
         { type: 'English' as const, label: 'English', content: <span className="text-5xl font-black text-white">E<sub className="text-2xl">A</sub>X</span> },
@@ -300,12 +329,12 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
                                 <span className="font-bold text-slate-800">{prefetchedData.chartType ?? '—'}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-slate-500 font-medium">Left Eye</span>
-                                <span className="font-bold text-[#0297d6]">{prefetchedData.leftEye ?? '—'}</span>
+                                <span className="text-slate-500 font-medium">Left Eye Result</span>
+                                <span className="font-bold text-[#0297d6]">{prefetchedData.leftEyeResult ?? '—'}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-slate-500 font-medium">Right Eye</span>
-                                <span className="font-bold text-[#0297d6]">{prefetchedData.rightEye ?? '—'}</span>
+                                <span className="text-slate-500 font-medium">Right Eye Result</span>
+                                <span className="font-bold text-[#0297d6]">{prefetchedData.rightEyeResult ?? '—'}</span>
                             </div>
                         </div>
                         <div className="flex gap-3 w-full">
