@@ -16,8 +16,10 @@ interface VitalCardProps {
   timestamp?: string | number | Date;
   isDualValue?: boolean;
   customContent?: React.ReactNode;
-  toggleHeightUnit?: () => void,
-  heightUnit?: string
+  toggleHeightUnit?: () => void;
+  heightUnit?: string;
+  toggleTempUnit?: () => void;
+  tempUnit?: string;
 }
 
 const VitalCard: React.FC<VitalCardProps> = ({
@@ -34,6 +36,8 @@ const VitalCard: React.FC<VitalCardProps> = ({
   timestamp,
   toggleHeightUnit,
   heightUnit,
+  toggleTempUnit,
+  tempUnit,
   isDualValue = false
 }) => {
   const config = VITAL_CONFIGS[type];
@@ -43,8 +47,7 @@ const VitalCard: React.FC<VitalCardProps> = ({
       <div className="flex justify-between items-center w-full mb-2">
         <h3 className="text-primary tracking-wider text-sm font-semibold mb-1 uppercase">{type}</h3>
         {/* Conditional Calibration Button */}
-        <div className={`flex gap-2`}>
-
+        <div className="flex gap-2 items-center">
           {type === VitalType.HEIGHT && (
             <button
               onClick={toggleHeightUnit}
@@ -52,6 +55,15 @@ const VitalCard: React.FC<VitalCardProps> = ({
             >
               <span className={`px-2 py-1 rounded-md transition-colors ${heightUnit === 'ft' ? 'bg-[#0297d6] text-white' : 'text-slate-400'}`}>ft</span>
               <span className={`px-2 py-1 rounded-md transition-colors ${heightUnit === 'cm' ? 'bg-[#0297d6] text-white' : 'text-slate-400'}`}>cm</span>
+            </button>
+          )}
+          {type === VitalType.TEMPERATURE && toggleTempUnit && (
+            <button
+              onClick={toggleTempUnit}
+              className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5 text-xs font-bold shrink-0"
+            >
+              <span className={`px-2 py-1 rounded-md transition-colors ${tempUnit === '°C' ? 'bg-[#0297d6] text-white' : 'text-slate-400'}`}>°C</span>
+              <span className={`px-2 py-1 rounded-md transition-colors ${tempUnit === '°F' ? 'bg-[#0297d6] text-white' : 'text-slate-400'}`}>°F</span>
             </button>
           )}
           <div className="p-3 rounded-xl bg-slate-100 group-hover:bg-primary/10 transition-colors">
@@ -65,7 +77,7 @@ const VitalCard: React.FC<VitalCardProps> = ({
           isDualValue ? (
             <div className='flex'>
               <input
-                type="text"
+                type="number"
                 value={value1 ?? ''}
                 placeholder="--"
                 onChange={(e) => onChange1?.(e.target.value)}
@@ -73,7 +85,7 @@ const VitalCard: React.FC<VitalCardProps> = ({
               />
               <h2 className='text-4xl'>/</h2>
               <input
-                type="text"
+                type="number"
                 value={value2 ?? ''}
                 placeholder="--"
                 onChange={(e) => onChange2?.(e.target.value)}
@@ -83,7 +95,7 @@ const VitalCard: React.FC<VitalCardProps> = ({
           ) : (
             <div className='flex items-center space-x-4'>
               <input
-                type="text"
+                type="number"
                 value={value ?? ''}
                 placeholder="--"
                 onChange={(e) => onChange?.(e.target.value)}
@@ -100,7 +112,11 @@ const VitalCard: React.FC<VitalCardProps> = ({
         ) : (
           <span className="text-xl font-bold text-secondary">{value || '--'}</span>
         )}
-        {!customContent && <span className="text-slate-500 font-medium">{config.unit}</span>}
+        {!customContent && (
+          <span className="text-slate-500 font-medium">
+            {type === VitalType.TEMPERATURE && tempUnit ? tempUnit : config.unit}
+          </span>
+        )}
       </div>
 
       {timestamp && (

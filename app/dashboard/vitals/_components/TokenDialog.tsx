@@ -50,7 +50,7 @@ const TokenDialog = ({
           </div>
 
           <input
-            type="text"
+            type="number"
             placeholder="Enter Token"
             value={tokenNumber}
             onChange={(e) => setTokenNumber(e.target.value)}

@@ -4,7 +4,16 @@ html,
 body{
   font-family: var(--font-quicksand), sans-serif;
 }
+/* Remove number input spinners globally */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 
+input[type='number'] {
+  -moz-appearance: textfield;
+}
 :root {
   --primary: #0297d6;
   --secondary: #992b90;
