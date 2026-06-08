@@ -123,12 +123,12 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
             if (shouldShow(eyeTesting.chartType)) eyeLines.push(`Chart: ${eyeTesting.chartType}`);
             if (shouldShow(eyeTesting.leftEye)) eyeLines.push(`Left Eye: ${eyeTesting.leftEye}`);
             if (shouldShow(eyeTesting.rightEye)) eyeLines.push(`Right Eye: ${eyeTesting.rightEye}`);
-            if (eyeLines.length) sections.push('--- EYE TESTING ---\n' + eyeLines.join('\n'));
+            if (eyeLines.length) sections.push('--- EYE SCREENING ---\n' + eyeLines.join('\n'));
         }
 
         // --- COLOR BLIND TEST (unchanged) ---
         if (colorBlindTesting && shouldShow(colorBlindTesting.colorBlindResult)) {
-            sections.push(`--- COLOR BLIND TEST ---\nResult: ${colorBlindTesting.colorBlindResult}`);
+            sections.push(`--- COLOR BLIND SCREENING ---\nResult: ${colorBlindTesting.colorBlindResult}`);
         }
 
         // --- HEARING TEST (unchanged) ---
@@ -136,7 +136,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
             const hearingLines: string[] = [];
             if (shouldShow(hearingTesting.leftEarResult)) hearingLines.push(`Left Ear: ${hearingTesting.leftEarResult}`);
             if (shouldShow(hearingTesting.rightEarResult)) hearingLines.push(`Right Ear: ${hearingTesting.rightEarResult}`);
-            if (hearingLines.length) sections.push('--- HEARING TEST ---\n' + hearingLines.join('\n'));
+            if (hearingLines.length) sections.push('--- HEARING SCREENING ---\n' + hearingLines.join('\n'));
         }
 
         // --- SYMPTOMS (unchanged) ---
