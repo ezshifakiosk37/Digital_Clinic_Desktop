@@ -238,6 +238,8 @@ const VitalsPage = () => {
       Weight: "",
       symptoms: []
     });
+    setHeightUnit('ft');
+    setTempUnit('°C');
     setStep(1);
     // setPatientType('Walk-in');
     setVitalsSaved(false);
@@ -431,8 +433,22 @@ const VitalsPage = () => {
             Weight: v.Weight || "",
             symptoms: v.symptoms ? (typeof v.symptoms === 'string' ? v.symptoms.split(",").map((s: string) => s.trim()) : Array.isArray(v.symptoms) ? v.symptoms : []) : []
           };
+          // Restore units
           if (v.heightUnit) setHeightUnit(v.heightUnit as 'ft' | 'cm');
           if (v.temperatureUnit) setTempUnit(v.temperatureUnit as '°C' | '°F');
+
+          // Also store in prefetchedVitals
+          setPrefetchedVitals({
+            PulseRate: v.PulseRate || '',
+            Spo2: v.BloodOxygen || '',
+            BP: { value1: v.Systolic || '', value2: v.Diastolic || '' },
+            Temperature: v.Temperature || '',
+            Weight: v.Weight || '',
+            Height: v.Height || '',
+            symptoms: initialVitals.symptoms,
+            heightUnit: v.heightUnit || 'ft',
+            temperatureUnit: v.temperatureUnit || '°C',
+          });
           // Store in the SAME shape as vitalsToSave so comparison works correctly
           setPrefetchedVitals({
             PulseRate: v.PulseRate || '',
