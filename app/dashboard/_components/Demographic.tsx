@@ -44,13 +44,22 @@ const DemographicPage: React.FC = () => {
     city: '',
     phoneNumber: '',
     gender: '',
-    countryCode: '+92'
+    countryCode: '+92',
+    allergies: ['Not Aware'],
   });
   const [entryId, setEntryId] = useState<string | null>(null);
   const [isFinding, setIsFinding] = useState<{ [key: string]: boolean }>({ phone: false, cnic: false });
   const [isSaving, setIsSaving] = useState(false); // New Loading State
   const [showOther, setShowOther] = useState<{ [key: string]: boolean }>({});
   const [openCode, setOpenCode] = useState(false);
+  const [openLang, setOpenLang] = useState(false);
+  const [openMedHistory, setOpenMedHistory] = useState(false);
+  const [openMedMeds, setOpenMedMeds] = useState(false);
+  const [openAllergies, setOpenAllergies] = useState(false);
+  const [openCountry, setOpenCountry] = useState(false);
+  const [openProvince, setOpenProvince] = useState(false);
+  const [openCity, setOpenCity] = useState(false);
+  const [showPhotoDialog, setShowPhotoDialog] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [showTokenDialog, setShowTokenDialog] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
@@ -58,6 +67,7 @@ const DemographicPage: React.FC = () => {
   const [photoUploading, setPhotoUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [showPhotoOptions, setShowPhotoOptions] = useState(false);
 
 
   // Autofill country & city from clinic profile on first load only
@@ -220,6 +230,7 @@ const DemographicPage: React.FC = () => {
       phoneNumber: '',
       gender: '',
       countryCode: '+92',
+      allergies: ['Not Aware'],
     });
     setEntryId(null);
     setPhotoUrl(null);
@@ -306,7 +317,7 @@ const DemographicPage: React.FC = () => {
               <div className="relative group">
                 <div
                   className="w-14 h-14 rounded-full border-2 border-dashed border-[#0297d6] bg-blue-50 overflow-hidden flex items-center justify-center cursor-pointer hover:border-solid hover:bg-blue-100 transition-all"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => setShowPhotoOptions(true)}
                 >
                   {photoUploading ? (
                     <Loader2 className="w-5 h-5 text-[#0297d6] animate-spin" />
@@ -319,7 +330,7 @@ const DemographicPage: React.FC = () => {
                 {/* Small camera icon badge */}
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
+                  onClick={(e) => { e.stopPropagation(); setShowPhotoOptions(true); }}
                   className="absolute -bottom-0.5 -right-0.5 bg-[#0297d6] rounded-full p-0.5 hover:bg-[#0286c2] transition-colors"
                   title="Take photo"
                 >
@@ -334,16 +345,43 @@ const DemographicPage: React.FC = () => {
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => e.target.files?.[0] && handlePhotoUpload(e.target.files[0])}
+                onChange={(e) => { e.target.files?.[0] && handlePhotoUpload(e.target.files[0]); setShowPhotoOptions(false); }}
               />
               <input
                 ref={cameraInputRef}
                 type="file"
                 accept="image/*"
-                capture="user"
+                capture="environment"
                 className="hidden"
-                onChange={(e) => e.target.files?.[0] && handlePhotoUpload(e.target.files[0])}
+                onChange={(e) => { e.target.files?.[0] && handlePhotoUpload(e.target.files[0]); setShowPhotoOptions(false); }}
               />
+
+              {/* Photo Options Dialog */}
+              <Dialog open={showPhotoOptions} onOpenChange={setShowPhotoOptions}>
+                <DialogContent className="sm:max-w-xs text-center py-8">
+                  <DialogHeader>
+                    <DialogTitle className="text-center text-lg font-bold">Upload Photo</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex flex-col gap-3 mt-4">
+                    <Button
+                      variant="outline"
+                      className="h-12 text-base font-semibold flex gap-3 items-center justify-center"
+                      onClick={() => { cameraInputRef.current?.click(); }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[#0297d6]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
+                      Camera
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-12 text-base font-semibold flex gap-3 items-center justify-center"
+                      onClick={() => { fileInputRef.current?.click(); }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[#0297d6]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+                      Pick from Gallery
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
           <div className="mx-6 text-center px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[12px] text-slate-500">
@@ -533,7 +571,7 @@ const DemographicPage: React.FC = () => {
             {/* Languages */}
             <div className="grid grid-cols-1 gap-4 mt-4">
               <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Languages</Label>
-              <Popover>
+              <Popover open={openLang} onOpenChange={setOpenLang}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-between h-auto min-h-9 py-0 text-left bg-slate-50/50">
                     <div className="flex flex-wrap gap-1 py-1">
@@ -597,7 +635,7 @@ const DemographicPage: React.FC = () => {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <Label className="text-[10px] font-bold text-slate-400 uppercase">Country <span className='text-red-500'>*</span></Label>
-                  <Popover>
+                  <Popover open={openCountry} onOpenChange={setOpenCountry}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50">
                         <span className={form.country ? "text-slate-800" : "text-slate-400"}>
@@ -613,7 +651,7 @@ const DemographicPage: React.FC = () => {
                           <CommandEmpty>No country found.</CommandEmpty>
                           <CommandGroup className="max-h-60 overflow-y-auto">
                             {countries.map((c) => (
-                              <CommandItem key={c.isoCode} onSelect={() => updateForm('country', c.isoCode)}>
+                              <CommandItem key={c.isoCode} onSelect={() => { updateForm('country', c.isoCode); setOpenCountry(false); }}>
                                 <Check className={cn("mr-2 h-4 w-4", form.country === c.isoCode ? "opacity-100" : "opacity-0")} />
                                 {c.name}
                               </CommandItem>
@@ -626,7 +664,7 @@ const DemographicPage: React.FC = () => {
                 </div>
                 <div>
                   <Label className="text-[10px] font-bold text-slate-400 uppercase">Province</Label>
-                  <Popover>
+                  <Popover open={openProvince} onOpenChange={setOpenProvince}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50" disabled={!states.length}>
                         <span className={`truncate ${form.province ? "text-slate-800" : "text-slate-400"}`}>
@@ -642,7 +680,7 @@ const DemographicPage: React.FC = () => {
                           <CommandEmpty>No province found.</CommandEmpty>
                           <CommandGroup className="max-h-60 overflow-y-auto">
                             {states.map((s) => (
-                              <CommandItem key={s.isoCode} onSelect={() => updateForm('province', s.isoCode)}>
+                              <CommandItem key={s.isoCode} onSelect={() => { updateForm('province', s.isoCode); setOpenProvince(false); }}>
                                 <Check className={cn("mr-2 h-4 w-4", form.province === s.isoCode ? "opacity-100" : "opacity-0")} />
                                 {s.name}
                               </CommandItem>
@@ -655,7 +693,7 @@ const DemographicPage: React.FC = () => {
                 </div>
                 <div>
                   <Label className="text-[10px] font-bold text-slate-400 uppercase">City <span className='text-red-500'>*</span></Label>
-                  <Popover>
+                 <Popover open={openCity} onOpenChange={setOpenCity}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50">
                         <span className={form.city ? "text-slate-800" : "text-slate-400"}>
@@ -671,7 +709,7 @@ const DemographicPage: React.FC = () => {
                           <CommandEmpty>No city found.</CommandEmpty>
                           <CommandGroup className="max-h-60 overflow-y-auto">
                             {cities.map((city) => (
-                              <CommandItem key={city.name} onSelect={() => updateForm('city', city.name)}>
+                              <CommandItem key={city.name} onSelect={() => { updateForm('city', city.name); setOpenCity(false); }}>
                                 <Check className={cn("mr-2 h-4 w-4", form.city === city.name ? "opacity-100" : "opacity-0")} />
                                 {city.name}
                               </CommandItem>
@@ -690,7 +728,10 @@ const DemographicPage: React.FC = () => {
               {['medicalHistory', 'medicineHistory', 'allergies'].map((key) => (
                 <div key={key} className="space-y-2">
                   <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">{getField(key)?.question}</Label>
-                  <Popover>
+                  <Popover
+                    open={key === 'medicalHistory' ? openMedHistory : key === 'medicineHistory' ? openMedMeds : openAllergies}
+                    onOpenChange={(v) => key === 'medicalHistory' ? setOpenMedHistory(v) : key === 'medicineHistory' ? setOpenMedMeds(v) : setOpenAllergies(v)}
+                  >
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-between h-auto min-h-9 py-0 text-left bg-slate-50/50">
                         <div className="flex flex-wrap gap-1 py-1">
