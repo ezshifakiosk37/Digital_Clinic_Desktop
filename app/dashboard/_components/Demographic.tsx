@@ -356,25 +356,7 @@ const DemographicPage: React.FC = () => {
                 onChange={(e) => { e.target.files?.[0] && handlePhotoUpload(e.target.files[0]); setShowPhotoOptions(false); }}
               />
 
-              {/* Profile Photo Upload - Direct */}
-              <div className="flex flex-col items-center gap-1">
-                <div className="relative group">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => e.target.files?.[0] && handlePhotoUpload(e.target.files[0])}
-                  />
-                  <div
-                    className="w-14 h-14 rounded-full border-2 border-dashed border-[#0297d6] bg-blue-50 overflow-hidden flex items-center justify-center cursor-pointer hover:border-solid hover:bg-blue-100 transition-all"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {photoUploading ? <Loader2 className="animate-spin" /> : photoUrl ? <img src={photoUrl} alt="Patient" className="w-full h-full object-cover" /> : <User className="w-6 h-6 text-[#0297d6] opacity-50" />}
-                  </div>
-                </div>
-                <span className="text-[9px] text-slate-400 font-medium">Photo</span>
-              </div>
+          
             </div>
           </div>
           <div className="mx-6 text-center px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[12px] text-slate-500">
