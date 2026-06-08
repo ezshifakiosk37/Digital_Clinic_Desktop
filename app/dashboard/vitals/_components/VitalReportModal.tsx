@@ -81,7 +81,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         if (shouldShow(vitals.Temperature)) vitalsLines.push(`Temp: ${vitals.Temperature}°C`)
         if (shouldShow(vitals.Weight)) vitalsLines.push(`Weight: ${vitals.Weight} kg`)
         if (shouldShow(vitals.Height)) vitalsLines.push(`Height: ${formatHeight(vitals.Height)}`)
-        if (shouldShow(vitals.bmi)) vitalsLines.push(`BMI: ${vitals.bmi}`)   
+        if (shouldShow(vitals.bmi)) vitalsLines.push(`BMI: ${vitals.bmi}`)
         if (vitalsLines.length) sections.push('--- VITALS ---\n' + vitalsLines.join('\n'))
 
         // Rapid Testing
@@ -115,6 +115,14 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
             if (shouldShow(hearingTesting.leftEarResult)) hearingLines.push(`Left Ear: ${hearingTesting.leftEarResult}`)
             if (shouldShow(hearingTesting.rightEarResult)) hearingLines.push(`Right Ear: ${hearingTesting.rightEarResult}`)
             if (hearingLines.length) sections.push('--- HEARING TEST ---\n' + hearingLines.join('\n'))
+        }
+
+        // After the Hearing Test block, before the return
+        if (report.vitals?.symptoms && shouldShow(report.vitals.symptoms)) {
+            const symptomText = typeof report.vitals.symptoms === 'string'
+                ? report.vitals.symptoms
+                : report.vitals.symptoms.join(', ')
+            sections.push(`--- SYMPTOMS ---\n${symptomText}`)
         }
 
         return {
@@ -175,6 +183,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         setTimeout(() => {
             try {
                 const payload = buildPrintPayload()
+                console.log(payload)
                 console.log("6. AndroidBridge.printVitalReport exists?", typeof AndroidBridge.printVitalReport)
 
                 if (payload) {
