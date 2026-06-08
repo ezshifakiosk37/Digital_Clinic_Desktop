@@ -255,12 +255,16 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
     const [stage, setStage] = useState<Stage>('select')
     const [leftEyeResult, setLeftEyeResult] = useState('')
     const [rightEyeResult, setRightEyeResult] = useState('')
+
     const [showPrefetchDialog, setShowPrefetchDialog] = useState(
         !!(prefetchedData && prefetchedData.leftEye && prefetchedData.leftEye !== 'Not Performed')
     )
-
+    const [isLoading, setIsLoading] = useState(false);
     const handleTypeSelect = (type: ChartType) => setChartType(type)
-    const handleBegin = () => setStage('info_stand')
+    const handleBegin = () => {
+        setIsLoading(true);
+        setStage('info_stand');
+    };
 
     const handleLeftDone = (result: string) => {
         setLeftEyeResult(result)
@@ -334,18 +338,18 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
                     <div className="flex items-center gap-3 shrink-0">
                         {(sessionName || sessionPhone) && (
                             <div className="flex flex-col items-end gap-0.5">
-                                 {sessionName && (
-                                <span className="text-white text-xs font-medium">
-                                    <span className="text-white/100 uppercase tracking-wider text-[10px] md:text-lg lg:text-sm mr-1">NAME:</span>
-                                    <span className="font-bold md:text-lg lg:text-sm ">{sessionName}</span>
-                                </span>
-                            )}
-                            {sessionPhone && (
-                                <span className="text-white text-xs font-medium">
-                                    <span className="text-white/100 uppercase tracking-wider text-[10px] mr-1 md:text-lg lg:text-sm">PHONE:</span>
-                                    <span className="font-bold md:text-lg lg:text-sm">{sessionPhone}</span>
-                                </span>
-                            )}
+                                {sessionName && (
+                                    <span className="text-white text-xs font-medium">
+                                        <span className="text-white/100 uppercase tracking-wider text-[10px] md:text-lg lg:text-sm mr-1">NAME:</span>
+                                        <span className="font-bold md:text-lg lg:text-sm ">{sessionName}</span>
+                                    </span>
+                                )}
+                                {sessionPhone && (
+                                    <span className="text-white text-xs font-medium">
+                                        <span className="text-white/100 uppercase tracking-wider text-[10px] mr-1 md:text-lg lg:text-sm">PHONE:</span>
+                                        <span className="font-bold md:text-lg lg:text-sm">{sessionPhone}</span>
+                                    </span>
+                                )}
                             </div>
                         )}
                         {/* Skip — top-right in navbar, same as EyeTestingPage */}
@@ -386,9 +390,21 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
                         </button>
                         <button
                             onClick={handleBegin}
-                            className="px-10 py-3 bg-[#0297d6] text-white rounded-xl font-bold"
+                            disabled={isLoading}
+                            className={`px-10 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all
+        ${isLoading ? 'bg-slate-400 cursor-not-allowed' : 'bg-[#0297d6] hover:bg-[#0280bb] text-white'}`}
                         >
-                            Next →
+                            {isLoading ? (
+                                <>
+                                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Loading...
+                                </>
+                            ) : (
+                                'Next →'
+                            )}
                         </button>
                     </div>
                 </div>
