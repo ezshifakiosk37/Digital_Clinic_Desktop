@@ -69,68 +69,82 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
 
     // Build thermal print payload from fetched report
     const buildPrintPayload = useCallback(() => {
-        if (!report) return null
-        const { patient, vitals, rapidTesting, eyeTesting, colorBlindTesting, hearingTesting } = report
-        const sections: string[] = []
+        if (!report) return null;
+        const { patient, vitals, rapidTesting, eyeTesting, colorBlindTesting, hearingTesting } = report;
+        const sections: string[] = [];
 
-        // Vitals section
-        const vitalsLines: string[] = []
-        if (vitals.Systolic && vitals.Diastolic) vitalsLines.push(`BP: ${vitals.Systolic}/${vitals.Diastolic} mmHg`)
-        if (shouldShow(vitals.BloodOxygen)) vitalsLines.push(`SpO2: ${vitals.BloodOxygen}%`)
-        if (shouldShow(vitals.PulseRate)) vitalsLines.push(`Pulse: ${vitals.PulseRate} bpm`)
-        if (shouldShow(vitals.Temperature)) vitalsLines.push(`Temp: ${vitals.Temperature}°C`)
-        if (shouldShow(vitals.Weight)) vitalsLines.push(`Weight: ${vitals.Weight} kg`)
-        if (shouldShow(vitals.Height)) vitalsLines.push(`Height: ${formatHeight(vitals.Height)}`)
-        if (shouldShow(vitals.bmi)) vitalsLines.push(`BMI: ${vitals.bmi}`)
-        if (vitalsLines.length) sections.push('--- VITALS ---\n' + vitalsLines.join('\n'))
+        // --- COLLECT ALL VITALS + RAPID DATA INTO ONE ARRAY ---
+        const vitalsAndRapidLines: string[] = [];
 
-        // Rapid Testing fields appended to vitals section (no separate heading)
+        // 1. Standard vitals
+        if (vitals.Systolic && vitals.Diastolic) {
+            vitalsAndRapidLines.push(`BP: ${vitals.Systolic}/${vitals.Diastolic} mmHg`);
+        }
+        if (shouldShow(vitals.BloodOxygen)) vitalsAndRapidLines.push(`SpO2: ${vitals.BloodOxygen}%`);
+        if (shouldShow(vitals.PulseRate)) vitalsAndRapidLines.push(`Pulse: ${vitals.PulseRate} bpm`);
+        if (shouldShow(vitals.Temperature)) vitalsAndRapidLines.push(`Temp: ${vitals.Temperature}°C`);
+        if (shouldShow(vitals.Weight)) vitalsAndRapidLines.push(`Weight: ${vitals.Weight} kg`);
+        if (shouldShow(vitals.Height)) vitalsAndRapidLines.push(`Height: ${formatHeight(vitals.Height)}`);
+        if (shouldShow(vitals.bmi)) vitalsAndRapidLines.push(`BMI: ${vitals.bmi}`);
+
+        // 2. Rapid testing fields (merge into same list)
         if (rapidTesting) {
             const unitMap: Record<string, string> = {
                 bloodSugar: 'mg/dL',
                 cholesterol: 'mg/dL',
                 bodyFat: '%',
                 hemoglobin: 'g/dL',
-            }
-            const allRapidFields = ['bloodSugar', 'ecg', 'hiv', 'hepatitis', 'hbsag', 'hcvAb', 'hivAb', 'dengueNs1Ag', 'syphilisAb', 'typhoidAb', 'tuberculosis', 'malariaPfPvAg', 'hemoglobin', 'cholesterol', 'bodyFat']
+            };
+            const allRapidFields = [
+                'bloodSugar', 'ecg', 'hiv', 'hepatitis', 'hbsag', 'hcvAb', 'hivAb',
+                'dengueNs1Ag', 'syphilisAb', 'typhoidAb', 'tuberculosis', 'malariaPfPvAg',
+                'hemoglobin', 'cholesterol', 'bodyFat'
+            ];
             allRapidFields.forEach(field => {
-                if (!shouldShow(rapidTesting[field])) return
-                const raw = rapidTesting[field]
-                const val = typeof raw === 'string' && raw.toLowerCase() === 'consultation required' ? 'Consult Req' : raw
-                const unit = unitMap[field] ? ` ${unitMap[field]}` : ''
-                const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())
-                vitalsLines.push(`${label}: ${val}${unit}`)
-            })
+                if (!shouldShow(rapidTesting[field])) return;
+                const raw = rapidTesting[field];
+                const val = typeof raw === 'string' && raw.toLowerCase() === 'consultation required'
+                    ? 'Consult Req'
+                    : raw;
+                const unit = unitMap[field] ? ` ${unitMap[field]}` : '';
+                const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+                vitalsAndRapidLines.push(`${label}: ${val}${unit}`);
+            });
         }
 
-        //  Eye Testing
+        // 3. Push the combined vitals + rapid section (only if there is any data)
+        if (vitalsAndRapidLines.length) {
+            sections.push('--- VITALS ---\n' + vitalsAndRapidLines.join('\n'));
+        }
+
+        // --- EYE TESTING (unchanged) ---
         if (eyeTesting && (shouldShow(eyeTesting.leftEye) || shouldShow(eyeTesting.rightEye))) {
-            const eyeLines: string[] = []
-            if (shouldShow(eyeTesting.chartType)) eyeLines.push(`Chart: ${eyeTesting.chartType}`)
-            if (shouldShow(eyeTesting.leftEye)) eyeLines.push(`Left Eye: ${eyeTesting.leftEye}`)
-            if (shouldShow(eyeTesting.rightEye)) eyeLines.push(`Right Eye: ${eyeTesting.rightEye}`)
-            if (eyeLines.length) sections.push('--- EYE TESTING ---\n' + eyeLines.join('\n'))
+            const eyeLines: string[] = [];
+            if (shouldShow(eyeTesting.chartType)) eyeLines.push(`Chart: ${eyeTesting.chartType}`);
+            if (shouldShow(eyeTesting.leftEye)) eyeLines.push(`Left Eye: ${eyeTesting.leftEye}`);
+            if (shouldShow(eyeTesting.rightEye)) eyeLines.push(`Right Eye: ${eyeTesting.rightEye}`);
+            if (eyeLines.length) sections.push('--- EYE TESTING ---\n' + eyeLines.join('\n'));
         }
 
-        // Color Blind Test
+        // --- COLOR BLIND TEST (unchanged) ---
         if (colorBlindTesting && shouldShow(colorBlindTesting.colorBlindResult)) {
-            sections.push(`--- COLOR BLIND TEST ---\nResult: ${colorBlindTesting.colorBlindResult}`)
+            sections.push(`--- COLOR BLIND TEST ---\nResult: ${colorBlindTesting.colorBlindResult}`);
         }
 
-        // Hearing Test
+        // --- HEARING TEST (unchanged) ---
         if (hearingTesting && (shouldShow(hearingTesting.leftEarResult) || shouldShow(hearingTesting.rightEarResult))) {
-            const hearingLines: string[] = []
-            if (shouldShow(hearingTesting.leftEarResult)) hearingLines.push(`Left Ear: ${hearingTesting.leftEarResult}`)
-            if (shouldShow(hearingTesting.rightEarResult)) hearingLines.push(`Right Ear: ${hearingTesting.rightEarResult}`)
-            if (hearingLines.length) sections.push('--- HEARING TEST ---\n' + hearingLines.join('\n'))
+            const hearingLines: string[] = [];
+            if (shouldShow(hearingTesting.leftEarResult)) hearingLines.push(`Left Ear: ${hearingTesting.leftEarResult}`);
+            if (shouldShow(hearingTesting.rightEarResult)) hearingLines.push(`Right Ear: ${hearingTesting.rightEarResult}`);
+            if (hearingLines.length) sections.push('--- HEARING TEST ---\n' + hearingLines.join('\n'));
         }
 
-        // After the Hearing Test block, before the return
+        // --- SYMPTOMS (unchanged) ---
         if (report.vitals?.symptoms && shouldShow(report.vitals.symptoms)) {
             const symptomText = typeof report.vitals.symptoms === 'string'
                 ? report.vitals.symptoms
-                : report.vitals.symptoms.join(', ')
-            sections.push(`--- SYMPTOMS ---\n${symptomText}`)
+                : report.vitals.symptoms.join(', ');
+            sections.push(`--- SYMPTOMS ---\n${symptomText}`);
         }
 
         return {
@@ -143,8 +157,8 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                 phone: patient.phone,
             },
             reportSections: sections,
-        }
-    }, [report])
+        };
+    }, [report]);
 
     const handleWebPrint = () => {
         const el = document.getElementById('vital-report-paper')
