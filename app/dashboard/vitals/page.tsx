@@ -351,8 +351,10 @@ const VitalsPage = () => {
 
       const vitalsToSave = {
         ...vitals,
-        Height: heightForSave,
-        Temperature: tempInCelsius,
+        Height: heightForSave,               // already in ft.in or cm based on heightUnit
+        heightUnit: heightUnit,              // 'ft' or 'cm'
+        Temperature: vitals.Temperature,     // keep as is
+        temperatureUnit: tempUnit,           // store the selected unit
         bmi: bmi?.value ?? null,
         patientType: 'walk-in',
       };
@@ -421,23 +423,16 @@ const VitalsPage = () => {
           const v = latestRes.vital;
           fetchedVitalsId = v.id || '';
           initialVitals = {
-            BP: {
-              value1: v.Systolic || '',
-              value2: v.Diastolic || ''
-            },
+            BP: { value1: v.Systolic || '', value2: v.Diastolic || '' },
             PulseRate: v.PulseRate || "",
             Temperature: v.Temperature || '',
             Spo2: v.BloodOxygen || '',
             Height: v.Height || "",
             Weight: v.Weight || "",
-            symptoms: v.symptoms
-              ? (typeof v.symptoms === 'string'
-                ? v.symptoms.split(",").map((s: string) => s.trim())
-                : Array.isArray(v.symptoms)
-                  ? v.symptoms
-                  : [])
-              : []
+            symptoms: v.symptoms ? (typeof v.symptoms === 'string' ? v.symptoms.split(",").map((s: string) => s.trim()) : Array.isArray(v.symptoms) ? v.symptoms : []) : []
           };
+          if (v.heightUnit) setHeightUnit(v.heightUnit as 'ft' | 'cm');
+          if (v.temperatureUnit) setTempUnit(v.temperatureUnit as '°C' | '°F');
           // Store in the SAME shape as vitalsToSave so comparison works correctly
           setPrefetchedVitals({
             PulseRate: v.PulseRate || '',
@@ -447,6 +442,8 @@ const VitalsPage = () => {
             Weight: v.Weight || '',
             Height: v.Height || '',
             symptoms: initialVitals.symptoms,
+            heightUnit: v.heightUnit || 'ft',
+            temperatureUnit: v.temperatureUnit || '°C',
           });
 
           // ── Fetch all test data if vitalsId exists ──
@@ -711,7 +708,7 @@ const VitalsPage = () => {
       (data.leftEye ?? 'Not Performed') !== (prefetched.leftEye ?? 'Not Performed') ||
       (data.rightEye ?? 'Not Performed') !== (prefetched.rightEye ?? 'Not Performed') ||
       (data.leftEyeResult ?? 'Not Performed') !== (prefetched.leftEyeResult ?? 'Not Performed') ||
-      (data.rightEyeResult ?? 'Not Performed') !== (prefetched.rightEyeResult ?? 'Not Performed') 
+      (data.rightEyeResult ?? 'Not Performed') !== (prefetched.rightEyeResult ?? 'Not Performed')
     );
   };
 

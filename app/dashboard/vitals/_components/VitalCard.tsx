@@ -1,3 +1,4 @@
+//vital card
 import React from 'react';
 import { VitalType } from '../../../_utils/types';
 import { VITAL_CONFIGS } from '../../../_utils/data/constants';
