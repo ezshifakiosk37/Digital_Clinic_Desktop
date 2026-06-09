@@ -79,7 +79,9 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         if (vitals.Systolic && vitals.Diastolic) vitalsLines.push(`BP: ${vitals.Systolic}/${vitals.Diastolic} mmHg`)
         if (shouldShow(vitals.BloodOxygen)) vitalsLines.push(`SpO2: ${vitals.BloodOxygen}%`)
         if (shouldShow(vitals.PulseRate)) vitalsLines.push(`Pulse: ${vitals.PulseRate} bpm`)
-        if (shouldShow(vitals.Temperature)) vitalsLines.push(`Temp: ${vitals.Temperature}${vitals.temperatureUnit || '°C'}`)
+        if (shouldShow(vitals.Temperature)) vitalsLines.push(
+                `Temp: ${vitals.Temperature}${vitals.temperatureUnit ?? (parseFloat(vitals.Temperature) > 50 ? '°F' : '°C')}`
+            )
         if (shouldShow(vitals.Weight)) vitalsLines.push(`Weight: ${vitals.Weight} kg`)
         if (shouldShow(vitals.Height)) vitalsLines.push(`Height: ${formatHeight(vitals.Height, vitals.heightUnit)}`)
         if (shouldShow(vitals.bmi)) vitalsLines.push(`BMI: ${vitals.bmi}`)
@@ -264,7 +266,12 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                             {shouldShow(v.Systolic) && shouldShow(v.Diastolic) && <Row label="Blood Pressure" value={`${v.Systolic}/${v.Diastolic} mmHg`} />}
                                             {shouldShow(v.BloodOxygen) && <Row label="SpO2" value={`${v.BloodOxygen}%`} />}
                                             {shouldShow(v.PulseRate) && <Row label="Pulse Rate" value={`${v.PulseRate} bpm`} />}
-                                            {shouldShow(v.Temperature) && <Row label="Temperature" value={`${v.Temperature}${v.temperatureUnit || '°C'}`} />}
+                                            {shouldShow(v.Temperature) && (
+                                                    <Row
+                                                        label="Temperature"
+                                                        value={`${v.Temperature}${v.temperatureUnit ?? (parseFloat(v.Temperature) > 50 ? '°F' : '°C')}`}
+                                                    />
+                                            )}
                                             {shouldShow(v.Weight) && <Row label="Weight" value={`${v.Weight} kg`} />}
                                             {shouldShow(v.Height) && <Row label="Height" value={formatHeight(v.Height, v.heightUnit)} />}
                                             {shouldShow(v.bmi) && <Row label="BMI" value={v.bmi} />}
