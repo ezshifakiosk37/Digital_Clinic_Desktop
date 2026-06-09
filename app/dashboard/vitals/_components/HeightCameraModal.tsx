@@ -283,7 +283,7 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
                 background: '#f1f5f9', color: '#475569',
                 fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 8, whiteSpace: 'nowrap',
               }}>
-                6 ft 11 in
+                6 feets
               </div>
             </div>
 
