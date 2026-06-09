@@ -338,25 +338,12 @@ const VitalsPage = () => {
 
     setLoading(true);
     try {
-      const heightForSave = heightUnit === 'cm'
-        ? (() => {
-          const totalInches = parseFloat(vitals.Height) / 2.54;
-          const ft = Math.floor(totalInches / 12);
-          const inch = Math.round(totalInches % 12);
-          return `${ft}.${inch}`;
-        })()
-        : vitals.Height;
-
-      const tempInCelsius = tempUnit === '°F'
-        ? ((parseFloat(vitals.Temperature) - 32) * 5 / 9).toFixed(1)
-        : vitals.Temperature;
-
       const vitalsToSave = {
         ...vitals,
-        Height: heightForSave,               // already in ft.in or cm based on heightUnit
-        heightUnit: heightUnit,              // 'ft' or 'cm'
-        Temperature: vitals.Temperature,     // keep as is
-        temperatureUnit: tempUnit,           // store the selected unit
+        Height: vitals.Height,           // save as-is in whatever unit user entered
+        heightUnit: heightUnit,          // 'ft' or 'cm'
+        Temperature: vitals.Temperature, // save as-is in whatever unit user entered
+        temperatureUnit: tempUnit,       // '°C' or '°F'
         bmi: bmi?.value ?? null,
         patientType: 'walk-in',
       };
