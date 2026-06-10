@@ -506,43 +506,7 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
                                 HEAD
                             </div>
                         </div>
-                        {/* ── BLUE BAR — Floor/Heels — fixed at bottom, hidden ── */}
-                        <div style={{ display: 'none' }} />
-                        {/* 
-                        ── BLUE BAR — Floor/Heels ──
-                        <div
-                            style={{
-                                position: 'absolute', left: 0, right: 0,
-                                top: floorBarY - 16, height: 32,
-                                touchAction: 'none', cursor: 'row-resize', zIndex: 20,
-                            }}
-                            onMouseDown={onFloorMouseDown}
-                            onTouchStart={onFloorTouchStart}
-                        >
-                            {/* Line */}
-                        <div style={{
-                            position: 'absolute', left: 0, right: 0, top: 15, height: 2,
-                            background: '#3b82f6',
-                            boxShadow: '0 0 8px rgba(59,130,246,0.9), 0 0 20px rgba(59,130,246,0.4)',
-                        }} />
-                        {/* Handle right
-                        <div style={{
-                            position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                            width: 40, height: 40, background: '#3b82f6', borderRadius: '50%',
-                            border: '2px solid white', display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-                        }}>
-                            <span style={{ color: 'white', fontSize: 14 }}>↕</span>
-                        </div> */}
-                        {/* Label left */}
-                            {/* <div style={{
-                                position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
-                                background: '#3b82f6', color: 'white',
-                                fontSize: 10, fontWeight: 900, padding: '2px 8px', borderRadius: 6,
-                            }}>
-                                HEELS
-                            </div> */}
-                        {/* </div> */} 
+                        {/* floorBarY is fixed at h * 0.99 (bottom of image) and used silently in calculateHeight — no visible bar */} 
                     </div>
 
                     {/* Calculate button */}
