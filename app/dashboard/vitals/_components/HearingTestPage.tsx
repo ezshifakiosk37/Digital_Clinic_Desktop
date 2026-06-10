@@ -78,7 +78,7 @@ function playDemoTone(audioCtx: AudioContext): Promise<void> {
                 oscillator.disconnect();
                 gainNode.disconnect();
                 panner.disconnect();
-            } catch (_) {}
+            } catch (_) { }
             resolve();
         }, duration * 1000);
     });
@@ -89,8 +89,19 @@ function startTone(
     audioCtx: AudioContext,
     hz: number,
     db: number,
-    ear: 'left' | 'right'
+    ear: 'left' | 'right',
+    oscRef: React.MutableRefObject<OscillatorNode | null>,
+    gainRef: React.MutableRefObject<GainNode | null>,
+    pannerRef: React.MutableRefObject<StereoPannerNode | null>
 ): () => void {
+    // Clean up previous
+    if (oscRef.current) {
+        try { oscRef.current.stop() } catch (_) { }
+        try { oscRef.current.disconnect() } catch (_) { }
+    }
+    if (gainRef.current) try { gainRef.current.disconnect() } catch (_) { }
+    if (pannerRef.current) try { pannerRef.current.disconnect() } catch (_) { }
+
     const normalized = (db - 20) / (120 - 20)
     const gain = Math.pow(normalized, 2.2)
 
@@ -108,11 +119,18 @@ function startTone(
     panner.connect(audioCtx.destination)
     oscillator.start()
 
+    oscRef.current = oscillator
+    gainRef.current = gainNode
+    pannerRef.current = panner
+
     return () => {
         try { oscillator.stop() } catch (_) { }
         try { oscillator.disconnect() } catch (_) { }
         try { gainNode.disconnect() } catch (_) { }
         try { panner.disconnect() } catch (_) { }
+        oscRef.current = null
+        gainRef.current = null
+        pannerRef.current = null
     }
 }
 
@@ -321,7 +339,10 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
     const [rightThresholds, setRightThresholds] = useState<Record<number, number>>({})
 
     const audioCtxRef = useRef<AudioContext | null>(null)
-    const stopToneRef = useRef<(() => void) | null>(null)
+    const stopToneRef = useRef<() => void | null>(null)
+    const oscRef = useRef<OscillatorNode | null>(null)
+    const gainRef = useRef<GainNode | null>(null)
+    const pannerRef = useRef<StereoPannerNode | null>(null)
 
     useEffect(() => () => { stopToneRef.current?.() }, [])
 
@@ -336,24 +357,34 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
         stopToneRef.current?.()
         stopToneRef.current = null
         setPlaying(false)
+        oscRef.current = null
+        gainRef.current = null
+        pannerRef.current = null
     }, [])
-
+    const updateToneParameters = useCallback((hz: number, db: number, ear: 'left' | 'right') => {
+        if (!playing) return
+        if (oscRef.current && gainRef.current && pannerRef.current) {
+            oscRef.current.frequency.value = hz
+            const normalized = (db - 20) / (120 - 20)
+            const gain = Math.pow(normalized, 2.2)
+            gainRef.current.gain.value = Math.max(0.001, Math.min(0.98, gain))
+            pannerRef.current.pan.value = ear === 'left' ? -1 : 1
+        }
+    }, [playing])
     const handlePlay = useCallback(() => {
         if (playing) { stopCurrentTone(); return }
         const ctx = getAudioCtx()
         if (ctx.state === 'suspended') ctx.resume()
         stopCurrentTone()
         setPlaying(true)
-        stopToneRef.current = startTone(ctx, currentHz, currentDb, activeEar)
+        stopToneRef.current = startTone(ctx, currentHz, currentDb, activeEar, oscRef, gainRef, pannerRef)
     }, [playing, currentHz, currentDb, activeEar, getAudioCtx, stopCurrentTone])
 
-    // Restart tone live when hz/db/ear changes while playing
+    // Update tone parameters without restarting
     useEffect(() => {
         if (!playing) return
-        const ctx = getAudioCtx()
-        stopToneRef.current?.()
-        stopToneRef.current = startTone(ctx, currentHz, currentDb, activeEar)
-    }, [currentHz, currentDb, activeEar]) // eslint-disable-line
+        updateToneParameters(currentHz, currentDb, activeEar)
+    }, [currentHz, currentDb, activeEar, playing, updateToneParameters])
 
     const handleDbChange = (dir: 'up' | 'down') => {
         setCurrentDb(prev => {
@@ -365,7 +396,6 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
     }
 
     const recordAndAdvance = useCallback((heard: boolean) => {
-        stopCurrentTone()
         if (heard) {
             const setter = activeEar === 'left' ? setLeftThresholds : setRightThresholds
             setter(prev => ({ ...prev, [currentHz]: currentDb }))
@@ -376,7 +406,7 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
             setCurrentHz(nextHz)
             setCurrentDb(20)
         }
-    }, [activeEar, currentHz, currentDb, leftThresholds, rightThresholds, stopCurrentTone])
+    }, [activeEar, currentHz, currentDb, leftThresholds, rightThresholds])
 
     const switchEar = (ear: 'left' | 'right') => {
         stopCurrentTone()
