@@ -22,7 +22,15 @@ const shouldShow = (value: any): boolean => {
     }
     return true
 }
-
+const shortenResult = (value: any): string => {
+    if (
+        typeof value === 'string' &&
+        value.trim().toLowerCase() === 'consultation required'
+    ) {
+        return 'Consult Req'
+    }
+    return value
+}
 const Row = ({ label, value }: { label: string; value: string }) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 3 }}>
         <span style={{ fontWeight: 700, textTransform: 'uppercase', color: '#555', letterSpacing: 1 }}>{label}</span>
@@ -114,9 +122,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
             allRapidFields.forEach(field => {
                 if (!shouldShow(rapidTesting[field])) return;
                 const raw = rapidTesting[field];
-                const val = typeof raw === 'string' && raw.toLowerCase() === 'consultation required'
-                    ? 'Consult Req'
-                    : raw;
+                const val = shortenResult(raw);
                 const unit = unitMap[field] ? ` ${unitMap[field]}` : '';
                 const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
                 combinedVitalsLines.push(`${label}: ${val}${unit}`);
@@ -132,21 +138,21 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         if (eyeTesting && (shouldShow(eyeTesting.leftEyeResult) || shouldShow(eyeTesting.rightEyeResult))) {
             const eyeLines: string[] = [];
             if (shouldShow(eyeTesting.chartType)) eyeLines.push(`Chart: ${eyeTesting.chartType}`);
-            if (shouldShow(eyeTesting.leftEyeResult)) eyeLines.push(`Left Eye: ${eyeTesting.leftEyeResult}`);
-            if (shouldShow(eyeTesting.rightEyeResult)) eyeLines.push(`Right Eye: ${eyeTesting.rightEyeResult}`);
+            if (shouldShow(eyeTesting.leftEyeResult)) eyeLines.push(`Left Eye: ${shortenResult(eyeTesting.leftEyeResult)}`);
+            if (shouldShow(eyeTesting.rightEyeResult)) eyeLines.push(`Right Eye: ${shortenResult(eyeTesting.rightEyeResult)}`);
             if (eyeLines.length) sections.push('--- EYE SCREENING ---\n' + eyeLines.join('\n'));
         }
 
         // --- COLOR BLIND TEST ---
         if (colorBlindTesting && shouldShow(colorBlindTesting.colorBlindResult)) {
-            sections.push(`--- COLOR BLIND SCREENING ---\nResult: ${colorBlindTesting.colorBlindResult}`);
+            sections.push(`--- COLOR BLIND SCREENING ---\nResult: ${shortenResult(colorBlindTesting.colorBlindResult)}`);
         }
 
         // --- HEARING TEST ---
         if (hearingTesting && (shouldShow(hearingTesting.leftEarResult) || shouldShow(hearingTesting.rightEarResult))) {
             const hearingLines: string[] = [];
-            if (shouldShow(hearingTesting.leftEarResult)) hearingLines.push(`Left Ear: ${hearingTesting.leftEarResult}`);
-            if (shouldShow(hearingTesting.rightEarResult)) hearingLines.push(`Right Ear: ${hearingTesting.rightEarResult}`);
+            if (shouldShow(hearingTesting.leftEarResult)) hearingLines.push(`Left Ear: ${shortenResult(hearingTesting.leftEarResult)}`);
+            if (shouldShow(hearingTesting.rightEarResult)) hearingLines.push(`Right Ear: ${shortenResult(hearingTesting.rightEarResult)}`);
             if (hearingLines.length) sections.push('--- HEARING SCREENING ---\n' + hearingLines.join('\n'));
         }
 
@@ -316,7 +322,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                             {rt && rapidFields.map(f => {
                                                 if (!shouldShow(rt[f])) return null
                                                 const rawVal = rt[f]
-                                                const shortened = typeof rawVal === 'string' && rawVal.toLowerCase() === 'consultation required' ? 'Consult Req' : rawVal
+                                                const shortened = shortenResult(rawVal)
                                                 const unit = unitMap[f] ? ` ${unitMap[f]}` : ''
                                                 const label = f.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
                                                 return <Row key={f} label={label} value={`${shortened}${unit}`} />
@@ -333,8 +339,8 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                         <>
                                             <SectionTitle title="Eye Screening" />
                                             {shouldShow(et.chartType) && <Row label="Chart Type" value={et.chartType} />}
-                                            {shouldShow(et.leftEye) && <Row label="Left Eye" value={et.leftEyeResult} />}
-                                            {shouldShow(et.rightEye) && <Row label="Right Eye" value={et.rightEyeResult} />}
+                                            {shouldShow(et.leftEye) && <Row label="Left Eye" value={shortenResult(et.leftEyeResult)} />}
+                                            {shouldShow(et.rightEye) && <Row label="Right Eye" value={shortenResult(et.rightEyeResult)} />}
                                         </>
                                     )
                                 })()}
@@ -343,7 +349,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                 {report.colorBlindTesting && shouldShow(report.colorBlindTesting.colorBlindResult) && (
                                     <>
                                         <SectionTitle title="Color Blind Screening" />
-                                        <Row label="Result" value={report.colorBlindTesting.colorBlindResult} />
+                                        <Row label="Result" value={shortenResult(report.colorBlindTesting.colorBlindResult)} />
                                     </>
                                 )}
 
@@ -355,8 +361,8 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                     return (
                                         <>
                                             <SectionTitle title="Hearing Screening" />
-                                            {shouldShow(ht.leftEarResult) && <Row label="Left Ear" value={ht.leftEarResult} />}
-                                            {shouldShow(ht.rightEarResult) && <Row label="Right Ear" value={ht.rightEarResult} />}
+                                            {shouldShow(ht.leftEarResult) && <Row label="Left Ear" value={shortenResult(ht.leftEarResult)} />}
+                                            {shouldShow(ht.rightEarResult) && <Row label="Right Ear" value={shortenResult(ht.rightEarResult)} />}
                                         </>
                                     )
                                 })()}
