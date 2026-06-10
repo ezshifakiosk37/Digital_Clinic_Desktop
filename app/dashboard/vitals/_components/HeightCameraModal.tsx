@@ -117,15 +117,26 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
     }, [stopCamera]);
 
     // ── Image load — set initial bar positions ─────────────────────────────────
+    // const onImgLoad = useCallback(() => {
+    //     if (!imgRef.current) return;
+    //     const h = imgRef.current.getBoundingClientRect().height;
+    //     setImgDisplayH(h);
+    //     setBarY(h * 0.15);          // head bar near top
+    //     setFloorBarY(h * 0.99);     // floor bar fixed at bottom
+    //     // setFloorBarY(h * 0.88);     // floor bar near bottom (patient's feet)
+    // }, []);
     const onImgLoad = useCallback(() => {
         if (!imgRef.current) return;
-        const h = imgRef.current.getBoundingClientRect().height;
-        setImgDisplayH(h);
-        setBarY(h * 0.15);          // head bar near top
-        setFloorBarY(h * 0.99);     // floor bar fixed at bottom
-        // setFloorBarY(h * 0.88);     // floor bar near bottom (patient's feet)
+        // Ensure layout is complete before reading height
+        requestAnimationFrame(() => {
+            if (!imgRef.current) return;
+            const h = imgRef.current.getBoundingClientRect().height;
+            if (h === 0) return; // safety, skip if still zero
+            setImgDisplayH(h);
+            setBarY(h * 0.15);
+            setFloorBarY(h * 0.99);
+        });
     }, []);
-
     // ── Live height preview while dragging ────────────────────────────────────
     const computeLiveHeight = useCallback((headY: number, floorY: number, frameH: number) => {
         if (!frameH) return;
@@ -506,11 +517,11 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
                                 HEAD
                             </div>
                         </div>
-                        {/* floorBarY is fixed at h * 0.99 (bottom of image) and used silently in calculateHeight — no visible bar */} 
+                        {/* floorBarY is fixed at h * 0.99 (bottom of image) and used silently in calculateHeight — no visible bar */}
                     </div>
 
                     {/* Calculate button */}
-                    
+
                     <div style={{
                         width: '100%', maxWidth: 480,
                         padding: '12px 16px 24px', flexShrink: 0, background: 'rgba(0,0,0,0.8)',
