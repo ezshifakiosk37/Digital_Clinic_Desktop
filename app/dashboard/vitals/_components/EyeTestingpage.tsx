@@ -370,6 +370,14 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
                     </button>
                 }
             />
+            <div className=' mt-1 mr-2 flex justify-end'>
+                <button
+                onClick={onSkip}
+                className="bg-[#0297d6] text-white font-bold px-4 py-2 rounded-full text-sm"
+            >
+                Skip All
+            </button>
+            </div>
             {/* Select Stage - 2x2 Grid (Fixed button visibility) */}
             {stage === 'select' && (
                 <div className="flex flex-col h-[calc(100vh-73px)] px-6">

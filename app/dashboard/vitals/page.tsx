@@ -875,7 +875,9 @@ const VitalsPage = () => {
           }}
           onSkip={() => {
             setShowEyeTesting(false);
-            setShowRapidTesting(true);
+            setShowColorBlindTest(false);
+            setShowHearingTest(false);
+            setStep(2);
           }}
           onSkipToColorBlind={() => {
             setShowEyeTesting(false);
@@ -1030,14 +1032,12 @@ const VitalsPage = () => {
                     <span className="text-slate-400 uppercase text-xs lg:text-md font-bold tracking-wide">Token No.:</span>
                     <span className="ml-2 text-2xl lg:text-xl font-black text-[#0297d6]">#{tokenNumber || '—'}</span>
                   </div>
-                  <div className="flex flex-col gap-0.5 text-right">
-                    <div>
-                      <span className="text-slate-400 uppercase text-lg lg:text-sm font-bold tracking-wide">Name:</span>
-                      <span className="ml-1 text-xl lg:text-sm font-bold text-slate-700">{sessionName || '—'}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 uppercase text-lg lg:text-sm font-bold tracking-wide">Phone:</span>
-                      <span className="ml-1 text-xl lg:text-sm font-bold text-slate-600">{sessionPhone}</span>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="grid gap-x-2 gap-y-0.5 text-white text-xs font-medium" style={{ gridTemplateColumns: 'auto 1fr' }}>
+                      <span className="text-slate-400 uppercase text-lg lg:text-sm font-bold tracking-wide text-right">NAME:</span>
+                      <span className="text-xl lg:text-sm font-bold text-slate-700">{sessionName || '—'}</span>
+                      <span className="text-slate-400 uppercase text-lg lg:text-sm font-bold tracking-wide text-right">Phone:</span>
+                      <span className="text-xl lg:text-sm font-bold text-slate-600">{sessionPhone}</span>
                     </div>
                   </div>
                 </div>

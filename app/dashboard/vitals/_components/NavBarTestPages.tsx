@@ -31,24 +31,24 @@ const NavBarTestPages: React.FC<NavBarTestPagesProps> = ({
 
                 <div className="flex items-center gap-3 shrink-0">
                     {(sessionToken || sessionName || sessionPhone) && (
-                        <div className="flex flex-col items-end gap-0.5">
-                            {sessionToken && (
-                                <span className="text-white text-xs font-medium">
-                                    <span className="text-white uppercase tracking-wider text-[10px] md:text-lg lg:text-sm mr-1">TOKEN:</span>
-                                    <span className="font-bold md:text-lg lg:text-sm">#{sessionToken}</span>
-                                </span>
-                            )}
+                        <div className="grid gap-x-2 gap-y-0.5 text-white text-xs font-medium" style={{ gridTemplateColumns: 'auto 1fr' }}>
                             {sessionName && (
-                                <span className="text-white text-xs font-medium">
-                                    <span className="text-white uppercase tracking-wider text-[10px] md:text-lg lg:text-sm mr-1">NAME:</span>
-                                    <span className="font-bold md:text-lg lg:text-sm">{sessionName}</span>
-                                </span>
+                                <>
+                                    <span className="uppercase tracking-wider text-[10px] md:text-sm font-normal opacity-90">NAME:</span>
+                                    <span className="font-bold md:text-sm">{sessionName}</span>
+                                </>
                             )}
                             {sessionPhone && (
-                                <span className="text-white text-xs font-medium">
-                                    <span className="text-white uppercase tracking-wider text-[10px] mr-1 md:text-lg lg:text-sm">PHONE:</span>
-                                    <span className="font-bold md:text-lg lg:text-sm">{sessionPhone}</span>
-                                </span>
+                                <>
+                                    <span className="uppercase tracking-wider text-[10px] md:text-sm font-normal opacity-90">PHONE:</span>
+                                    <span className="font-bold md:text-sm">{sessionPhone}</span>
+                                </>
+                            )}
+                            {sessionToken && (
+                                <>
+                                    <span className="uppercase tracking-wider text-[10px] md:text-sm font-normal opacity-90">TOKEN:</span>
+                                    <span className="font-bold md:text-sm">#{sessionToken}</span>
+                                </>
                             )}
                         </div>
                     )}

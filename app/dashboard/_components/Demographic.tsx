@@ -335,7 +335,7 @@ const DemographicPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="mx-6 text-center px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[12px] text-slate-500">
+          <div className="mx-6 text-center px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[16px] text-slate-500">
             Enter Phone Number or CNIC and click Find to retrieve existing patient data.
           </div>
 
