@@ -104,15 +104,36 @@ const VitalsPage = () => {
   // ── Compare two vitals objects field by field ──
   const vitalsChanged = (current: any, prefetched: any): boolean => {
     if (!prefetched) return true;
+
+    // current values are in user's display unit, prefetched are in DB (normalized) units
+    // Normalize current Temperature to °C
+    const currentTempC = (() => {
+      const t = parseFloat(current.Temperature);
+      if (isNaN(t)) return '';
+      return current.temperatureUnit === '°F'
+        ? ((t - 32) * 5 / 9).toFixed(1)
+        : t.toFixed(1);
+    })();
+
+    // Normalize current Height to cm
+    const currentHeightCm = (() => {
+      const h = current.Height;
+      if (!h) return '';
+      if (current.heightUnit === 'cm') return parseFloat(h).toFixed(1);
+      const [f, i] = h.split('.');
+      const totalInches = (parseInt(f) || 0) * 12 + (parseInt(i) || 0);
+      return (totalInches * 2.54).toFixed(1);
+    })();
+
     const norm = (v: any) => (v ?? '').toString().trim();
     return (
       norm(current.PulseRate) !== norm(prefetched.PulseRate) ||
       norm(current.Spo2) !== norm(prefetched.Spo2) ||
       norm(current.BP?.value1) !== norm(prefetched.BP?.value1) ||
       norm(current.BP?.value2) !== norm(prefetched.BP?.value2) ||
-      norm(current.Temperature) !== norm(prefetched.Temperature) ||
+      norm(currentTempC) !== norm(prefetched.Temperature) ||
       norm(current.Weight) !== norm(prefetched.Weight) ||
-      norm(current.Height) !== norm(prefetched.Height)
+      norm(currentHeightCm) !== norm(prefetched.Height)
     );
   };
 
@@ -411,32 +432,44 @@ const VitalsPage = () => {
         if (latestRes.success && latestRes.vital) {
           const v = latestRes.vital;
           fetchedVitalsId = v.id || '';
+          // Restore units FIRST so conversion below is correct
+          const savedHeightUnit = (v.heightUnit as 'ft' | 'cm') || 'ft';
+          const savedTempUnit = (v.temperatureUnit as '°C' | '°F') || '°C';
+          setHeightUnit(savedHeightUnit);
+          setTempUnit(savedTempUnit);
+
+          // Convert stored cm → ft display if needed
+          const displayHeight = (() => {
+            if (!v.Height) return '';
+            if (savedHeightUnit === 'cm') return v.Height; // stored as cm, display as cm
+            // stored as cm, convert back to "feet.inches"
+            const totalInches = parseFloat(v.Height) / 2.54;
+            const ft = Math.floor(totalInches / 12);
+            const inch = Math.round(totalInches % 12);
+            return `${ft}.${inch}`;
+          })();
+
+          const displayTempFixed = (() => {
+            if (!v.Temperature) return '';
+            if (savedTempUnit === '°C') return v.Temperature;
+            return ((parseFloat(v.Temperature) * 9 / 5) + 32).toFixed(1);
+          })();
+
           initialVitals = {
             BP: { value1: v.Systolic || '', value2: v.Diastolic || '' },
             PulseRate: v.PulseRate || "",
-            Temperature: v.Temperature || '',
+            Temperature: displayTempFixed,
             Spo2: v.BloodOxygen || '',
-            Height: v.Height || "",
+            Height: displayHeight,
             Weight: v.Weight || "",
-            symptoms: v.symptoms ? (typeof v.symptoms === 'string' ? v.symptoms.split(",").map((s: string) => s.trim()) : Array.isArray(v.symptoms) ? v.symptoms : []) : []
+            symptoms: v.symptoms
+              ? (typeof v.symptoms === 'string'
+                ? v.symptoms.split(',').map((s: string) => s.trim())
+                : Array.isArray(v.symptoms) ? v.symptoms : [])
+              : []
           };
-          // Restore units
-          if (v.heightUnit) setHeightUnit(v.heightUnit as 'ft' | 'cm');
-          if (v.temperatureUnit) setTempUnit(v.temperatureUnit as '°C' | '°F');
 
-          // Also store in prefetchedVitals
-          setPrefetchedVitals({
-            PulseRate: v.PulseRate || '',
-            Spo2: v.BloodOxygen || '',
-            BP: { value1: v.Systolic || '', value2: v.Diastolic || '' },
-            Temperature: v.Temperature || '',
-            Weight: v.Weight || '',
-            Height: v.Height || '',
-            symptoms: initialVitals.symptoms,
-            heightUnit: v.heightUnit || 'ft',
-            temperatureUnit: v.temperatureUnit || '°C',
-          });
-          // Store in the SAME shape as vitalsToSave so comparison works correctly
+          // Store in DB-normalized form (°C, cm) for change-detection comparison
           setPrefetchedVitals({
             PulseRate: v.PulseRate || '',
             Spo2: v.BloodOxygen || '',
@@ -1340,8 +1373,12 @@ const VitalsPage = () => {
                                       <td className="px-6 py-4 text-sm text-slate-700">{record.Temperature}°C</td>
                                       <td className="px-6 py-4 text-sm text-slate-600">
                                         {record.Weight}kg / {(() => {
-                                          const parts = record.Height?.split('.');
-                                          return parts?.length === 2 ? `${parts[0]}ft ${parts[1]} in` : `${record.Height} ft`;
+                                          const h = record.Height;
+                                          if (!h) return '—';
+                                          const totalInches = parseFloat(h) / 2.54;
+                                          const ft = Math.floor(totalInches / 12);
+                                          const inch = Math.round(totalInches % 12);
+                                          return `${ft}ft ${inch}in`;
                                         })()}
                                       </td>
                                       <td className="px-6 py-4 text-sm text-slate-700 max-w-xs">
