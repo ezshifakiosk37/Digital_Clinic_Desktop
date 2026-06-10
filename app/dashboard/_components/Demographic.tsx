@@ -104,12 +104,17 @@ const DemographicPage: React.FC = () => {
       if (key === 'country') { updated.province = ''; updated.city = ''; }
       if (key === 'province') { updated.city = ''; }
       if (key === 'dob') {
-        const birthDate = new Date(value);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-        updated.age = age.toString();
+        const parts = value.split('/');
+        if (parts.length === 3 && parts[2].length === 4) {
+          const birthDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+          if (!isNaN(birthDate.getTime())) {
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+            updated.age = age > 0 ? age.toString() : '';
+          }
+        }
       }
       else if (key === 'age') {
         const ageNum = parseInt(value);
@@ -497,11 +502,58 @@ const DemographicPage: React.FC = () => {
             {/* DOB + Age */}
             <div className="grid grid-cols-2 gap-4 items-end">
               <div>
-                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">DOB <span className='text-red-500'>*</span></Label>
-                <Input className="h-9 py-0" type="date" value={form.dob || ""} onChange={(e) => updateForm('dob', e.target.value)} onKeyDown={handleKeyDown} />
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">
+                  DOB <span className='text-red-500'>*</span>
+                </Label>
+                <Input
+                  className="h-9 py-0"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="DD/MM/YYYY"
+                  maxLength={10}
+                  value={form.dob || ""}
+                  onChange={(e) => {
+                    let raw = e.target.value.replace(/[^\d]/g, "");
+
+                    // Clamp day to 01–31
+                    if (raw.length >= 2) {
+                      let day = parseInt(raw.slice(0, 2));
+                      if (day > 31) day = 31;
+                      if (day < 1 && raw.length === 2) day = 1;
+                      raw = String(day).padStart(2, "0") + raw.slice(2);
+                    }
+
+                    // Clamp month to 01–12
+                    if (raw.length >= 4) {
+                      let month = parseInt(raw.slice(2, 4));
+                      if (month > 12) month = 12;
+                      if (month < 1 && raw.length >= 4) month = 1;
+                      raw = raw.slice(0, 2) + String(month).padStart(2, "0") + raw.slice(4);
+                    }
+
+                    // Clamp year to not exceed current year
+                    if (raw.length >= 8) {
+                      const currentYear = new Date().getFullYear();
+                      let year = parseInt(raw.slice(4, 8));
+                      if (year > currentYear) year = currentYear;
+                      raw = raw.slice(0, 4) + String(year);
+                    }
+
+                    // Format as DD/MM/YYYY
+                    let val = raw;
+                    if (val.length >= 3) val = val.slice(0, 2) + "/" + val.slice(2);
+                    if (val.length >= 6) val = val.slice(0, 5) + "/" + val.slice(5);
+                    val = val.slice(0, 10);
+
+                    updateForm('dob', val);
+                  }}
+                  onKeyDown={handleKeyDown}
+                />
               </div>
               <div>
-                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase block">Age <span className='text-red-500'>*</span></Label>
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase block">
+                  Age <span className='text-red-500'>*</span>
+                </Label>
                 <Input
                   type="number"
                   value={form.age || ""}

@@ -1,8 +1,10 @@
 'use client'
-import { Activity } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useUserProfile } from '@/app/_context/UserProfileContext'
+import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge'
+import { usePathname } from 'next/navigation'
 
 type NavbarVariant = 'demographic' | 'vitals' | 'onlineConsult' | 'pharmacy'
 
@@ -16,15 +18,55 @@ const variantConfig: Record<NavbarVariant, {
   showMeta: boolean
   showAddToken: boolean
 }> = {
-  demographic:   { subtitle: '',                    showMeta: true,  showAddToken: false },
-  vitals:        { subtitle: 'Vitals',              showMeta: false, showAddToken: true  },
+  demographic: { subtitle: '', showMeta: true, showAddToken: false },
+  vitals: { subtitle: 'Vitals', showMeta: false, showAddToken: true },
   onlineConsult: { subtitle: 'Online Consultation', showMeta: false, showAddToken: false },
-  pharmacy:      { subtitle: 'Pharmacy',            showMeta: false, showAddToken: false },
+  pharmacy: { subtitle: 'Pharmacy', showMeta: false, showAddToken: false },
 }
 
 const Navbar: React.FC<NavbarProps> = ({ variant, onAddToken }) => {
-  const config              = variantConfig[variant]
+  const config = variantConfig[variant]
   const { profile, loading } = useUserProfile()
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [showReconnectButton, setShowReconnectButton] = useState(false)
+  const pathname = usePathname()
+
+  const isVitalsRoute = pathname?.includes('dashboard/vitals')
+
+  // 1. Detect Android bridge availability
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.AndroidNative) {
+      setShowReconnectButton(true)
+    } else {
+      setShowReconnectButton(false)
+    }
+  }, [])
+
+  // 2. Initialize Hardware Status Listener
+  useEffect(() => {
+    AndroidBridge.initHardwareListeners(
+      (data) => {
+        console.log("Sidebar global data received:", data)
+      },
+      (status) => {
+        console.log("Hardware Status Update:", status)
+        const finalStatuses = ["CONNECTED", "ERROR", "DEVICE_NOT_FOUND", "ALREADY_CONNECTED", "PERMISSION_REQUESTED", "OPEN_FAILED"]
+        if (finalStatuses.includes(status)) {
+          setIsConnecting(false)
+        }
+      }
+    )
+  }, [])
+
+  // 3. Reconnect Trigger
+  const onReconnectPress = () => {
+    setIsConnecting(true)
+    const success = AndroidBridge.handleReconnect()
+    if (!success) {
+      setIsConnecting(false)
+      console.warn("Bridge not available.")
+    }
+  }
 
   return (
     <nav className="w-full bg-[#0297d6] text-white px-4 py-4 shadow-md">
@@ -34,7 +76,7 @@ const Navbar: React.FC<NavbarProps> = ({ variant, onAddToken }) => {
         <div className="flex items-center gap-3 min-w-0">
           <div className="min-w-0">
 
-            {/* Row 1: EZShifa | Digital Health Clinic — same on all pages */}
+            {/* Row 1: EZShifa | Digital Health Clinic */}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-2xl font-bold tracking-tight whitespace-nowrap">
                 EZShifa
@@ -87,16 +129,38 @@ const Navbar: React.FC<NavbarProps> = ({ variant, onAddToken }) => {
           </div>
         </div>
 
-        {/* Right: Add Token button — vitals only */}
-        {config.showAddToken && onAddToken && (
-          <Button
-            size="sm"
-            onClick={onAddToken}
-            className="bg-white text-[#0297d6] hover:bg-white/90 font-bold text-sm h-9 px-4 shrink-0"
-          >
-            + Add Token
-          </Button>
-        )}
+        {/* Right: Buttons */}
+        <div className='flex items-center gap-2'>
+
+          {/* Reconnect Button — inline, only on dashboard/vitals route with Android bridge */}
+          {showReconnectButton && isVitalsRoute && (
+            <Button
+              size="sm"
+              onClick={onReconnectPress}
+              disabled={isConnecting}
+              className="bg-white text-[#0297d6] hover:bg-white/90 font-bold text-sm h-9 px-4 shrink-0 disabled:opacity-70 disabled:cursor-wait"
+              title="Reconnect to ESP32"
+            >
+              <RefreshCw
+                size={16}
+                className={`mr-1.5 transition-transform duration-700 ${isConnecting ? 'animate-spin' : ''}`}
+              />
+              {isConnecting ? 'Connecting...' : 'Reconnect'}
+            </Button>
+          )}
+
+          {/* Add Token Button — vitals only */}
+          {config.showAddToken && onAddToken && (
+            <Button
+              size="sm"
+              onClick={onAddToken}
+              className="bg-white text-[#0297d6] hover:bg-white/90 font-bold text-sm h-9 px-4 shrink-0"
+            >
+              + Add Token
+            </Button>
+          )}
+
+        </div>
       </div>
     </nav>
   )
