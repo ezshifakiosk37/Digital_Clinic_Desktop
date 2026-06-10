@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Check, ChevronsUpDown, Loader2, ChevronRight, RotateCcw, User, MapPin } from 'lucide-react';
 import Navbar from './Navbar';
 import { useUserProfile } from '@/app/_context/UserProfileContext';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from "@/lib/utils"
 import { apiService } from '@/app/_utils/apiService';
 import ISO6391 from 'iso-639-1';
+import Webcam from 'react-webcam';
 import {
   Command,
   CommandEmpty,
@@ -28,13 +29,289 @@ import {
   DialogDescription,
   DialogOverlay
 } from "@/components/ui/dialog";
-
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
 
+// ─────────────────────────────────────────────────────────────────────────────
+// WEBCAM PHOTO CAPTURE MODAL
+// Fullscreen camera UI — same pattern as HeightCameraModal
+// ─────────────────────────────────────────────────────────────────────────────
+interface WebcamPhotoModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onCapture: (dataUrl: string) => void; // returns base64 jpeg
+}
+
+const WebcamPhotoModal: React.FC<WebcamPhotoModalProps> = ({ isOpen, onClose, onCapture }) => {
+  const webcamRef = useRef<Webcam>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [cameraReady, setCameraReady] = useState(false);
+
+  // Reset whenever modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setPreview(null);
+      setCameraReady(false);
+    }
+  }, [isOpen]);
+
+  // Lock body scroll
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
+  const handleCapture = useCallback(() => {
+    if (!webcamRef.current) return;
+    const imageSrc = webcamRef.current.getScreenshot();
+    if (imageSrc) setPreview(imageSrc);
+  }, []);
+
+  const handleRetake = useCallback(() => {
+    setPreview(null);
+  }, []);
+
+  const handleUse = useCallback(() => {
+    if (preview) {
+      onCapture(preview);
+      onClose();
+    }
+  }, [preview, onCapture, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 99999,
+        background: '#000',
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100vw',
+        height: '100dvh',
+        touchAction: 'none',
+      }}
+    >
+      {/* ── PREVIEW MODE — show captured photo for confirm/retake ── */}
+      {preview ? (
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {/* Header */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px 20px',
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(8px)',
+              flexShrink: 0,
+            }}
+          >
+            <button
+              onClick={handleRetake}
+              style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.15)',
+                border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', fontSize: 20,
+              }}
+            >
+              ←
+            </button>
+            <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Use this photo?</span>
+            <button
+              onClick={onClose}
+              style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.15)',
+                border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', fontSize: 20,
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Preview image */}
+          <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+            <img
+              src={preview}
+              alt="Preview"
+              style={{
+                width: '100%', height: '100%',
+                objectFit: 'contain',
+              }}
+            />
+          </div>
+
+          {/* Action buttons */}
+          <div
+            style={{
+              display: 'flex', gap: 12, padding: '20px 20px 40px',
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(8px)',
+              flexShrink: 0,
+            }}
+          >
+            <button
+              onClick={handleRetake}
+              style={{
+                flex: 1, padding: '16px',
+                borderRadius: 16,
+                border: '1px solid rgba(255,255,255,0.2)',
+                background: 'transparent',
+                color: 'white', fontWeight: 600, fontSize: 15,
+                cursor: 'pointer',
+              }}
+            >
+              ← Retake
+            </button>
+            <button
+              onClick={handleUse}
+              style={{
+                flex: 1, padding: '16px',
+                borderRadius: 16,
+                border: 'none',
+                background: '#22c55e',
+                color: 'white', fontWeight: 700, fontSize: 15,
+                cursor: 'pointer',
+                boxShadow: '0 4px 20px rgba(34,197,94,0.4)',
+              }}
+            >
+              Use Photo ✓
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* ── LIVE CAMERA MODE ── */
+        <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+          {/* Top overlay bar */}
+          <div
+            style={{
+              position: 'absolute', top: 0, left: 0, right: 0,
+              zIndex: 10,
+              display: 'flex', alignItems: 'center',
+              padding: '16px 20px',
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)',
+            }}
+          >
+            <button
+              onClick={onClose}
+              style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.15)',
+                border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', fontSize: 20,
+              }}
+            >
+              ←
+            </button>
+            <span style={{ color: 'white', fontSize: 14, fontWeight: 600, marginLeft: 12 }}>
+              Take Patient Photo
+            </span>
+          </div>
+
+          {/* Webcam — fills screen */}
+          <Webcam
+            ref={webcamRef}
+            audio={false}
+            screenshotFormat="image/jpeg"
+            screenshotQuality={0.92}
+            videoConstraints={{ facingMode: 'user' }}
+            onUserMedia={() => setCameraReady(true)}
+            onUserMediaError={() => setCameraReady(false)}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+            }}
+          />
+
+          {/* Face guide oval overlay */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerEvents: 'none',
+              zIndex: 5,
+            }}
+          >
+            <div
+              style={{
+                width: 200,
+                height: 260,
+                borderRadius: '50%',
+                border: '2px dashed rgba(255,255,255,0.5)',
+                boxShadow: '0 0 0 9999px rgba(0,0,0,0.35)',
+              }}
+            />
+          </div>
+
+          {/* Bottom capture controls */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0, left: 0, right: 0,
+              zIndex: 10,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              padding: '20px 16px 48px',
+              background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)',
+            }}
+          >
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, margin: '0 0 20px' }}>
+              Position face within the oval
+            </p>
+            {/* Shutter button */}
+            <button
+              onClick={handleCapture}
+              disabled={!cameraReady}
+              style={{
+                width: 76, height: 76,
+                borderRadius: '50%',
+                background: '#fff',
+                border: 'none',
+                cursor: cameraReady ? 'pointer' : 'not-allowed',
+                padding: 6,
+                opacity: cameraReady ? 1 : 0.5,
+                transition: 'opacity 0.2s',
+              }}
+            >
+              <div
+                style={{
+                  width: '100%', height: '100%',
+                  borderRadius: '50%',
+                  background: '#0297d6',
+                }}
+              />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEMOGRAPHIC PAGE
+// ─────────────────────────────────────────────────────────────────────────────
 const DemographicPage: React.FC = () => {
   const { profile, loading } = useUserProfile()
 
@@ -49,7 +326,7 @@ const DemographicPage: React.FC = () => {
   });
   const [entryId, setEntryId] = useState<string | null>(null);
   const [isFinding, setIsFinding] = useState<{ [key: string]: boolean }>({ phone: false, cnic: false });
-  const [isSaving, setIsSaving] = useState(false); // New Loading State
+  const [isSaving, setIsSaving] = useState(false);
   const [showOther, setShowOther] = useState<{ [key: string]: boolean }>({});
   const [openCode, setOpenCode] = useState(false);
   const [openLang, setOpenLang] = useState(false);
@@ -59,16 +336,17 @@ const DemographicPage: React.FC = () => {
   const [openCountry, setOpenCountry] = useState(false);
   const [openProvince, setOpenProvince] = useState(false);
   const [openCity, setOpenCity] = useState(false);
-  const [showPhotoDialog, setShowPhotoDialog] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [showTokenDialog, setShowTokenDialog] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
 
+  // ── NEW: webcam modal state ──────────────────────────────────────────────
+  const [showWebcamModal, setShowWebcamModal] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Autofill country & city from clinic profile on first load only
   useEffect(() => {
@@ -80,8 +358,8 @@ const DemographicPage: React.FC = () => {
       stAddress: profile.location || prev.stAddress || '',
       province: profile.province || prev.province || '',
     }))
-    
   }, [profile])
+
   const countries = useMemo(() => Country.getAllCountries(), []);
   const states = useMemo(() => State.getStatesOfCountry(form.country), [form.country]);
   const cities = useMemo(() => City.getCitiesOfState(form.country, form.province), [form.country, form.province]);
@@ -98,6 +376,7 @@ const DemographicPage: React.FC = () => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 4000);
   };
+
   const updateForm = (key: string, value: any) => {
     setForm((prev: any) => {
       const updated = { ...prev, [key]: value };
@@ -115,8 +394,7 @@ const DemographicPage: React.FC = () => {
             updated.age = age > 0 ? age.toString() : '';
           }
         }
-      }
-      else if (key === 'age') {
+      } else if (key === 'age') {
         const ageNum = parseInt(value);
         if (!isNaN(ageNum)) {
           const today = new Date();
@@ -142,10 +420,7 @@ const DemographicPage: React.FC = () => {
         ? await apiService.findPatientByCnic(value)
         : await apiService.findPatientByPhone(value);
       if (data && data.fields) {
-        // Logic: Ensure backend fields map correctly to form keys
-        // If backend returns 'stAddress', the input with value={form.stAddress} will now work
         const clean = (val: any) => (!val || val === "null") ? "" : val;
-
         setForm({
           ...data.fields,
           phoneNumber: clean(data.fields.phoneNumber) || form.phoneNumber,
@@ -182,11 +457,9 @@ const DemographicPage: React.FC = () => {
     }
   };
 
-  // handleNextStep with this:
   const handleNextStep = async () => {
-    const required = ['phoneNumber', 'firstName', 'gender', 'dob', 'age', 'country', 'city','province'];
+    const required = ['phoneNumber', 'firstName', 'gender', 'dob', 'age', 'country', 'city', 'province'];
     const missing = required.filter(field => !form[field]);
-
     if (missing.length > 0) return showNotification("Please Fill the required fields marked with *.");
 
     setIsSaving(true);
@@ -202,12 +475,10 @@ const DemographicPage: React.FC = () => {
       });
 
       const response = await apiService.saveOrUpdatePatient(finalData, entryId);
-
       if (response.success) {
         setEntryId(response.entryId);
-        // --- NEW LOGIC HERE ---
-        setToken(response.token); // Store the token (e.g., "0001")
-        setShowTokenDialog(true); // Show the success popup
+        setToken(response.token);
+        setShowTokenDialog(true);
       }
     } catch (error: any) {
       showNotification(error.message || "Failed to save details.");
@@ -231,23 +502,19 @@ const DemographicPage: React.FC = () => {
     setPhotoUrl(null);
     setShowOther({});
   };
-  //profile photo Patient
+
+  // ── Photo upload (from gallery file input — unchanged) ───────────────────
   const handlePhotoUpload = async (file: File) => {
     if (!file) return;
-
-    // Format check
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
       showNotification('❌ Only JPG, PNG or WEBP images are allowed.');
       return;
     }
-
-    // Size check (5MB)
     if (file.size > 5 * 1024 * 1024) {
       showNotification('❌ Image is too large. Maximum size is 5MB.');
       return;
     }
-
     setPhotoUploading(true);
     try {
       const data = await apiService.uploadPatientPhoto(file);
@@ -262,6 +529,32 @@ const DemographicPage: React.FC = () => {
       setPhotoUploading(false);
     }
   };
+
+  // ── NEW: handle webcam-captured photo ────────────────────────────────────
+  // The webcam gives us a base64 jpeg. We convert it to a File and reuse
+  // the existing upload flow so the URL is stored server-side identically
+  // to the gallery-pick path.
+  const handleWebcamCapture = useCallback(async (dataUrl: string) => {
+    setShowPhotoOptions(false);
+    setPhotoUploading(true);
+    try {
+      // Convert base64 dataUrl → Blob → File
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const file = new File([blob], `patient-photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+      const data = await apiService.uploadPatientPhoto(file);
+      if (data.url) {
+        setPhotoUrl(data.url);
+        updateForm('profilePhoto', data.url);
+        showNotification('✅ Photo captured and uploaded successfully.');
+      }
+    } catch (err: any) {
+      showNotification(err.message || '❌ Photo upload failed. Please try again.');
+    } finally {
+      setPhotoUploading(false);
+    }
+  }, []);
 
   const getField = (key: string) => demographic.find(f => f.key === key);
 
@@ -285,20 +578,29 @@ const DemographicPage: React.FC = () => {
   }, []);
 
   return (
-
     <div className="min-h-dvh bg-slate-50 flex flex-col items-center w-full">
+
+      {/* ── Webcam Photo Modal ── */}
+      <WebcamPhotoModal
+        isOpen={showWebcamModal}
+        onClose={() => setShowWebcamModal(false)}
+        onCapture={handleWebcamCapture}
+      />
+
       {notification && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#d602a1] text-white px-6 py-3 rounded-full shadow-lg text-sm font-semibold animate-fade-in flex items-center gap-2">
           <span>ℹ️</span> {notification}
         </div>
       )}
+
       {/* navbar */}
       <div className="w-full pb-12">
         <Navbar variant="demographic" />
       </div>
+
       {/* cards */}
       <div className="max-w-3xl px-4 md:px-4 flex flex-col items-center">
-        <Card className="w-full py-2  -mt-10 shadow-2xl border-none rounded-t-[2.5rem] bg-white overflow-hidden mb-8 mx-6 gap-1 md:mx-20">
+        <Card className="w-full py-2 -mt-10 shadow-2xl border-none rounded-t-[2.5rem] bg-white overflow-hidden mb-8 mx-6 gap-1 md:mx-20">
           <div className="px-4 sm:px-6 md:px-8 pt-3 pb-1 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="p-1.5 bg-blue-50 rounded-full">
@@ -322,33 +624,33 @@ const DemographicPage: React.FC = () => {
                     <User className="w-6 h-6 text-[#0297d6] opacity-50" />
                   )}
                 </div>
-                {/* Small camera icon badge */}
+                {/* Camera icon badge */}
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setShowPhotoOptions(true); }}
                   className="absolute -bottom-0.5 -right-0.5 bg-[#0297d6] rounded-full p-0.5 hover:bg-[#0286c2] transition-colors"
                   title="Take photo"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
                 </button>
               </div>
               <span className="text-[9px] text-slate-400 font-medium">Photo</span>
 
-              {/* Hidden inputs */}
+              {/* Hidden gallery file input (no camera capture attr) */}
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => { e.target.files?.[0] && handlePhotoUpload(e.target.files[0]); setShowPhotoOptions(false); }}
-              />
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => { e.target.files?.[0] && handlePhotoUpload(e.target.files[0]); setShowPhotoOptions(false); }}
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    handlePhotoUpload(e.target.files[0]);
+                    setShowPhotoOptions(false);
+                  }
+                }}
               />
 
               {/* Photo Options Dialog */}
@@ -358,27 +660,44 @@ const DemographicPage: React.FC = () => {
                     <DialogTitle className="text-center text-lg font-bold">Upload Photo</DialogTitle>
                   </DialogHeader>
                   <div className="flex flex-col gap-3 mt-4">
+
+                    {/* ── Camera option → opens WebcamPhotoModal ── */}
                     <Button
                       variant="outline"
                       className="h-12 text-base font-semibold flex gap-3 items-center justify-center"
-                      onClick={() => { cameraInputRef.current?.click(); }}
+                      onClick={() => {
+                        setShowPhotoOptions(false);
+                        // Small delay so the options dialog closes before webcam opens
+                        setTimeout(() => setShowWebcamModal(true), 150);
+                      }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[#0297d6]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[#0297d6]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
                       Camera
                     </Button>
+
+                    {/* ── Gallery option → file input ── */}
                     <Button
                       variant="outline"
                       className="h-12 text-base font-semibold flex gap-3 items-center justify-center"
-                      onClick={() => { fileInputRef.current?.click(); }}
+                      onClick={() => fileInputRef.current?.click()}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[#0297d6]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[#0297d6]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                      </svg>
                       Pick from Gallery
                     </Button>
+
                   </div>
                 </DialogContent>
               </Dialog>
             </div>
           </div>
+
           <div className="mx-6 text-center px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[12px] text-slate-500">
             Enter Phone Number or CNIC and click Find to retrieve existing patient data.
           </div>
@@ -429,7 +748,7 @@ const DemographicPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* CNIC + unified Find button */}
+              {/* CNIC + Find button */}
               <div className="space-y-1">
                 <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wide">CNIC</Label>
                 <div className="flex gap-2 h-9">
@@ -482,7 +801,7 @@ const DemographicPage: React.FC = () => {
                 <Input className="h-9 py-0" type="email" value={form.email || ""} onChange={(e) => updateForm('email', e.target.value)} onKeyDown={handleKeyDown} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Gender <span className='text-red-500'>*</span> </Label>
+                <Label className="text-xs md:text-sm font-bold text-slate-500 uppercase">Gender <span className='text-red-500'>*</span></Label>
                 <div className="flex gap-4 mt-1">
                   {['Male', 'Female', 'Other'].map((g) => (
                     <label key={g} className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 font-medium">
@@ -514,37 +833,28 @@ const DemographicPage: React.FC = () => {
                   value={form.dob || ""}
                   onChange={(e) => {
                     let raw = e.target.value.replace(/[^\d]/g, "");
-
-                    // Clamp day to 01–31
                     if (raw.length >= 2) {
                       let day = parseInt(raw.slice(0, 2));
                       if (day > 31) day = 31;
                       if (day < 1 && raw.length === 2) day = 1;
                       raw = String(day).padStart(2, "0") + raw.slice(2);
                     }
-
-                    // Clamp month to 01–12
                     if (raw.length >= 4) {
                       let month = parseInt(raw.slice(2, 4));
                       if (month > 12) month = 12;
                       if (month < 1 && raw.length >= 4) month = 1;
                       raw = raw.slice(0, 2) + String(month).padStart(2, "0") + raw.slice(4);
                     }
-
-                    // Clamp year to not exceed current year
                     if (raw.length >= 8) {
                       const currentYear = new Date().getFullYear();
                       let year = parseInt(raw.slice(4, 8));
                       if (year > currentYear) year = currentYear;
                       raw = raw.slice(0, 4) + String(year);
                     }
-
-                    // Format as DD/MM/YYYY
                     let val = raw;
                     if (val.length >= 3) val = val.slice(0, 2) + "/" + val.slice(2);
                     if (val.length >= 6) val = val.slice(0, 5) + "/" + val.slice(5);
                     val = val.slice(0, 10);
-
                     updateForm('dob', val);
                   }}
                   onKeyDown={handleKeyDown}
@@ -658,7 +968,7 @@ const DemographicPage: React.FC = () => {
                   </Popover>
                 </div>
                 <div>
-                  <Label className="text-[10px] font-bold text-slate-400 uppercase">Province<span className='text-red-500'>*</span></Label>
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase">Province <span className='text-red-500'>*</span></Label>
                   <Popover open={openProvince} onOpenChange={setOpenProvince}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50" disabled={!states.length}>
@@ -688,7 +998,7 @@ const DemographicPage: React.FC = () => {
                 </div>
                 <div>
                   <Label className="text-[10px] font-bold text-slate-400 uppercase">City <span className='text-red-500'>*</span></Label>
-                 <Popover open={openCity} onOpenChange={setOpenCity}>
+                  <Popover open={openCity} onOpenChange={setOpenCity}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50">
                         <span className={form.city ? "text-slate-800" : "text-slate-400"}>
@@ -795,7 +1105,6 @@ const DemographicPage: React.FC = () => {
               <Button variant="ghost" onClick={resetForm} className="rounded-full w-12 h-12 p-0 hover:bg-red-50 hover:text-red-500">
                 <RotateCcw className="w-6 h-6" />
               </Button>
-
               <Button
                 disabled={isSaving}
                 onClick={handleNextStep}
@@ -824,18 +1133,16 @@ const DemographicPage: React.FC = () => {
               Patient has been checked in.
             </DialogDescription>
           </DialogHeader>
-
           <div className="py-6">
             <p className="text-sm text-slate-500 uppercase font-bold tracking-widest mb-2">Patient Token</p>
             <div className="text-6xl font-black text-[#0297d6] bg-slate-50 py-4 rounded-2xl border-2 border-dashed border-slate-200">
               {token || "----"}
             </div>
           </div>
-
           <Button
             onClick={() => {
               setShowTokenDialog(false);
-              resetForm(); // Clear the form for the next patient
+              resetForm();
             }}
             className="w-full bg-[#0297d6] h-12 text-lg font-bold"
           >
@@ -843,7 +1150,6 @@ const DemographicPage: React.FC = () => {
           </Button>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 };
