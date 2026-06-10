@@ -1,6 +1,6 @@
 //vitals page
 'use client'
-import React, { useCallback, useEffect, useState, useMemo } from 'react'
+import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import { COMMON_SYMPTOMS } from './vitals';
 import VitalCard from './_components/VitalCard'
 import { VitalType } from '@/app/_utils/types'
@@ -74,6 +74,7 @@ const VitalsPage = () => {
   const [isHeightCameraOpen, setIsHeightCameraOpen] = useState(false);
   const [heightUnit, setHeightUnit] = useState<'ft' | 'cm'>('ft');
   const [tempUnit, setTempUnit] = useState<'°C' | '°F'>('°C');
+  const tempUnitRef = useRef(tempUnit); // keep ref in sync with state
   const [showNoSessionToast, setShowNoSessionToast] = useState(false);
   const [showRapidTesting, setShowRapidTesting] = useState(false);
   const [rapidTestingData, setRapidTestingData] = useState<RapidTestingData | null>(null);
@@ -174,13 +175,32 @@ const VitalsPage = () => {
   }, []);
 
   useEffect(() => {
+    tempUnitRef.current = tempUnit;
+  }, [tempUnit]);
+
+  useEffect(() => {
     AndroidBridge.initVitalsListener((newVitals) => {
       setVitals(prev => {
-        // Create a copy of the previous state
-        const updated = { ...prev, ...newVitals };
+        let processedVitals = { ...newVitals };
 
-        // LOGIC: If the incoming data contains BP, we must merge it 
-        // specifically to ensure the nested object structure is preserved
+        // Handle temperature: round to 1 decimal and convert if needed
+        if (processedVitals.Temperature) {
+          const numericTemp = parseFloat(processedVitals.Temperature);
+          if (!isNaN(numericTemp)) {
+            if (tempUnitRef.current === '°F') {
+              // Convert incoming Celsius to Fahrenheit and round to 1 decimal
+              const fahrenheit = (numericTemp * 9 / 5 + 32).toFixed(1);
+              processedVitals.Temperature = fahrenheit;
+            } else {
+              // Unit is °C – round to 1 decimal
+              processedVitals.Temperature = numericTemp.toFixed(1);
+            }
+          }
+        }
+
+        const updated = { ...prev, ...processedVitals };
+
+        // Preserve nested BP object if incoming contains BP
         if (newVitals.BP) {
           updated.BP = {
             ...prev.BP,
@@ -195,17 +215,6 @@ const VitalsPage = () => {
     return () => { window.onSerialData = () => { }; };
   }, []);
 
-  const handleOnlineConsult = async () => {
-    if (!vitalsId) {
-      alert("Please save vitals first to initiate a consult.");
-      return;
-    }
-
-    // Logic: Navigate to your Video Call route 
-    // (e.g., /video-call/[vitalsId])
-    // Your Android WebView will then load this Next.js page.
-    router.push(`/video-call/${vitalsId}`);
-  };
 
   // Logic: Initial Trigger (x -> c -> a)
   const handleStartCalibration = async () => {
