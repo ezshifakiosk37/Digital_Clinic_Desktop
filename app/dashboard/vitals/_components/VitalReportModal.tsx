@@ -141,11 +141,11 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         }
 
         // --- EYE TESTING (unchanged) ---
-        if (eyeTesting && (shouldShow(eyeTesting.leftEye) || shouldShow(eyeTesting.rightEye))) {
+        if (eyeTesting && (shouldShow(eyeTesting.leftEyeResult) || shouldShow(eyeTesting.rightEyeResult))) {
             const eyeLines: string[] = [];
             if (shouldShow(eyeTesting.chartType)) eyeLines.push(`Chart: ${eyeTesting.chartType}`);
-            if (shouldShow(eyeTesting.leftEye)) eyeLines.push(`Left Eye: ${eyeTesting.leftEye}`);
-            if (shouldShow(eyeTesting.rightEye)) eyeLines.push(`Right Eye: ${eyeTesting.rightEye}`);
+            if (shouldShow(eyeTesting.leftEyeResult)) eyeLines.push(`Left Eye: ${eyeTesting.leftEyeResult}`);
+            if (shouldShow(eyeTesting.rightEyeResult)) eyeLines.push(`Right Eye: ${eyeTesting.rightEyeResult}`);
             if (eyeLines.length) sections.push('--- EYE SCREENING ---\n' + eyeLines.join('\n'));
         }
 
@@ -345,8 +345,8 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                         <>
                                             <SectionTitle title="Eye Screening" />
                                             {shouldShow(et.chartType) && <Row label="Chart Type" value={et.chartType} />}
-                                            {shouldShow(et.leftEye) && <Row label="Left Eye" value={et.leftEye} />}
-                                            {shouldShow(et.rightEye) && <Row label="Right Eye" value={et.rightEye} />}
+                                            {shouldShow(et.leftEye) && <Row label="Left Eye" value={et.leftEyeResult} />}
+                                            {shouldShow(et.rightEye) && <Row label="Right Eye" value={et.rightEyeResult} />}
                                         </>
                                     )
                                 })()}
