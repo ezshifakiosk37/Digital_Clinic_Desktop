@@ -183,12 +183,18 @@ const VitalsPage = () => {
       setVitals(prev => {
         let processedVitals = { ...newVitals };
 
-        // Convert temperature if needed (incoming value is assumed to be in °C)
-        if (processedVitals.Temperature && tempUnitRef.current === '°F') {
-          const celsius = parseFloat(processedVitals.Temperature);
-          if (!isNaN(celsius)) {
-            const fahrenheit = (celsius * 9 / 5 + 32).toFixed(1);
-            processedVitals.Temperature = fahrenheit;
+        // Handle temperature: round to 1 decimal and convert if needed
+        if (processedVitals.Temperature) {
+          const numericTemp = parseFloat(processedVitals.Temperature);
+          if (!isNaN(numericTemp)) {
+            if (tempUnitRef.current === '°F') {
+              // Convert incoming Celsius to Fahrenheit and round to 1 decimal
+              const fahrenheit = (numericTemp * 9 / 5 + 32).toFixed(1);
+              processedVitals.Temperature = fahrenheit;
+            } else {
+              // Unit is °C – round to 1 decimal
+              processedVitals.Temperature = numericTemp.toFixed(1);
+            }
           }
         }
 
@@ -207,7 +213,7 @@ const VitalsPage = () => {
     });
 
     return () => { window.onSerialData = () => { }; };
-  }, []); // empty dependency – listener registered once
+  }, []);
 
 
   // Logic: Initial Trigger (x -> c -> a)
