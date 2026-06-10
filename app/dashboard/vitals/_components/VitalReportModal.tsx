@@ -78,13 +78,13 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         const { patient, vitals, rapidTesting, eyeTesting, colorBlindTesting, hearingTesting } = report;
         const sections: string[] = [];
 
-        // --- COLLECT ALL VITALS + RAPID DATA INTO ONE ARRAY ---
-        const vitalsAndRapidLines: string[] = [];
-        // Vitals section
-        const vitalsLines: string[] = []
-        if (vitals.Systolic && vitals.Diastolic) vitalsLines.push(`BP: ${vitals.Systolic}/${vitals.Diastolic} mmHg`)
-        if (shouldShow(vitals.BloodOxygen)) vitalsLines.push(`SpO2: ${vitals.BloodOxygen}%`)
-        if (shouldShow(vitals.PulseRate)) vitalsLines.push(`Pulse: ${vitals.PulseRate} bpm`)
+        // --- COMBINED VITALS + RAPID TESTING (single section) ---
+        const combinedVitalsLines: string[] = [];
+
+        // 1. Standard vitals
+        if (vitals.Systolic && vitals.Diastolic) combinedVitalsLines.push(`BP: ${vitals.Systolic}/${vitals.Diastolic} mmHg`);
+        if (shouldShow(vitals.BloodOxygen)) combinedVitalsLines.push(`SpO2: ${vitals.BloodOxygen}%`);
+        if (shouldShow(vitals.PulseRate)) combinedVitalsLines.push(`Pulse: ${vitals.PulseRate} bpm`);
         if (shouldShow(vitals.Temperature)) {
             const t = parseFloat(vitals.Temperature);
             const tempDisplay = isNaN(t)
@@ -92,15 +92,13 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                 : vitals.temperatureUnit === '°F'
                     ? `${((t * 9 / 5) + 32).toFixed(1)}°F`
                     : `${t.toFixed(1)}°C`;
-            vitalsLines.push(`Temp: ${tempDisplay}`);
+            combinedVitalsLines.push(`Temp: ${tempDisplay}`);
         }
-        if (shouldShow(vitals.Weight)) vitalsLines.push(`Weight: ${vitals.Weight} kg`)
-        if (shouldShow(vitals.Height)) vitalsLines.push(`Height: ${formatHeight(vitals.Height, vitals.heightUnit)}`)
-        if (shouldShow(vitals.bmi)) vitalsLines.push(`BMI: ${vitals.bmi}`)
-        if (vitalsLines.length) sections.push('--- VITALS ---\n' + vitalsLines.join('\n'))
+        if (shouldShow(vitals.Weight)) combinedVitalsLines.push(`Weight: ${vitals.Weight} kg`);
+        if (shouldShow(vitals.Height)) combinedVitalsLines.push(`Height: ${formatHeight(vitals.Height, vitals.heightUnit)}`);
+        if (shouldShow(vitals.bmi)) combinedVitalsLines.push(`BMI: ${vitals.bmi}`);
 
-
-        // 2. Rapid testing fields (merge into same list)
+        // 2. Rapid testing fields (merged into the same list)
         if (rapidTesting) {
             const unitMap: Record<string, string> = {
                 bloodSugar: 'mg/dL',
@@ -121,16 +119,16 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                     : raw;
                 const unit = unitMap[field] ? ` ${unitMap[field]}` : '';
                 const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
-                vitalsAndRapidLines.push(`${label}: ${val}${unit}`);
+                combinedVitalsLines.push(`${label}: ${val}${unit}`);
             });
         }
 
-        // 3. Push the combined vitals + rapid section (only if there is any data)
-        if (vitalsAndRapidLines.length) {
-            sections.push('--- VITALS ---\n' + vitalsAndRapidLines.join('\n'));
+        // 3. Push a single VITALS section if there is any data
+        if (combinedVitalsLines.length) {
+            sections.push('--- VITALS ---\n' + combinedVitalsLines.join('\n'));
         }
 
-        // --- EYE TESTING (unchanged) ---
+        // --- EYE TESTING ---
         if (eyeTesting && (shouldShow(eyeTesting.leftEye) || shouldShow(eyeTesting.rightEye))) {
             const eyeLines: string[] = [];
             if (shouldShow(eyeTesting.chartType)) eyeLines.push(`Chart: ${eyeTesting.chartType}`);
@@ -139,12 +137,12 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
             if (eyeLines.length) sections.push('--- EYE SCREENING ---\n' + eyeLines.join('\n'));
         }
 
-        // --- COLOR BLIND TEST (unchanged) ---
+        // --- COLOR BLIND TEST ---
         if (colorBlindTesting && shouldShow(colorBlindTesting.colorBlindResult)) {
             sections.push(`--- COLOR BLIND SCREENING ---\nResult: ${colorBlindTesting.colorBlindResult}`);
         }
 
-        // --- HEARING TEST (unchanged) ---
+        // --- HEARING TEST ---
         if (hearingTesting && (shouldShow(hearingTesting.leftEarResult) || shouldShow(hearingTesting.rightEarResult))) {
             const hearingLines: string[] = [];
             if (shouldShow(hearingTesting.leftEarResult)) hearingLines.push(`Left Ear: ${hearingTesting.leftEarResult}`);
@@ -152,7 +150,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
             if (hearingLines.length) sections.push('--- HEARING SCREENING ---\n' + hearingLines.join('\n'));
         }
 
-        // --- SYMPTOMS (unchanged) ---
+        // --- SYMPTOMS ---
         if (report.vitals?.symptoms && shouldShow(report.vitals.symptoms)) {
             const symptomText = typeof report.vitals.symptoms === 'string'
                 ? report.vitals.symptoms
