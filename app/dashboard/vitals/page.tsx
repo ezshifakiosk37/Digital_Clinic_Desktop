@@ -50,6 +50,7 @@ const VitalsPage = () => {
   const [openTokenDialog, setOpenTokenDialog] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [sessionName, setSessionName] = useState("");
+  const [sessionToken, setSessionToken] = useState("");
   const [sessionAge, setSessionAge] = useState();
   const [sessionGender, setSessionGender] = useState();
   const [showExpiredToast, setShowExpiredToast] = useState(false);
@@ -101,7 +102,7 @@ const VitalsPage = () => {
   const router = useRouter()
 
   // ── Compare two vitals objects field by field ──
-const vitalsChanged = (current: any, prefetched: any): boolean => {
+  const vitalsChanged = (current: any, prefetched: any): boolean => {
     if (!prefetched) return true;
     const norm = (v: any) => (v ?? '').toString().trim();
     return (
@@ -224,6 +225,7 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
     setSessionAge(patient.age)
     setSessionGender(patient.gender)
     setTokenNumber(patient.token || "");
+    setSessionToken(patient.token?.toString() || "");
     setOpenTokenDialog(false);
     setHistory([]);
     setHistorySearchPhone("");
@@ -236,6 +238,8 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
       Weight: "",
       symptoms: []
     });
+    setHeightUnit('ft');
+    setTempUnit('°C');
     setStep(1);
     // setPatientType('Walk-in');
     setVitalsSaved(false);
@@ -334,23 +338,12 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
 
     setLoading(true);
     try {
-      const heightForSave = heightUnit === 'cm'
-        ? (() => {
-          const totalInches = parseFloat(vitals.Height) / 2.54;
-          const ft = Math.floor(totalInches / 12);
-          const inch = Math.round(totalInches % 12);
-          return `${ft}.${inch}`;
-        })()
-        : vitals.Height;
-
-      const tempInCelsius = tempUnit === '°F'
-        ? ((parseFloat(vitals.Temperature) - 32) * 5 / 9).toFixed(1)
-        : vitals.Temperature;
-
       const vitalsToSave = {
         ...vitals,
-        Height: heightForSave,
-        Temperature: tempInCelsius,
+        Height: vitals.Height,           // save as-is in whatever unit user entered
+        heightUnit: heightUnit,          // 'ft' or 'cm'
+        Temperature: vitals.Temperature, // save as-is in whatever unit user entered
+        temperatureUnit: tempUnit,       // '°C' or '°F'
         bmi: bmi?.value ?? null,
         patientType: 'walk-in',
       };
@@ -419,23 +412,30 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
           const v = latestRes.vital;
           fetchedVitalsId = v.id || '';
           initialVitals = {
-            BP: {
-              value1: v.Systolic || '',
-              value2: v.Diastolic || ''
-            },
+            BP: { value1: v.Systolic || '', value2: v.Diastolic || '' },
             PulseRate: v.PulseRate || "",
             Temperature: v.Temperature || '',
             Spo2: v.BloodOxygen || '',
             Height: v.Height || "",
             Weight: v.Weight || "",
-            symptoms: v.symptoms
-              ? (typeof v.symptoms === 'string'
-                ? v.symptoms.split(",").map((s: string) => s.trim())
-                : Array.isArray(v.symptoms)
-                  ? v.symptoms
-                  : [])
-              : []
+            symptoms: v.symptoms ? (typeof v.symptoms === 'string' ? v.symptoms.split(",").map((s: string) => s.trim()) : Array.isArray(v.symptoms) ? v.symptoms : []) : []
           };
+          // Restore units
+          if (v.heightUnit) setHeightUnit(v.heightUnit as 'ft' | 'cm');
+          if (v.temperatureUnit) setTempUnit(v.temperatureUnit as '°C' | '°F');
+
+          // Also store in prefetchedVitals
+          setPrefetchedVitals({
+            PulseRate: v.PulseRate || '',
+            Spo2: v.BloodOxygen || '',
+            BP: { value1: v.Systolic || '', value2: v.Diastolic || '' },
+            Temperature: v.Temperature || '',
+            Weight: v.Weight || '',
+            Height: v.Height || '',
+            symptoms: initialVitals.symptoms,
+            heightUnit: v.heightUnit || 'ft',
+            temperatureUnit: v.temperatureUnit || '°C',
+          });
           // Store in the SAME shape as vitalsToSave so comparison works correctly
           setPrefetchedVitals({
             PulseRate: v.PulseRate || '',
@@ -445,6 +445,8 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
             Weight: v.Weight || '',
             Height: v.Height || '',
             symptoms: initialVitals.symptoms,
+            heightUnit: v.heightUnit || 'ft',
+            temperatureUnit: v.temperatureUnit || '°C',
           });
 
           // ── Fetch all test data if vitalsId exists ──
@@ -481,6 +483,7 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
         );
         setSessionAge(res.age || "")
         setSessionGender(res.gender || "")
+        setSessionToken(tokenNumber)
         setOpenTokenDialog(false);
         setHistory([]);
         setHistorySearchPhone("");
@@ -706,7 +709,9 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
     return (
       (data.chartType ?? 'Not Performed') !== (prefetched.chartType ?? 'Not Performed') ||
       (data.leftEye ?? 'Not Performed') !== (prefetched.leftEye ?? 'Not Performed') ||
-      (data.rightEye ?? 'Not Performed') !== (prefetched.rightEye ?? 'Not Performed')
+      (data.rightEye ?? 'Not Performed') !== (prefetched.rightEye ?? 'Not Performed') ||
+      (data.leftEyeResult ?? 'Not Performed') !== (prefetched.leftEyeResult ?? 'Not Performed') ||
+      (data.rightEyeResult ?? 'Not Performed') !== (prefetched.rightEyeResult ?? 'Not Performed')
     );
   };
 
@@ -769,6 +774,7 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
           }}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
+          sessionToken={sessionToken}
           sessionAge={sessionAge}
           sessionGender={sessionGender}
         />
@@ -785,6 +791,8 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
                   chartType: data.chartType ?? "Not Performed",
                   leftEye: data.leftEye ?? "Not Performed",
                   rightEye: data.rightEye ?? "Not Performed",
+                  leftEyeResult: data.leftEyeResult ?? "Not Performed",
+                  rightEyeResult: data.rightEyeResult ?? "Not Performed",
                 });
                 setShowEyeToast(true);
                 setTimeout(() => setShowEyeToast(false), 3000);
@@ -805,6 +813,7 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
           }}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
+          sessionToken={sessionToken}
         />
       )}
 
@@ -841,6 +850,7 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
           }}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
+          sessionToken={sessionToken}
         />
       )}
 
@@ -872,6 +882,7 @@ const vitalsChanged = (current: any, prefetched: any): boolean => {
           }}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
+          sessionToken={sessionToken}
         />
       )}
       {/* ── VITAL REPORT MODAL ── */}

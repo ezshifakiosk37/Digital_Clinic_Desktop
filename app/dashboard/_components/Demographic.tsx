@@ -78,14 +78,9 @@ const DemographicPage: React.FC = () => {
       country: profile.country || prev.country || '',
       city: profile.city || prev.city || '',
       stAddress: profile.location || prev.stAddress || '',
-      province: '',
+      province: profile.province || prev.province || '',
     }))
-    setTimeout(() => {
-      setForm((prev: any) => ({
-        ...prev,
-        province: profile.province || '',
-      }))
-    }, 300)
+    
   }, [profile])
   const countries = useMemo(() => Country.getAllCountries(), []);
   const states = useMemo(() => State.getStatesOfCountry(form.country), [form.country]);
@@ -189,7 +184,7 @@ const DemographicPage: React.FC = () => {
 
   // handleNextStep with this:
   const handleNextStep = async () => {
-    const required = ['phoneNumber', 'firstName', 'gender', 'dob', 'age', 'country', 'city'];
+    const required = ['phoneNumber', 'firstName', 'gender', 'dob', 'age', 'country', 'city','province'];
     const missing = required.filter(field => !form[field]);
 
     if (missing.length > 0) return showNotification("Please Fill the required fields marked with *.");
@@ -663,7 +658,7 @@ const DemographicPage: React.FC = () => {
                   </Popover>
                 </div>
                 <div>
-                  <Label className="text-[10px] font-bold text-slate-400 uppercase">Province</Label>
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase">Province<span className='text-red-500'>*</span></Label>
                   <Popover open={openProvince} onOpenChange={setOpenProvince}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-between h-9 text-left bg-slate-50/50" disabled={!states.length}>

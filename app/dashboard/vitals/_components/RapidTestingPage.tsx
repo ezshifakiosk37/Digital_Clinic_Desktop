@@ -1,6 +1,7 @@
 'use client'
 import dynamic from 'next/dynamic';
 import React, { useState, useEffect, useRef } from 'react'
+import NavBarTestPages from './NavBarTestPages'
 // Dynamically import react-pdf components (client-only)
 const PDFDocument = dynamic(
     () => import('react-pdf').then(mod => mod.Document),
@@ -69,17 +70,17 @@ const MORE_ICONS: Record<string, React.ReactNode> = {
 }
 
 const DEFAULT_TESTS: TestItem[] = [
-    { id: 'ecg', label: 'ECG', result: 'Not Performed' },
-    { id: 'hiv', label: 'HIV', result: 'Not Performed' },
-    { id: 'hepatitis', label: 'Hepatitis', result: 'Not Performed' },
-    { id: 'hbsag', label: 'HBsAg', result: 'Not Performed' },
-    { id: 'hcvab', label: 'HCV Ab', result: 'Not Performed' },
-    { id: 'hiv12ab', label: 'HIV ½ Ab', result: 'Not Performed' },
-    { id: 'dengue', label: 'Dengue NS1 Ag', result: 'Not Performed' },
-    { id: 'syphilis', label: 'Syphilis Ab', result: 'Not Performed' },
-    { id: 'typhoid', label: 'Typhoid Ab', result: 'Not Performed' },
-    { id: 'tb', label: 'TB (Tuberculosis)', result: 'Not Performed' },
-    { id: 'malaria', label: 'Malaria PF/PV Ag', result: 'Not Performed' },
+    { id: 'ecg', label: 'ECG', result: 'Not Performed' }, //Electrocardiogram
+    { id: 'hiv', label: 'HIV', result: 'Not Performed' }, //Human Immunodeficiency Virus
+    { id: 'hepatitis', label: 'Hepatitis', result: 'Not Performed' }, // Hepatitis
+    { id: 'hbsag', label: 'HBsAg', result: 'Not Performed' }, //hbsag: "Hepatitis B Surface Antigen",
+    { id: 'hcvab', label: 'HCV Ab', result: 'Not Performed' }, //Hepatitis C Virus Antibody
+    { id: 'hiv12ab', label: 'HIV ½ Ab', result: 'Not Performed' }, //Human Immunodeficiency Virus Type 1 and Type 2 Antibody
+    { id: 'dengue', label: 'Dengue NS1 Ag', result: 'Not Performed' }, //Dengue Non-Structural Protein 1 Antigen
+    { id: 'syphilis', label: 'Syphilis Ab', result: 'Not Performed' }, //Syphilis Antibody
+    { id: 'typhoid', label: 'Typhoid Ab', result: 'Not Performed' }, //Typhoid Antibody
+    { id: 'tb', label: 'TB (Tuberculosis)', result: 'Not Performed' }, //Tuberculosis
+    { id: 'malaria', label: 'Malaria PF/PV Ag', result: 'Not Performed' }, //Malaria Plasmodium falciparum / Plasmodium vivax Antigen
 ]
 
 const MORE_TEST_OPTIONS: Omit<MoreTest, 'value'>[] = [
@@ -226,6 +227,7 @@ interface RapidTestingPageProps {
     onBack: () => void
     sessionName?: string
     sessionPhone?: string
+    sessionToken?: string
     sessionAge?: string
     sessionGender?: string
     vitalsId?: string
@@ -238,6 +240,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     onBack,
     sessionName = '',
     sessionPhone = '',
+    sessionToken = '',
     sessionAge = "",
     sessionGender = "",
     vitalsId,
@@ -401,39 +404,13 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                 message={`ECG report "${ecgPopup.filename}" downloaded successfully.`}
             />
 
-            {/* ── Navbar — matches existing Navbar component style exactly ── */}
-            <nav className="w-full bg-[#0297d6] text-white px-4 py-4 shadow-md sticky top-0 z-10">
-                <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
-                    {/* Left: EZShifa branding */}
-                    <div className="flex items-center gap-3 min-w-0">
-                        <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-2xl font-bold tracking-tight whitespace-nowrap">EZShifa</span>
-                                <span className="opacity-40 text-lg shrink-0">|</span>
-                                <span className="text-lg font-semibold whitespace-nowrap">Digital Health Clinic</span>
-                            </div>
-                            <p className="text-sm font-bold text-white mt-0.5 leading-none tracking-wide">Rapid Testing</p>
-                        </div>
-                    </div>
-                    {/* Right: patient session info */}
-                    {(sessionName || sessionPhone) && (
-                        <div className="flex flex-col items-end gap-0.5 shrink-0">
-                            {sessionName && (
-                                <span className="text-white text-xs font-medium">
-                                    <span className="text-white/100 uppercase tracking-wider text-[10px] lg:text-sm md:text-lg mr-1">NAME:</span>
-                                    <span className="font-bold md:text-lg lg:text-sm ">{sessionName}</span>
-                                </span>
-                            )}
-                            {sessionPhone && (
-                                <span className="text-white text-xs font-medium">
-                                    <span className="text-white/100 uppercase tracking-wider text-[10px] mr-1 lg:text-sm  md:text-lg">PHONE:</span>
-                                    <span className="font-bold md:text-lg lg:text-sm">{sessionPhone}</span>
-                                </span>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </nav>
+            {/* ── Navbar ── */}
+            <NavBarTestPages
+                title="Rapid Testing"
+                sessionName={sessionName}
+                sessionPhone={sessionPhone}
+                sessionToken={sessionToken}
+            />
 
             {/* ── Scrollable Content ── */}
             <div className="p-4 md:p-6 space-y-2">

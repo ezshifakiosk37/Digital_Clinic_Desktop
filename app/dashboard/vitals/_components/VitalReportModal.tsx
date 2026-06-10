@@ -61,8 +61,9 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
     }, [isOpen, vitalsId])
 
     // Helper to format height (assumes stored as "feet.inches")
-    const formatHeight = (h: string) => {
+    const formatHeight = (h: string, unit?: string) => {
         if (!h) return '—'
+        if (unit === 'cm') return `${h} cm`
         const parts = h.split('.')
         return parts.length === 2 ? `${parts[0]}ft ${parts[1]}in` : `${h} ft`
     }
@@ -75,6 +76,18 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
 
         // --- COLLECT ALL VITALS + RAPID DATA INTO ONE ARRAY ---
         const vitalsAndRapidLines: string[] = [];
+        // Vitals section
+        const vitalsLines: string[] = []
+        if (vitals.Systolic && vitals.Diastolic) vitalsLines.push(`BP: ${vitals.Systolic}/${vitals.Diastolic} mmHg`)
+        if (shouldShow(vitals.BloodOxygen)) vitalsLines.push(`SpO2: ${vitals.BloodOxygen}%`)
+        if (shouldShow(vitals.PulseRate)) vitalsLines.push(`Pulse: ${vitals.PulseRate} bpm`)
+        if (shouldShow(vitals.Temperature)) vitalsLines.push(
+                `Temp: ${vitals.Temperature}${vitals.temperatureUnit ?? (parseFloat(vitals.Temperature) > 50 ? '°F' : '°C')}`
+            )
+        if (shouldShow(vitals.Weight)) vitalsLines.push(`Weight: ${vitals.Weight} kg`)
+        if (shouldShow(vitals.Height)) vitalsLines.push(`Height: ${formatHeight(vitals.Height, vitals.heightUnit)}`)
+        if (shouldShow(vitals.bmi)) vitalsLines.push(`BMI: ${vitals.bmi}`)
+        if (vitalsLines.length) sections.push('--- VITALS ---\n' + vitalsLines.join('\n'))
 
         // 1. Standard vitals
         if (vitals.Systolic && vitals.Diastolic) {
@@ -286,9 +299,14 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                             {shouldShow(v.Systolic) && shouldShow(v.Diastolic) && <Row label="Blood Pressure" value={`${v.Systolic}/${v.Diastolic} mmHg`} />}
                                             {shouldShow(v.BloodOxygen) && <Row label="SpO2" value={`${v.BloodOxygen}%`} />}
                                             {shouldShow(v.PulseRate) && <Row label="Pulse Rate" value={`${v.PulseRate} bpm`} />}
-                                            {shouldShow(v.Temperature) && <Row label="Temperature" value={`${v.Temperature}°C`} />}
+                                            {shouldShow(v.Temperature) && (
+                                                    <Row
+                                                        label="Temperature"
+                                                        value={`${v.Temperature}${v.temperatureUnit ?? (parseFloat(v.Temperature) > 50 ? '°F' : '°C')}`}
+                                                    />
+                                            )}
                                             {shouldShow(v.Weight) && <Row label="Weight" value={`${v.Weight} kg`} />}
-                                            {shouldShow(v.Height) && <Row label="Height" value={formatHeight(v.Height)} />}
+                                            {shouldShow(v.Height) && <Row label="Height" value={formatHeight(v.Height, v.heightUnit)} />}
                                             {shouldShow(v.bmi) && <Row label="BMI" value={v.bmi} />}
                                             {rt && rapidFields.map(f => {
                                                 if (!shouldShow(rt[f])) return null

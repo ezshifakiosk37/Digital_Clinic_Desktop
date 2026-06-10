@@ -25,7 +25,7 @@ import Webcam from 'react-webcam';
 //  So height = fraction of frame from head to floor × total visible height.
 //
 // ─────────────────────────────────────────────────────────────────────────────
-const PATIENT_DISTANCE_FT = 6;
+const PATIENT_DISTANCE_FT = 6.75;
 const CAMERA_VFOV_DEG = 60;
 
 const halfFovRad = (CAMERA_VFOV_DEG / 2) * (Math.PI / 180);
@@ -43,7 +43,7 @@ const VISIBLE_HEIGHT_INCHES = 2 * (PATIENT_DISTANCE_FT * 12) * Math.tan(halfFovR
 // Agar app chhota bata raha hai: factor 1 se bada karo (e.g. 1.08)
 // Agar app bada bata raha hai:  factor 1 se chhota karo (e.g. 0.92)
 // ─────────────────────────────────────────────────────────────────────────────
-const CALIBRATION_FACTOR = 1.04; // ← SIRF YE EK NUMBER CHANGE KARO
+const CALIBRATION_FACTOR = 0.925; // ← SIRF YE EK NUMBER CHANGE KARO
 
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -1,13 +1,13 @@
 'use client'
 import React, { useState } from 'react'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
-
+import NavBarTestPages from './NavBarTestPages'
 // ─── Types ───────────────────────────────────────────────────────────────────
 export interface ColorBlindTestData {
     plate1: string;
     plate2: string;
     plate3: string;
-    colorBlindResult: "Passed" | "Failed" | "Not Performed";
+    colorBlindResult: "Normal" | "Consultation Required" | "Not Performed";
     skipped: boolean;
 }
 
@@ -17,6 +17,7 @@ interface ColorBlindTestPageProps {
     onBack: () => void
     sessionName?: string
     sessionPhone?: string
+    sessionToken?: string
     vitalsId?: string
     prefetchedData?: any
 }
@@ -35,6 +36,7 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
     onBack,
     sessionName = '',
     sessionPhone = '',
+    sessionToken = '',
     vitalsId,
     prefetchedData,
 }) => {
@@ -71,7 +73,7 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
                 plate3 === PLATES[2].correct
             ].filter(Boolean).length
 
-            const colorBlindResult = correctCount >= 2 ? "Passed" : "Failed"
+            const colorBlindResult = correctCount >= 2 ? "Normal" : "Consultation Required"
 
             onNext({
                 plate1,
@@ -113,21 +115,9 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
                         <div className="w-12 h-12 rounded-full bg-[#0297d6] flex items-center justify-center text-white text-2xl">🎨</div>
                         <h2 className="text-lg font-black text-slate-800 text-center">Previous Color Blind Result</h2>
                         <div className="w-full bg-slate-50 rounded-xl p-4 flex flex-col gap-2">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-slate-500 font-medium">Plate 1</span>
-                                <span className="font-bold text-slate-800">{prefetchedData.plate1 ?? '—'}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-slate-500 font-medium">Plate 2</span>
-                                <span className="font-bold text-slate-800">{prefetchedData.plate2 ?? '—'}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-slate-500 font-medium">Plate 3</span>
-                                <span className="font-bold text-slate-800">{prefetchedData.plate3 ?? '—'}</span>
-                            </div>
                             <div className="flex justify-between text-sm border-t border-slate-200 pt-2 mt-1">
                                 <span className="text-slate-500 font-medium">Result</span>
-                                <span className={`font-bold ${prefetchedData.colorBlindResult === 'Passed' ? 'text-green-500' : 'text-red-500'}`}>
+                                <span className={`font-bold ${prefetchedData.colorBlindResult === 'Normal' ? 'text-green-500' : 'text-red-500'}`}>
                                     {prefetchedData.colorBlindResult ?? '—'}
                                 </span>
                             </div>
@@ -151,45 +141,22 @@ const ColorBlindTestPage: React.FC<ColorBlindTestPageProps> = ({
             )}
 
             {/* ── Navbar ── */}
-            <nav className="w-full bg-[#0297d6] text-white px-4 py-4 shadow-md shrink-0 sticky top-0 z-10">
-                <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-2xl font-bold tracking-tight whitespace-nowrap">EZShifa</span>
-                            <span className="opacity-40 text-lg shrink-0">|</span>
-                            <span className="text-lg font-semibold whitespace-nowrap">Digital Health Clinic</span>
-                        </div>
-                        <p className="text-sm font-bold text-white mt-0.5 leading-none">Color Blind Screening</p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                        {(sessionName || sessionPhone) && (
-                            <div className="flex flex-col items-end gap-0.5">
-                                {sessionName && (
-                                    <span className="text-white text-xs font-medium">
-                                        <span className="text-white/100 uppercase tracking-wider text-[10px] md:text-lg mr-1 lg:text-sm">NAME:</span>
-                                        <span className="font-bold md:text-lg lg:text-sm ">{sessionName}</span>
-                                    </span>
-                                )}
-                                {sessionPhone && (
-                                    <span className="text-white text-xs font-medium">
-                                        <span className="text-white/100 uppercase tracking-wider text-[10px] mr-1 md:text-lg lg:text-sm">PHONE:</span>
-                                        <span className="font-bold md:text-lg lg:text-sm">{sessionPhone}</span>
-                                    </span>
-                                )}
-                            </div>
-                        )}
-                        {isFirstPlate && (
-                            <button
-                                onClick={handleSkip}
-                                className="bg-white text-[#0297d6] font-bold px-6 py-2 mt-1 mr-1 rounded-full hover:text-[#000000] transition-colors shadow-md"
-                            >
-                                Skip
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </nav>
-
+            <NavBarTestPages
+                title="Color Blind Screening"
+                sessionName={sessionName}
+                sessionPhone={sessionPhone}
+                sessionToken={sessionToken}
+                rightSlot={
+                    isFirstPlate ? (
+                        <button
+                            onClick={handleSkip}
+                            className="bg-white text-[#0297d6] font-bold px-6 py-2 mt-1 mr-1 rounded-full hover:text-[#000000] transition-colors shadow-md"
+                        >
+                            Skip
+                        </button>
+                    ) : undefined
+                }
+            />
             {/* Main Content */}
             <div className="flex-1 flex flex-col items-center justify-between px-4 py-3">
 

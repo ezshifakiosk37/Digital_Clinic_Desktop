@@ -1,12 +1,12 @@
 'use client'
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-
+import NavBarTestPages from './NavBarTestPages'
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface HearingTestData {
     leftEar: Record<number, number>
     rightEar: Record<number, number>
-    leftResult: 'Normal' | 'Mild Loss' | 'Moderate Loss' | 'Severe Loss' | 'Skipped'
-    rightResult: 'Normal' | 'Mild Loss' | 'Moderate Loss' | 'Severe Loss' | 'Skipped'
+    leftResult: 'Normal' | 'Consultation Required' | 'Skipped'
+    rightResult: 'Normal' | 'Consultation Required' | 'Skipped'
     skipped: boolean
 }
 
@@ -16,6 +16,7 @@ interface HearingTestPageProps {
     onBack: () => void
     sessionName?: string
     sessionPhone?: string
+    sessionToken?: string
     vitalsId?: string
     prefetchedData?: any
 }
@@ -30,9 +31,9 @@ function getHearingResult(t: Record<number, number>): HearingTestData['leftResul
     if (!v.length) return 'Skipped'
     const avg = v.reduce((a, b) => a + b, 0) / v.length
     if (avg <= 25) return 'Normal'
-    if (avg <= 40) return 'Mild Loss'
-    if (avg <= 60) return 'Moderate Loss'
-    return 'Severe Loss'
+    if (avg <= 40) return 'Normal'
+    if (avg <= 60) return 'Consultation Required'
+    return 'Consultation Required'
 }
 
 // Mirrors Android TuneThread: samples[i] = (short)(amp * Math.sin(ph))
@@ -253,7 +254,7 @@ const EarIcon = ({ className }: { className?: string }) => (
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const HearingTestPage: React.FC<HearingTestPageProps> = ({
     onNext, onSkip, onBack,
-    sessionName = '', sessionPhone = '',
+    sessionName = '', sessionPhone = '', sessionToken = '',
     vitalsId,
     prefetchedData,
 }) => {
@@ -411,46 +412,23 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
                 />
             )}
 
-            {/* ── Navbar ── */}
-            <nav className="w-full bg-[#0297d6] text-white px-4 py-4 shadow-md shrink-0 sticky top-0 z-10">
-                <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-2xl font-bold tracking-tight whitespace-nowrap">EZShifa</span>
-                            <span className="opacity-40 text-lg shrink-0">|</span>
-                            <span className="text-lg font-semibold whitespace-nowrap">Digital Health Clinic</span>
-                        </div>
-                        <p className="text-sm font-bold text-white mt-0.5 leading-none">Hearing Screening</p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                        {(sessionName || sessionPhone) && (
-                            <div className="flex flex-col items-end gap-0.5">
-                                {sessionName && (
-                                    <span className="text-white text-xs font-medium">
-                                        <span className="text-white/100 uppercase tracking-wider text-[10px] md:text-lg mr-1 lg:text-sm">NAME:</span>
-                                        <span className="font-bold md:text-lg lg:text-sm">{sessionName}</span>
-                                    </span>
-                                )}
-                                {sessionPhone && (
-                                    <span className="text-white text-xs font-medium">
-                                        <span className="text-white/100 uppercase tracking-wider text-[10px] mr-1 md:text-lg lg:text-sm">PHONE:</span>
-                                        <span className="font-bold md:text-lg lg:text-sm">{sessionPhone}</span>
-                                    </span>
-                                )}
-                            </div>
-                        )}
-                        {/* Skip — top-right in navbar, same as EyeTestingPage */}
-                        {(leftDone === 0 && rightDone === 0) && (
-                            <button
-                                onClick={() => { stopCurrentTone(); onSkip() }}
-                                className="px-5 py-2 bg-white text-[#0297d6] font-bold rounded-full text-sm hover:bg-slate-100 transition-colors"
-                            >
-                                Skip
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </nav>
+                        {/* ── Navbar ── */}
+            <NavBarTestPages
+                title="Hearing Screening"
+                sessionName={sessionName}
+                sessionPhone={sessionPhone}
+                sessionToken={sessionToken}
+                rightSlot={
+                    (leftDone === 0 && rightDone === 0) ? (
+                        <button
+                            onClick={() => { stopCurrentTone(); onSkip() }}
+                            className="px-5 py-2 bg-white text-[#0297d6] font-bold rounded-full text-sm hover:bg-slate-100 transition-colors"
+                        >
+                            Skip
+                        </button>
+                    ) : undefined
+                }
+            />
 
             {/* ── Sub-header ── */}
             <div className="bg-slate-50 border-b border-slate-100 px-5 py-2 shrink-0 flex items-center justify-between">
