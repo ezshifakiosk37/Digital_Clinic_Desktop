@@ -62,11 +62,15 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
 
     // Helper to format height (assumes stored as "feet.inches")
     const formatHeight = (h: string, unit?: string) => {
-        if (!h) return '—'
-        if (unit === 'cm') return `${h} cm`
-        const parts = h.split('.')
-        return parts.length === 2 ? `${parts[0]}ft ${parts[1]}in` : `${h} ft`
-    }
+        if (!h) return '—';
+        // DB always stores cm now
+        if (unit === 'cm') return `${parseFloat(h).toFixed(0)} cm`;
+        // Convert cm → feet.inches for display
+        const totalInches = parseFloat(h) / 2.54;
+        const ft = Math.floor(totalInches / 12);
+        const inch = Math.round(totalInches % 12);
+        return `${ft}ft ${inch}in`;
+    };
 
     // Build thermal print payload from fetched report
     const buildPrintPayload = useCallback(() => {
@@ -79,9 +83,15 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         if (vitals.Systolic && vitals.Diastolic) vitalsLines.push(`BP: ${vitals.Systolic}/${vitals.Diastolic} mmHg`)
         if (shouldShow(vitals.BloodOxygen)) vitalsLines.push(`SpO2: ${vitals.BloodOxygen}%`)
         if (shouldShow(vitals.PulseRate)) vitalsLines.push(`Pulse: ${vitals.PulseRate} bpm`)
-        if (shouldShow(vitals.Temperature)) vitalsLines.push(
-                `Temp: ${vitals.Temperature}${vitals.temperatureUnit ?? (parseFloat(vitals.Temperature) > 50 ? '°F' : '°C')}`
-            )
+        if (shouldShow(vitals.Temperature)) {
+            const t = parseFloat(vitals.Temperature);
+            const tempDisplay = isNaN(t)
+                ? vitals.Temperature
+                : vitals.temperatureUnit === '°F'
+                    ? `${((t * 9 / 5) + 32).toFixed(1)}°F`
+                    : `${t.toFixed(1)}°C`;
+            vitalsLines.push(`Temp: ${tempDisplay}`);
+        }
         if (shouldShow(vitals.Weight)) vitalsLines.push(`Weight: ${vitals.Weight} kg`)
         if (shouldShow(vitals.Height)) vitalsLines.push(`Height: ${formatHeight(vitals.Height, vitals.heightUnit)}`)
         if (shouldShow(vitals.bmi)) vitalsLines.push(`BMI: ${vitals.bmi}`)
@@ -267,10 +277,17 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                             {shouldShow(v.BloodOxygen) && <Row label="SpO2" value={`${v.BloodOxygen}%`} />}
                                             {shouldShow(v.PulseRate) && <Row label="Pulse Rate" value={`${v.PulseRate} bpm`} />}
                                             {shouldShow(v.Temperature) && (
-                                                    <Row
-                                                        label="Temperature"
-                                                        value={`${v.Temperature}${v.temperatureUnit ?? (parseFloat(v.Temperature) > 50 ? '°F' : '°C')}`}
-                                                    />
+                                                <Row
+                                                    label="Temperature"
+                                                    value={(() => {
+                                                        const t = parseFloat(v.Temperature);
+                                                        if (isNaN(t)) return v.Temperature;
+                                                        if (v.temperatureUnit === '°F') {
+                                                            return `${((t * 9 / 5) + 32).toFixed(1)}°F`;
+                                                        }
+                                                        return `${t.toFixed(1)}°C`;
+                                                    })()}
+                                                />
                                             )}
                                             {shouldShow(v.Weight) && <Row label="Weight" value={`${v.Weight} kg`} />}
                                             {shouldShow(v.Height) && <Row label="Height" value={formatHeight(v.Height, v.heightUnit)} />}
