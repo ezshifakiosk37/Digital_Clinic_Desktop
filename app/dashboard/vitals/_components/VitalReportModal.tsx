@@ -89,16 +89,6 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         if (shouldShow(vitals.bmi)) vitalsLines.push(`BMI: ${vitals.bmi}`)
         if (vitalsLines.length) sections.push('--- VITALS ---\n' + vitalsLines.join('\n'))
 
-        // 1. Standard vitals
-        if (vitals.Systolic && vitals.Diastolic) {
-            vitalsAndRapidLines.push(`BP: ${vitals.Systolic}/${vitals.Diastolic} mmHg`);
-        }
-        if (shouldShow(vitals.BloodOxygen)) vitalsAndRapidLines.push(`SpO2: ${vitals.BloodOxygen}%`);
-        if (shouldShow(vitals.PulseRate)) vitalsAndRapidLines.push(`Pulse: ${vitals.PulseRate} bpm`);
-        if (shouldShow(vitals.Temperature)) vitalsAndRapidLines.push(`Temp: ${vitals.Temperature}°C`);
-        if (shouldShow(vitals.Weight)) vitalsAndRapidLines.push(`Weight: ${vitals.Weight} kg`);
-        if (shouldShow(vitals.Height)) vitalsAndRapidLines.push(`Height: ${formatHeight(vitals.Height)}`);
-        if (shouldShow(vitals.bmi)) vitalsAndRapidLines.push(`BMI: ${vitals.bmi}`);
 
         // 2. Rapid testing fields (merge into same list)
         if (rapidTesting) {
