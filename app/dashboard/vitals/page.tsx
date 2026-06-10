@@ -364,13 +364,16 @@ const VitalsPage = () => {
     try {
       const vitalsToSave = {
         ...vitals,
-        Height: vitals.Height,           // save as-is in whatever unit user entered
-        heightUnit: heightUnit,          // 'ft' or 'cm'
-        Temperature: vitals.Temperature, // save as-is in whatever unit user entered
-        temperatureUnit: tempUnit,       // '°C' or '°F'
+        Height: vitals.Height,
+        heightUnit: heightUnit,
+        Temperature: vitals.Temperature,
+        temperatureUnit: tempUnit,
         bmi: bmi?.value ?? null,
         patientType: 'walk-in',
       };
+
+      // Debug: confirm what's being sent
+      console.log('[vitalsToSave] Height:', vitals.Height, 'heightUnit:', heightUnit, 'Temp:', vitals.Temperature, 'tempUnit:', tempUnit);
 
       let currentVitalsId = vitalsId;
 
