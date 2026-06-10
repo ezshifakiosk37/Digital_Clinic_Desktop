@@ -319,42 +319,30 @@ const VitalsPage = () => {
 
   const toggleTempUnit = () => {
     setTempUnit(prev => {
+      const currentTemp = vitals.Temperature;
+      if (!currentTemp) return prev === '°C' ? '°F' : '°C';
+
+      const numeric = parseFloat(currentTemp);
+      if (isNaN(numeric)) return prev === '°C' ? '°F' : '°C';
+
       if (prev === '°C') {
-        // °C → °F
-        const f = (parseFloat(vitals.Temperature) * 9 / 5 + 32).toFixed(1);
-        handleUpdate('Temperature', isNaN(parseFloat(f)) ? '' : f);
+        // Celsius → Fahrenheit: integer (no decimal)
+        const f = Math.round(numeric * 9 / 5 + 32);
+        handleUpdate('Temperature', f.toString());
         return '°F';
       } else {
-        // °F → °C
-        const c = ((parseFloat(vitals.Temperature) - 32) * 5 / 9).toFixed(1);
-        handleUpdate('Temperature', isNaN(parseFloat(c)) ? '' : c);
+        // Fahrenheit → Celsius: one decimal
+        const c = ((numeric - 32) * 5 / 9).toFixed(1);
+        handleUpdate('Temperature', c);
         return '°C';
       }
     });
   };
+
+
   const handleAddSymptoms = async () => {
     if (!sessionPhone) {
-      setOpenTokenDialog(true); const toggleTempUnit = () => {
-        setTempUnit(prev => {
-          const currentTemp = vitals.Temperature;
-          if (!currentTemp) return prev === '°C' ? '°F' : '°C';
-
-          const numeric = parseFloat(currentTemp);
-          if (isNaN(numeric)) return prev === '°C' ? '°F' : '°C';
-
-          if (prev === '°C') {
-            // °C → °F: round to integer (no decimal)
-            const f = Math.round(numeric * 9 / 5 + 32);
-            handleUpdate('Temperature', f.toString());
-            return '°F';
-          } else {
-            // °F → °C: keep 1 decimal
-            const c = ((numeric - 32) * 5 / 9).toFixed(1);
-            handleUpdate('Temperature', c);
-            return '°C';
-          }
-        });
-      };
+      setOpenTokenDialog(true);
       setShowNoSessionToast(true);
       setTimeout(() => setShowNoSessionToast(false), 3000);
       return;
