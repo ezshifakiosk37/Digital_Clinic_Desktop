@@ -70,17 +70,17 @@ const MORE_ICONS: Record<string, React.ReactNode> = {
 }
 
 const DEFAULT_TESTS: TestItem[] = [
-    { id: 'ecg', label: 'ECG', result: 'Not Performed' },
-    { id: 'hiv', label: 'HIV', result: 'Not Performed' },
-    { id: 'hepatitis', label: 'Hepatitis', result: 'Not Performed' },
-    { id: 'hbsag', label: 'HBsAg', result: 'Not Performed' },
-    { id: 'hcvab', label: 'HCV Ab', result: 'Not Performed' },
-    { id: 'hiv12ab', label: 'HIV ½ Ab', result: 'Not Performed' },
-    { id: 'dengue', label: 'Dengue NS1 Ag', result: 'Not Performed' },
-    { id: 'syphilis', label: 'Syphilis Ab', result: 'Not Performed' },
-    { id: 'typhoid', label: 'Typhoid Ab', result: 'Not Performed' },
-    { id: 'tb', label: 'TB (Tuberculosis)', result: 'Not Performed' },
-    { id: 'malaria', label: 'Malaria PF/PV Ag', result: 'Not Performed' },
+    { id: 'ecg', label: 'ECG', result: 'Not Performed' }, //Electrocardiogram
+    { id: 'hiv', label: 'HIV', result: 'Not Performed' }, //Human Immunodeficiency Virus
+    { id: 'hepatitis', label: 'Hepatitis', result: 'Not Performed' }, // Hepatitis
+    { id: 'hbsag', label: 'HBsAg', result: 'Not Performed' }, //hbsag: "Hepatitis B Surface Antigen",
+    { id: 'hcvab', label: 'HCV Ab', result: 'Not Performed' }, //Hepatitis C Virus Antibody
+    { id: 'hiv12ab', label: 'HIV ½ Ab', result: 'Not Performed' }, //Human Immunodeficiency Virus Type 1 and Type 2 Antibody
+    { id: 'dengue', label: 'Dengue NS1 Ag', result: 'Not Performed' }, //Dengue Non-Structural Protein 1 Antigen
+    { id: 'syphilis', label: 'Syphilis Ab', result: 'Not Performed' }, //Syphilis Antibody
+    { id: 'typhoid', label: 'Typhoid Ab', result: 'Not Performed' }, //Typhoid Antibody
+    { id: 'tb', label: 'TB (Tuberculosis)', result: 'Not Performed' }, //Tuberculosis
+    { id: 'malaria', label: 'Malaria PF/PV Ag', result: 'Not Performed' }, //Malaria Plasmodium falciparum / Plasmodium vivax Antigen
 ]
 
 const MORE_TEST_OPTIONS: Omit<MoreTest, 'value'>[] = [

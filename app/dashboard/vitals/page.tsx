@@ -1,6 +1,6 @@
 //vitals page
 'use client'
-import React, { useCallback, useEffect, useState, useMemo } from 'react'
+import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import { COMMON_SYMPTOMS } from './vitals';
 import VitalCard from './_components/VitalCard'
 import { VitalType } from '@/app/_utils/types'
@@ -74,6 +74,7 @@ const VitalsPage = () => {
   const [isHeightCameraOpen, setIsHeightCameraOpen] = useState(false);
   const [heightUnit, setHeightUnit] = useState<'ft' | 'cm'>('ft');
   const [tempUnit, setTempUnit] = useState<'°C' | '°F'>('°C');
+  const tempUnitRef = useRef(tempUnit); // keep ref in sync with state
   const [showNoSessionToast, setShowNoSessionToast] = useState(false);
   const [showRapidTesting, setShowRapidTesting] = useState(false);
   const [rapidTestingData, setRapidTestingData] = useState<RapidTestingData | null>(null);
@@ -104,15 +105,36 @@ const VitalsPage = () => {
   // ── Compare two vitals objects field by field ──
   const vitalsChanged = (current: any, prefetched: any): boolean => {
     if (!prefetched) return true;
+
+    // current values are in user's display unit, prefetched are in DB (normalized) units
+    // Normalize current Temperature to °C
+    const currentTempC = (() => {
+      const t = parseFloat(current.Temperature);
+      if (isNaN(t)) return '';
+      return current.temperatureUnit === '°F'
+        ? ((t - 32) * 5 / 9).toFixed(1)
+        : t.toFixed(1);
+    })();
+
+    // Normalize current Height to cm
+    const currentHeightCm = (() => {
+      const h = current.Height;
+      if (!h) return '';
+      if (current.heightUnit === 'cm') return parseFloat(h).toFixed(1);
+      const [f, i] = h.split('.');
+      const totalInches = (parseInt(f) || 0) * 12 + (parseInt(i) || 0);
+      return (totalInches * 2.54).toFixed(1);
+    })();
+
     const norm = (v: any) => (v ?? '').toString().trim();
     return (
       norm(current.PulseRate) !== norm(prefetched.PulseRate) ||
       norm(current.Spo2) !== norm(prefetched.Spo2) ||
       norm(current.BP?.value1) !== norm(prefetched.BP?.value1) ||
       norm(current.BP?.value2) !== norm(prefetched.BP?.value2) ||
-      norm(current.Temperature) !== norm(prefetched.Temperature) ||
+      norm(currentTempC) !== norm(prefetched.Temperature) ||
       norm(current.Weight) !== norm(prefetched.Weight) ||
-      norm(current.Height) !== norm(prefetched.Height)
+      norm(currentHeightCm) !== norm(prefetched.Height)
     );
   };
 
@@ -153,13 +175,32 @@ const VitalsPage = () => {
   }, []);
 
   useEffect(() => {
+    tempUnitRef.current = tempUnit;
+  }, [tempUnit]);
+
+  useEffect(() => {
     AndroidBridge.initVitalsListener((newVitals) => {
       setVitals(prev => {
-        // Create a copy of the previous state
-        const updated = { ...prev, ...newVitals };
+        let processedVitals = { ...newVitals };
 
-        // LOGIC: If the incoming data contains BP, we must merge it 
-        // specifically to ensure the nested object structure is preserved
+        // Handle temperature conversion and rounding
+        if (processedVitals.Temperature) {
+          const celsius = parseFloat(processedVitals.Temperature);
+          if (!isNaN(celsius)) {
+            if (tempUnitRef.current === '°F') {
+              // Convert Celsius → Fahrenheit, then round to integer (no decimal)
+              const fahrenheit = Math.round(celsius * 9 / 5 + 32);
+              processedVitals.Temperature = fahrenheit.toString();
+            } else {
+              // Keep Celsius with 1 decimal place
+              processedVitals.Temperature = celsius.toFixed(1);
+            }
+          }
+        }
+
+        const updated = { ...prev, ...processedVitals };
+
+        // Preserve nested BP object if incoming contains BP
         if (newVitals.BP) {
           updated.BP = {
             ...prev.BP,
@@ -174,17 +215,6 @@ const VitalsPage = () => {
     return () => { window.onSerialData = () => { }; };
   }, []);
 
-  const handleOnlineConsult = async () => {
-    if (!vitalsId) {
-      alert("Please save vitals first to initiate a consult.");
-      return;
-    }
-
-    // Logic: Navigate to your Video Call route 
-    // (e.g., /video-call/[vitalsId])
-    // Your Android WebView will then load this Next.js page.
-    router.push(`/video-call/${vitalsId}`);
-  };
 
   // Logic: Initial Trigger (x -> c -> a)
   const handleStartCalibration = async () => {
@@ -262,29 +292,54 @@ const VitalsPage = () => {
   };
 
   const handleTemperatureChange = (val: string) => {
-    const sanitized = val.replace(/[^0-9.]/g, '');
-    const parts = sanitized.split('.');
-    const result = parts.length > 1
-      ? `${parts[0]}.${parts[1].slice(0, 1)}`
-      : sanitized;
-    handleUpdate('Temperature', result);
+    if (tempUnit === '°C') {
+      // Celsius: allow integer + one decimal digit
+      let cleaned = val.replace(/[^0-9.]/g, '');
+      // Prevent multiple dots
+      const parts = cleaned.split('.');
+      const integerPart = parts[0].slice(0, 3);        // max 3 digits before decimal
+      const decimalPart = parts[1] ? parts[1].slice(0, 1) : '';
+      const result = decimalPart ? `${integerPart}.${decimalPart}` : integerPart;
+      handleUpdate('Temperature', result);
+    } else {
+      // Fahrenheit: integer only – strip dots, limit to 3 digits
+      let cleaned = val.replace(/[^0-9-]/g, '');      // remove dot and letters
+      // Keep only the first minus sign if present (negative temp)
+      if (cleaned.includes('-')) {
+        cleaned = '-' + cleaned.replace(/-/g, '');
+      } else {
+        cleaned = cleaned.replace(/-/g, '');
+      }
+      // Limit to 3 digits (normal body temp is 2-3 digits)
+      const match = cleaned.match(/^-?\d{1,3}/);
+      const result = match ? match[0] : '';
+      handleUpdate('Temperature', result);
+    }
   };
 
   const toggleTempUnit = () => {
     setTempUnit(prev => {
+      const currentTemp = vitals.Temperature;
+      if (!currentTemp) return prev === '°C' ? '°F' : '°C';
+
+      const numeric = parseFloat(currentTemp);
+      if (isNaN(numeric)) return prev === '°C' ? '°F' : '°C';
+
       if (prev === '°C') {
-        // °C → °F
-        const f = (parseFloat(vitals.Temperature) * 9 / 5 + 32).toFixed(1);
-        handleUpdate('Temperature', isNaN(parseFloat(f)) ? '' : f);
+        // Celsius → Fahrenheit: integer (no decimal)
+        const f = Math.round(numeric * 9 / 5 + 32);
+        handleUpdate('Temperature', f.toString());
         return '°F';
       } else {
-        // °F → °C
-        const c = ((parseFloat(vitals.Temperature) - 32) * 5 / 9).toFixed(1);
-        handleUpdate('Temperature', isNaN(parseFloat(c)) ? '' : c);
+        // Fahrenheit → Celsius: one decimal
+        const c = ((numeric - 32) * 5 / 9).toFixed(1);
+        handleUpdate('Temperature', c);
         return '°C';
       }
     });
   };
+
+
   const handleAddSymptoms = async () => {
     if (!sessionPhone) {
       setOpenTokenDialog(true);
@@ -340,13 +395,16 @@ const VitalsPage = () => {
     try {
       const vitalsToSave = {
         ...vitals,
-        Height: vitals.Height,           // save as-is in whatever unit user entered
-        heightUnit: heightUnit,          // 'ft' or 'cm'
-        Temperature: vitals.Temperature, // save as-is in whatever unit user entered
-        temperatureUnit: tempUnit,       // '°C' or '°F'
+        Height: vitals.Height,
+        heightUnit: heightUnit,
+        Temperature: vitals.Temperature,
+        temperatureUnit: tempUnit,
         bmi: bmi?.value ?? null,
         patientType: 'walk-in',
       };
+
+      // Debug: confirm what's being sent
+      console.log('[vitalsToSave] Height:', vitals.Height, 'heightUnit:', heightUnit, 'Temp:', vitals.Temperature, 'tempUnit:', tempUnit);
 
       let currentVitalsId = vitalsId;
 
@@ -411,32 +469,44 @@ const VitalsPage = () => {
         if (latestRes.success && latestRes.vital) {
           const v = latestRes.vital;
           fetchedVitalsId = v.id || '';
+          // Restore units FIRST so conversion below is correct
+          const savedHeightUnit = (v.heightUnit as 'ft' | 'cm') || 'ft';
+          const savedTempUnit = (v.temperatureUnit as '°C' | '°F') || '°C';
+          setHeightUnit(savedHeightUnit);
+          setTempUnit(savedTempUnit);
+
+          // Convert stored cm → ft display if needed
+          const displayHeight = (() => {
+            if (!v.Height) return '';
+            if (savedHeightUnit === 'cm') return v.Height; // stored as cm, display as cm
+            // stored as cm, convert back to "feet.inches"
+            const totalInches = parseFloat(v.Height) / 2.54;
+            const ft = Math.floor(totalInches / 12);
+            const inch = Math.round(totalInches % 12);
+            return `${ft}.${inch}`;
+          })();
+
+          const displayTempFixed = (() => {
+            if (!v.Temperature) return '';
+            if (savedTempUnit === '°C') return v.Temperature;
+            return ((parseFloat(v.Temperature) * 9 / 5) + 32).toFixed(1);
+          })();
+
           initialVitals = {
             BP: { value1: v.Systolic || '', value2: v.Diastolic || '' },
             PulseRate: v.PulseRate || "",
-            Temperature: v.Temperature || '',
+            Temperature: displayTempFixed,
             Spo2: v.BloodOxygen || '',
-            Height: v.Height || "",
+            Height: displayHeight,
             Weight: v.Weight || "",
-            symptoms: v.symptoms ? (typeof v.symptoms === 'string' ? v.symptoms.split(",").map((s: string) => s.trim()) : Array.isArray(v.symptoms) ? v.symptoms : []) : []
+            symptoms: v.symptoms
+              ? (typeof v.symptoms === 'string'
+                ? v.symptoms.split(',').map((s: string) => s.trim())
+                : Array.isArray(v.symptoms) ? v.symptoms : [])
+              : []
           };
-          // Restore units
-          if (v.heightUnit) setHeightUnit(v.heightUnit as 'ft' | 'cm');
-          if (v.temperatureUnit) setTempUnit(v.temperatureUnit as '°C' | '°F');
 
-          // Also store in prefetchedVitals
-          setPrefetchedVitals({
-            PulseRate: v.PulseRate || '',
-            Spo2: v.BloodOxygen || '',
-            BP: { value1: v.Systolic || '', value2: v.Diastolic || '' },
-            Temperature: v.Temperature || '',
-            Weight: v.Weight || '',
-            Height: v.Height || '',
-            symptoms: initialVitals.symptoms,
-            heightUnit: v.heightUnit || 'ft',
-            temperatureUnit: v.temperatureUnit || '°C',
-          });
-          // Store in the SAME shape as vitalsToSave so comparison works correctly
+          // Store in DB-normalized form (°C, cm) for change-detection comparison
           setPrefetchedVitals({
             PulseRate: v.PulseRate || '',
             Spo2: v.BloodOxygen || '',
@@ -1340,8 +1410,12 @@ const VitalsPage = () => {
                                       <td className="px-6 py-4 text-sm text-slate-700">{record.Temperature}°C</td>
                                       <td className="px-6 py-4 text-sm text-slate-600">
                                         {record.Weight}kg / {(() => {
-                                          const parts = record.Height?.split('.');
-                                          return parts?.length === 2 ? `${parts[0]}ft ${parts[1]} in` : `${record.Height} ft`;
+                                          const h = record.Height;
+                                          if (!h) return '—';
+                                          const totalInches = parseFloat(h) / 2.54;
+                                          const ft = Math.floor(totalInches / 12);
+                                          const inch = Math.round(totalInches % 12);
+                                          return `${ft}ft ${inch}in`;
                                         })()}
                                       </td>
                                       <td className="px-6 py-4 text-sm text-slate-700 max-w-xs">

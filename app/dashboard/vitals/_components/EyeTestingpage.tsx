@@ -388,7 +388,7 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
                         </div>
                     </div>
 
-                    <div className="flex justify-between pb-6 pt-2">
+                    <div className="flex justify-between mb-12 pb-6 pt-2">
                         <button
                             onClick={onSkip}
                             className="px-8 py-3 border border-slate-200 rounded-xl font-medium"

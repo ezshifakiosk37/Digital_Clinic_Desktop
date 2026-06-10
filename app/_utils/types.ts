@@ -11,6 +11,18 @@ export type DemographicField = {
   inputType?: string;
 };
 
+
+export interface ProcessDOBResult {
+  dob: string;
+  age: number | "";
+}
+
+// types.ts (or at top of component file)
+export interface FormState {
+  dob: string;
+  age: number | string;
+}
+
 // 1. Extract the specific keys from the array to create a Union Type
 // This results in: "phoneNumber" | "firstName" | "lastName" | etc.
 export type DemographicKey = (typeof demographic)[number]["key"];
@@ -56,10 +68,10 @@ export interface AIInsight {
 }
 
 export interface Vitals {
-    temp: string;
-    bp: string;
-    pulse: string;
-    weight: string;
+  temp: string;
+  bp: string;
+  pulse: string;
+  weight: string;
 }
 
 export interface VitalsDataForHardware {
@@ -74,16 +86,16 @@ export interface VitalsDataForHardware {
 }
 
 export interface Patient {
-    id: number;
-    token: string;
-    firstName: string;
-    lastName: string;
-    age: number;
-    gender: string;
-    symptoms: string;
-    medicalHistory: string;
-    phoneNumber?: string;
-    vitals: Vitals;
+  id: number;
+  token: string;
+  firstName: string;
+  lastName: string;
+  age: number;
+  gender: string;
+  symptoms: string;
+  medicalHistory: string;
+  phoneNumber?: string;
+  vitals: Vitals;
 }
 
 interface Medicine {
@@ -99,25 +111,25 @@ interface Medicine {
 
 
 export interface DocConsultProps {
-    selectedPatient: Patient;
-    setSelectedPatient: (p: Patient | null) => void;
-    medicines: Medicine[];
-    setMedicines: React.Dispatch<React.SetStateAction<any[]>>;
-    notes: string;
-    setNotes: (n: string) => void;
-    prescriptionGenerated: boolean;
-    setPrescriptionGenerated: (v: boolean) => void;
-    doctor: DoctorProfile;
-    updateMedicine: (id: number, field: string, value: any) => void;
-    fullName: string;
-    onSessionEnd: (patient: any) => void;
-    endingSession: boolean;
-    setEndingSession: (v: boolean) => void;
+  selectedPatient: Patient;
+  setSelectedPatient: (p: Patient | null) => void;
+  medicines: Medicine[];
+  setMedicines: React.Dispatch<React.SetStateAction<any[]>>;
+  notes: string;
+  setNotes: (n: string) => void;
+  prescriptionGenerated: boolean;
+  setPrescriptionGenerated: (v: boolean) => void;
+  doctor: DoctorProfile;
+  updateMedicine: (id: number, field: string, value: any) => void;
+  fullName: string;
+  onSessionEnd: (patient: any) => void;
+  endingSession: boolean;
+  setEndingSession: (v: boolean) => void;
 }
 
 export interface BluetoothPrinter {
-    name: string;
-    address: string;
+  name: string;
+  address: string;
 }
 
 export type PrinterModalStep = 'list' | 'connecting' | 'ready' | 'printing';
@@ -126,10 +138,10 @@ export type PrinterModalStep = 'list' | 'connecting' | 'ready' | 'printing';
 // BluetoothPrinterModal
 // ─────────────────────────────────────────────────────────────────────────────
 export interface BluetoothPrinterModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onPrint: () => void;        // called after printer is selected & connected
-    isPrinting: boolean;
+  isOpen: boolean;
+  onClose: () => void;
+  onPrint: () => void;        // called after printer is selected & connected
+  isPrinting: boolean;
 }
 
 // ─────────────────────────────────────────────
@@ -211,17 +223,17 @@ export interface Doctor {
 //eye testing + color blind test
 
 export interface EyeTestingData {
-    chartType: 'English' | 'Urdu' | 'Shapes' | 'Mix';
-    leftEye: string;
-    rightEye: string;
-    skipped: boolean;
+  chartType: 'English' | 'Urdu' | 'Shapes' | 'Mix';
+  leftEye: string;
+  rightEye: string;
+  skipped: boolean;
 }
 
 export interface ColorBlindTestData {
-    plate1: string;
-    plate2: string;
-    plate3: string;
-    colorBlindResult: "Passed" | "Failed" | "Not Performed";
+  plate1: string;
+  plate2: string;
+  plate3: string;
+  colorBlindResult: "Passed" | "Failed" | "Not Performed";
 }
 
 export interface HearingTestData {

@@ -19,15 +19,13 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState(pathname);
   const [isOpen, setIsOpen] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [showReconnectButton, setShowReconnectButton] = useState(false); // 👈 new state
   const router = useRouter();
 
   const staffMenuItems: MenuItem[] = [
-    { name: "Demographic", path: "/dashboard/demographic", icon: <User size={20} /> },
-    { name: "Vitals", path: "/dashboard/vitals", icon: <Activity size={20} /> },
-    { name: "Online Consultation", path: "/dashboard/onlineConsult", icon: <Stethoscope size={20} /> },
-    { name: "Pharmacy", path: "/dashboard/pharmacy", icon: <BriefcaseMedical size={20} /> },
+    { name: "Demographic", path: "/dashboard/demographic", icon: <User size={22} /> },
+    { name: "Vitals", path: "/dashboard/vitals", icon: <Activity size={22} /> },
+    { name: "Online Consultation", path: "/dashboard/onlineConsult", icon: <Stethoscope size={22} /> },
+    { name: "Pharmacy", path: "/dashboard/pharmacy", icon: <BriefcaseMedical size={22} /> },
   ];
 
   const doctorMenuItems: MenuItem[] = [
@@ -37,40 +35,6 @@ export default function Sidebar() {
 
   const menuItems = isDoctor ? doctorMenuItems : staffMenuItems;
 
-  // 1. Detect Android bridge availability
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.AndroidNative) {
-      setShowReconnectButton(true);
-    } else {
-      setShowReconnectButton(false);
-    }
-  }, []);
-
-  // 2. Initialize Hardware Status Listener
-  useEffect(() => {
-    AndroidBridge.initHardwareListeners(
-      (data) => {
-        console.log("Sidebar global data received:", data);
-      },
-      (status) => {
-        console.log("Hardware Status Update:", status);
-        const finalStatuses = ["CONNECTED", "ERROR", "DEVICE_NOT_FOUND", "ALREADY_CONNECTED", "PERMISSION_REQUESTED", "OPEN_FAILED"];
-        if (finalStatuses.includes(status)) {
-          setIsConnecting(false);
-        }
-      }
-    );
-  }, []);
-
-  // 3. Reconnect Trigger
-  const onReconnectPress = () => {
-    setIsConnecting(true);
-    const success = AndroidBridge.handleReconnect();
-    if (!success) {
-      setIsConnecting(false);
-      console.warn("Bridge not available.");
-    }
-  };
 
   const handleSignOut = () => {
     if (isDoctor) {
@@ -148,7 +112,7 @@ export default function Sidebar() {
             onClick={() => setIsOpen(prev => !prev)}
             className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors shrink-0"
           >
-            {isOpen ? <X size={22} /> : <Menu size={22} />}
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
 
@@ -200,7 +164,7 @@ export default function Sidebar() {
             className="w-full flex items-center cursor-pointer gap-3 px-2 py-3 text-slate-500 font-bold hover:bg-red-50 hover:text-red-500 rounded-2xl transition-all group justify-center"
           >
             <div className="bg-slate-100 group-hover:bg-red-100 p-2 rounded-lg transition-colors shrink-0">
-              <LogOut size={18} />
+              <LogOut size={24} />
             </div>
             {isOpen && (
               <span className="text-sm whitespace-nowrap">Sign Out</span>
@@ -208,23 +172,6 @@ export default function Sidebar() {
           </button>
         </div>
       </aside>
-
-      {/* ── Floating Reconnect Button (only shown when Android bridge is available) ── */}
-      {showReconnectButton && (
-        <button
-          onClick={onReconnectPress}
-          disabled={isConnecting}
-          className="fixed bottom-6 right-0 mr-6 z-50 p-4 bg-[#0297d6] text-white rounded-full shadow-2xl transition-all duration-200 group
-            md:flex hidden
-            ${isConnecting ? 'opacity-80 cursor-wait' : 'hover:bg-[#0286c2] hover:scale-110 active:scale-95'}"
-          title="Reconnect to ESP32"
-        >
-          <RefreshCw
-            size={28}
-            className={`transition-transform duration-700 ${isConnecting ? 'animate-spin' : 'group-hover:rotate-180'}`}
-          />
-        </button>
-      )}
     </>
   );
 }

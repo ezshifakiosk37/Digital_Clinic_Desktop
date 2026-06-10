@@ -35,15 +35,73 @@ function getHearingResult(t: Record<number, number>): HearingTestData['leftResul
     if (avg <= 60) return 'Consultation Required'
     return 'Consultation Required'
 }
+function playDemoTone(audioCtx: AudioContext): Promise<void> {
+    return new Promise(async (resolve) => {
+        if (audioCtx.state === 'suspended') {
+            await audioCtx.resume();
+        }
 
+        const duration = 4.0;          // total seconds (3–5 works well)
+        const startFreq = 250;
+        const endFreq = 8000;
+
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        const panner = audioCtx.createStereoPanner();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.value = startFreq;
+
+        // Smooth exponential sweep (matches human hearing)
+        oscillator.frequency.exponentialRampToValueAtTime(endFreq, audioCtx.currentTime + duration);
+
+        // Volume: ~50 dB equivalent (normalised and mapped to gain)
+        const db = 50;
+        const normalized = (db - 20) / (120 - 20); // = 0.3
+        const gainValue = Math.pow(normalized, 2.2); // ≈ 0.07 (a bit quiet)
+        // Increase slightly for demo clarity (use 0.15 to be comfortably audible)
+        gainNode.gain.value = 0.15;
+
+        panner.pan.value = 0;           // 0 = centre → both ears
+
+        oscillator.connect(gainNode);
+        gainNode.connect(panner);
+        panner.connect(audioCtx.destination);
+
+        oscillator.start();
+        // Fade out slightly at end to avoid click
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        oscillator.stop(audioCtx.currentTime + duration);
+
+        setTimeout(() => {
+            try {
+                oscillator.disconnect();
+                gainNode.disconnect();
+                panner.disconnect();
+            } catch (_) { }
+            resolve();
+        }, duration * 1000);
+    });
+}
 // Mirrors Android TuneThread: samples[i] = (short)(amp * Math.sin(ph))
 // Returns stopTune() — call on YES/NO just like Android isRunning=false
 function startTone(
     audioCtx: AudioContext,
     hz: number,
     db: number,
-    ear: 'left' | 'right'
+    ear: 'left' | 'right',
+    oscRef: React.MutableRefObject<OscillatorNode | null>,
+    gainRef: React.MutableRefObject<GainNode | null>,
+    pannerRef: React.MutableRefObject<StereoPannerNode | null>
 ): () => void {
+    // Clean up previous
+    if (oscRef.current) {
+        try { oscRef.current.stop() } catch (_) { }
+        try { oscRef.current.disconnect() } catch (_) { }
+    }
+    if (gainRef.current) try { gainRef.current.disconnect() } catch (_) { }
+    if (pannerRef.current) try { pannerRef.current.disconnect() } catch (_) { }
+
     const normalized = (db - 20) / (120 - 20)
     const gain = Math.pow(normalized, 2.2)
 
@@ -61,11 +119,18 @@ function startTone(
     panner.connect(audioCtx.destination)
     oscillator.start()
 
+    oscRef.current = oscillator
+    gainRef.current = gainNode
+    pannerRef.current = panner
+
     return () => {
         try { oscillator.stop() } catch (_) { }
         try { oscillator.disconnect() } catch (_) { }
         try { gainNode.disconnect() } catch (_) { }
         try { panner.disconnect() } catch (_) { }
+        oscRef.current = null
+        gainRef.current = null
+        pannerRef.current = null
     }
 }
 
@@ -109,7 +174,7 @@ const FreqKnob = ({ hz, onChange }: { hz: number; onChange: (hz: number) => void
     return (
         <div className="flex flex-col items-center gap-1 shrink-0">
             {/* Knob SVG */}
-            <div className="relative w-32 h-32 md:w-40 md:h-40">
+            <div className="relative w-40 h-40 md:w-52 md:h-52">
                 <svg className="absolute inset-0 w-full h-full" viewBox="0 0 176 176">
                     {/* Coloured dots ring */}
                     {Array.from({ length: DOT_COUNT }).map((_, i) => {
@@ -146,18 +211,18 @@ const FreqKnob = ({ hz, onChange }: { hz: number; onChange: (hz: number) => void
                     })}
 
                     {/* Knob face */}
-                    <circle cx="88" cy="88" r="56"
+                    <circle cx="88" cy="88" r="62"
                         fill="white" stroke="#e2e8f0" strokeWidth="1.5"
                         style={{ filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.10))' }}
                     />
 
                     {/* Hz label inside knob */}
-                    <text x="88" y="84" textAnchor="middle"
-                        fontSize="15" fontWeight="700" fill="#0297d6" fontFamily="sans-serif">
+                    <text x="88" y="80" textAnchor="middle"
+                        fontSize="22" fontWeight="700" fill="#0297d6" fontFamily="sans-serif">
                         {hz >= 1000 ? `${hz / 1000}k` : hz}
                     </text>
-                    <text x="88" y="99" textAnchor="middle"
-                        fontSize="11" fontWeight="600" fill="#94a3b8" fontFamily="sans-serif">
+                    <text x="88" y="104" textAnchor="middle"
+                        fontSize="15" fontWeight="600" fill="#94a3b8" fontFamily="sans-serif">
                         {hz >= 1000 ? 'kHz' : 'Hz'}
                     </text>
                 </svg>
@@ -182,13 +247,13 @@ const FreqKnob = ({ hz, onChange }: { hz: number; onChange: (hz: number) => void
                     disabled={fi === 0}
                     className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 disabled:opacity-25 flex items-center justify-center text-slate-600 text-base font-bold transition-colors"
                 >‹</button>
-                <span className="text-xs text-slate-500 font-bold w-12 text-center">
+                <span className="text-sm text-slate-500 font-bold w-16 text-center">
                     {hz >= 1000 ? `${hz / 1000}kHz` : `${hz}Hz`}
                 </span>
                 <button
                     onClick={() => fi < FREQUENCIES.length - 1 && onChange(FREQUENCIES[fi + 1])}
                     disabled={fi === FREQUENCIES.length - 1}
-                    className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 disabled:opacity-25 flex items-center justify-center text-slate-600 text-base font-bold transition-colors"
+                    className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 disabled:opacity-25 flex items-center justify-center text-slate-600 text-base font-bold transition-colors"
                 >›</button>
             </div>
         </div>
@@ -274,7 +339,10 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
     const [rightThresholds, setRightThresholds] = useState<Record<number, number>>({})
 
     const audioCtxRef = useRef<AudioContext | null>(null)
-    const stopToneRef = useRef<(() => void) | null>(null)
+    const stopToneRef = useRef<() => void | null>(null)
+    const oscRef = useRef<OscillatorNode | null>(null)
+    const gainRef = useRef<GainNode | null>(null)
+    const pannerRef = useRef<StereoPannerNode | null>(null)
 
     useEffect(() => () => { stopToneRef.current?.() }, [])
 
@@ -289,24 +357,34 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
         stopToneRef.current?.()
         stopToneRef.current = null
         setPlaying(false)
+        oscRef.current = null
+        gainRef.current = null
+        pannerRef.current = null
     }, [])
-
+    const updateToneParameters = useCallback((hz: number, db: number, ear: 'left' | 'right') => {
+        if (!playing) return
+        if (oscRef.current && gainRef.current && pannerRef.current) {
+            oscRef.current.frequency.value = hz
+            const normalized = (db - 20) / (120 - 20)
+            const gain = Math.pow(normalized, 2.2)
+            gainRef.current.gain.value = Math.max(0.001, Math.min(0.98, gain))
+            pannerRef.current.pan.value = ear === 'left' ? -1 : 1
+        }
+    }, [playing])
     const handlePlay = useCallback(() => {
         if (playing) { stopCurrentTone(); return }
         const ctx = getAudioCtx()
         if (ctx.state === 'suspended') ctx.resume()
         stopCurrentTone()
         setPlaying(true)
-        stopToneRef.current = startTone(ctx, currentHz, currentDb, activeEar)
+        stopToneRef.current = startTone(ctx, currentHz, currentDb, activeEar, oscRef, gainRef, pannerRef)
     }, [playing, currentHz, currentDb, activeEar, getAudioCtx, stopCurrentTone])
 
-    // Restart tone live when hz/db/ear changes while playing
+    // Update tone parameters without restarting
     useEffect(() => {
         if (!playing) return
-        const ctx = getAudioCtx()
-        stopToneRef.current?.()
-        stopToneRef.current = startTone(ctx, currentHz, currentDb, activeEar)
-    }, [currentHz, currentDb, activeEar]) // eslint-disable-line
+        updateToneParameters(currentHz, currentDb, activeEar)
+    }, [currentHz, currentDb, activeEar, playing, updateToneParameters])
 
     const handleDbChange = (dir: 'up' | 'down') => {
         setCurrentDb(prev => {
@@ -318,7 +396,6 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
     }
 
     const recordAndAdvance = useCallback((heard: boolean) => {
-        stopCurrentTone()
         if (heard) {
             const setter = activeEar === 'left' ? setLeftThresholds : setRightThresholds
             setter(prev => ({ ...prev, [currentHz]: currentDb }))
@@ -329,7 +406,7 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
             setCurrentHz(nextHz)
             setCurrentDb(20)
         }
-    }, [activeEar, currentHz, currentDb, leftThresholds, rightThresholds, stopCurrentTone])
+    }, [activeEar, currentHz, currentDb, leftThresholds, rightThresholds])
 
     const switchEar = (ear: 'left' | 'right') => {
         stopCurrentTone()
@@ -407,12 +484,22 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
             {/* Headphone modal */}
             {showModal && (
                 <HeadphoneModal
-                    onConfirm={() => setShowModal(false)}
+                    onConfirm={async () => {
+                        setShowModal(false)
+
+                        const ctx = getAudioCtx()
+
+                        if (ctx.state === 'suspended') {
+                            await ctx.resume()
+                        }
+
+                        await playDemoTone(ctx)
+                    }}
                     onSkip={() => { stopCurrentTone(); onSkip() }}
                 />
             )}
 
-                        {/* ── Navbar ── */}
+            {/* ── Navbar ── */}
             <NavBarTestPages
                 title="Hearing Screening"
                 sessionName={sessionName}
@@ -475,9 +562,10 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
                             min-h-0">
 
                 {/* LEFT side: knob + Hz card */}
-                <div className="flex flex-row items-center gap-4 md:gap-6">
-                    <FreqKnob hz={currentHz} onChange={setCurrentHz} />
-
+                <div className="flex flex-col lg:flex-row items-center gap-4 md:gap-6">
+                    <div className='mb-20'>
+                        <FreqKnob hz={currentHz} onChange={setCurrentHz} />
+                    </div>
                     {/* Hz card */}
                     <div className="flex flex-col items-center justify-center w-20 h-20 md:w-24 md:h-24 rounded-2xl border border-slate-200 bg-white shadow-sm shrink-0">
                         <span className="text-[#0297d6] text-2xl md:text-3xl font-black leading-none">
@@ -487,6 +575,7 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
                             {currentHz >= 1000 ? 'kHz' : 'Hz'}
                         </span>
                     </div>
+
                 </div>
 
                 {/* Divider — vertical on desktop, horizontal on mobile */}
@@ -506,9 +595,11 @@ const HearingTestPage: React.FC<HearingTestPageProps> = ({
                             className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-[#0297d6] text-white text-xl font-bold flex items-center justify-center shadow hover:bg-[#0280bb] active:scale-95 transition-all"
                         >−</button>
                     </div>
+                    <div className='lg:mb-8'>
+                        {/* dB scale */}
+                        <DbScale currentDb={currentDb} />
+                    </div>
 
-                    {/* dB scale */}
-                    <DbScale currentDb={currentDb} />
 
                     {/* dB card */}
                     <div className="flex flex-col items-center justify-center w-20 h-20 md:w-24 md:h-24 rounded-2xl border border-slate-200 bg-white shadow-sm shrink-0">
