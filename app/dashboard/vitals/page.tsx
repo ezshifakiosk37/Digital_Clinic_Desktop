@@ -183,17 +183,17 @@ const VitalsPage = () => {
       setVitals(prev => {
         let processedVitals = { ...newVitals };
 
-        // Handle temperature: round to 1 decimal and convert if needed
+        // Handle temperature conversion and rounding
         if (processedVitals.Temperature) {
-          const numericTemp = parseFloat(processedVitals.Temperature);
-          if (!isNaN(numericTemp)) {
+          const celsius = parseFloat(processedVitals.Temperature);
+          if (!isNaN(celsius)) {
             if (tempUnitRef.current === '°F') {
-              // Convert incoming Celsius to Fahrenheit and round to 1 decimal
-              const fahrenheit = (numericTemp * 9 / 5 + 32).toFixed(1);
-              processedVitals.Temperature = fahrenheit;
+              // Convert Celsius → Fahrenheit, then round to integer (no decimal)
+              const fahrenheit = Math.round(celsius * 9 / 5 + 32);
+              processedVitals.Temperature = fahrenheit.toString();
             } else {
-              // Unit is °C – round to 1 decimal
-              processedVitals.Temperature = numericTemp.toFixed(1);
+              // Keep Celsius with 1 decimal place
+              processedVitals.Temperature = celsius.toFixed(1);
             }
           }
         }
@@ -292,12 +292,29 @@ const VitalsPage = () => {
   };
 
   const handleTemperatureChange = (val: string) => {
-    const sanitized = val.replace(/[^0-9.]/g, '');
-    const parts = sanitized.split('.');
-    const result = parts.length > 1
-      ? `${parts[0]}.${parts[1].slice(0, 1)}`
-      : sanitized;
-    handleUpdate('Temperature', result);
+    if (tempUnit === '°C') {
+      // Celsius: allow integer + one decimal digit
+      let cleaned = val.replace(/[^0-9.]/g, '');
+      // Prevent multiple dots
+      const parts = cleaned.split('.');
+      const integerPart = parts[0].slice(0, 3);        // max 3 digits before decimal
+      const decimalPart = parts[1] ? parts[1].slice(0, 1) : '';
+      const result = decimalPart ? `${integerPart}.${decimalPart}` : integerPart;
+      handleUpdate('Temperature', result);
+    } else {
+      // Fahrenheit: integer only – strip dots, limit to 3 digits
+      let cleaned = val.replace(/[^0-9-]/g, '');      // remove dot and letters
+      // Keep only the first minus sign if present (negative temp)
+      if (cleaned.includes('-')) {
+        cleaned = '-' + cleaned.replace(/-/g, '');
+      } else {
+        cleaned = cleaned.replace(/-/g, '');
+      }
+      // Limit to 3 digits (normal body temp is 2-3 digits)
+      const match = cleaned.match(/^-?\d{1,3}/);
+      const result = match ? match[0] : '';
+      handleUpdate('Temperature', result);
+    }
   };
 
   const toggleTempUnit = () => {
@@ -317,7 +334,27 @@ const VitalsPage = () => {
   };
   const handleAddSymptoms = async () => {
     if (!sessionPhone) {
-      setOpenTokenDialog(true);
+      setOpenTokenDialog(true); const toggleTempUnit = () => {
+        setTempUnit(prev => {
+          const currentTemp = vitals.Temperature;
+          if (!currentTemp) return prev === '°C' ? '°F' : '°C';
+
+          const numeric = parseFloat(currentTemp);
+          if (isNaN(numeric)) return prev === '°C' ? '°F' : '°C';
+
+          if (prev === '°C') {
+            // °C → °F: round to integer (no decimal)
+            const f = Math.round(numeric * 9 / 5 + 32);
+            handleUpdate('Temperature', f.toString());
+            return '°F';
+          } else {
+            // °F → °C: keep 1 decimal
+            const c = ((numeric - 32) * 5 / 9).toFixed(1);
+            handleUpdate('Temperature', c);
+            return '°C';
+          }
+        });
+      };
       setShowNoSessionToast(true);
       setTimeout(() => setShowNoSessionToast(false), 3000);
       return;
