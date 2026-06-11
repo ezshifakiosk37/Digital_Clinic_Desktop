@@ -127,27 +127,17 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
     }, []);
 
     // ── Live height preview while dragging ────────────────────────────────────
-    // const computeLiveHeight = useCallback((headY: number, floorY: number, frameH: number) => {
-    //     if (!frameH) return;
-    //     const headWorldY = pixelToWorldHeight(headY, frameH);
-    //     const floorWorldY = pixelToWorldHeight(floorY, frameH);
-    //     const heightInches = Math.round(headWorldY - floorWorldY);
-    //     if (heightInches <= 0 || heightInches > 120) return; // sanity check
-    //     const feet = Math.floor(heightInches / 12);
-    //     const inches = heightInches % 12;
-    //     setLiveHeight(`${feet}ft ${inches}in`);
-    // }, []);
-    const computeLiveHeight = useCallback((headY: number, _floorY: number, frameH: number) => {
+    const computeLiveHeight = useCallback((headY: number, floorY: number, frameH: number) => {
         if (!frameH) return;
-        const effectiveFloorY = frameH * 0.99; // always derive from frameH — never trust stale state
         const headWorldY = pixelToWorldHeight(headY, frameH);
-        const floorWorldY = pixelToWorldHeight(effectiveFloorY, frameH);
+        const floorWorldY = pixelToWorldHeight(floorY, frameH);
         const heightInches = Math.round(headWorldY - floorWorldY);
         if (heightInches <= 0 || heightInches > 120) return; // sanity check
         const feet = Math.floor(heightInches / 12);
         const inches = heightInches % 12;
         setLiveHeight(`${feet}ft ${inches}in`);
     }, []);
+
 
     // ── Drag logic ─────────────────────────────────────────────────────────────
     const clamp = (y: number, max: number) => Math.max(0, Math.min(max - 2, y));
@@ -216,8 +206,7 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
         if (!frameH) return;
 
         const headWorldY = pixelToWorldHeight(barY, frameH);
-        // const floorWorldY = pixelToWorldHeight(floorBarY, frameH);
-        const floorWorldY = pixelToWorldHeight(frameH * 0.99, frameH);
+        const floorWorldY = pixelToWorldHeight(floorBarY, frameH);
         const heightInches = Math.round(headWorldY - floorWorldY);
 
         // Sanity check — reject impossible values
@@ -453,7 +442,7 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
                         <div style={{ width: 40 }} />
                     </div>
 
-                    {/* Live height preview */}
+                    {/* Live height preview
                     {liveHeight && (
                         <div style={{
                             background: 'rgba(2,151,214,0.9)', color: 'white',
@@ -462,7 +451,7 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
                         }}>
                             {liveHeight}
                         </div>
-                    )}
+                    )} */}
 
                     {/* Image container */}
                     <div
@@ -510,12 +499,20 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
                                 <span style={{ color: 'white', fontSize: 14 }}>↕</span>
                             </div>
                             {/* Label left */}
+                            {/* <div style={{ */}
+                            {/* position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', */}
+                            {/* background: '#ef4444', color: 'white', */}
+                            {/* fontSize: 10, fontWeight: 900, padding: '2px 8px', borderRadius: 6, */}
+                            {/* }}> */}
+                            {/* HEAD */}
+                            {/* </div> */}
+                            {/* Label left — shows live height while dragging, else HEAD */}
                             <div style={{
                                 position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
                                 background: '#ef4444', color: 'white',
                                 fontSize: 10, fontWeight: 900, padding: '2px 8px', borderRadius: 6,
                             }}>
-                                HEAD
+                                {liveHeight || 'HEAD'}
                             </div>
                         </div>
                         {/* floorBarY is fixed at h * 0.99 (bottom of image) and used silently in calculateHeight — no visible bar */}
