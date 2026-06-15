@@ -126,7 +126,7 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
         // setFloorBarY(h * 0.88);     // floor bar near bottom (patient's feet)
     }, []);
 
-    // ── Live height preview while dragging ──
+    // ── Live height preview while dragging
     // const computeLiveHeight = useCallback((headY: number, floorY: number, frameH: number) => {
     //     if (!frameH) return;
     //     const headWorldY = pixelToWorldHeight(headY, frameH);
