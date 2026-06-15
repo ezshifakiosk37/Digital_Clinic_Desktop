@@ -127,10 +127,21 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
     }, []);
 
     // ── Live height preview while dragging ────────────────────────────────────
-    const computeLiveHeight = useCallback((headY: number, floorY: number, frameH: number) => {
+    // const computeLiveHeight = useCallback((headY: number, floorY: number, frameH: number) => {
+    //     if (!frameH) return;
+    //     const headWorldY = pixelToWorldHeight(headY, frameH);
+    //     const floorWorldY = pixelToWorldHeight(floorY, frameH);
+    //     const heightInches = Math.round(headWorldY - floorWorldY);
+    //     if (heightInches <= 0 || heightInches > 120) return; // sanity check
+    //     const feet = Math.floor(heightInches / 12);
+    //     const inches = heightInches % 12;
+    //     setLiveHeight(`${feet}ft ${inches}in`);
+    // }, []);
+    const computeLiveHeight = useCallback((headY: number, _floorY: number, frameH: number) => {
         if (!frameH) return;
+        const effectiveFloorY = frameH * 0.99; // always derive from frameH — never trust stale state
         const headWorldY = pixelToWorldHeight(headY, frameH);
-        const floorWorldY = pixelToWorldHeight(floorY, frameH);
+        const floorWorldY = pixelToWorldHeight(effectiveFloorY, frameH);
         const heightInches = Math.round(headWorldY - floorWorldY);
         if (heightInches <= 0 || heightInches > 120) return; // sanity check
         const feet = Math.floor(heightInches / 12);
@@ -205,7 +216,8 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
         if (!frameH) return;
 
         const headWorldY = pixelToWorldHeight(barY, frameH);
-        const floorWorldY = pixelToWorldHeight(floorBarY, frameH);
+        // const floorWorldY = pixelToWorldHeight(floorBarY, frameH);
+        const floorWorldY = pixelToWorldHeight(frameH * 0.99, frameH);
         const heightInches = Math.round(headWorldY - floorWorldY);
 
         // Sanity check — reject impossible values
@@ -506,11 +518,11 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
                                 HEAD
                             </div>
                         </div>
-                        {/* floorBarY is fixed at h * 0.99 (bottom of image) and used silently in calculateHeight — no visible bar */} 
+                        {/* floorBarY is fixed at h * 0.99 (bottom of image) and used silently in calculateHeight — no visible bar */}
                     </div>
 
                     {/* Calculate button */}
-                    
+
                     <div style={{
                         width: '100%', maxWidth: 480,
                         padding: '12px 16px 24px', flexShrink: 0, background: 'rgba(0,0,0,0.8)',
