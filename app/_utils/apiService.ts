@@ -177,6 +177,14 @@ export const apiService = {
         return handleResponse(response);
     },
 
+    getTodayTokenByPhone: async (phone: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/patients/today-token/${phone}`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+        return handleResponse(response);
+    },
+
     getVitalsByPhone: async (phone: string) => {
         const response = await fetch(`${API_BASE_URL}/api/vitals/history-by-phone/${phone}`, {
             method: 'GET',
