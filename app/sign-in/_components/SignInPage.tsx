@@ -31,7 +31,7 @@ const SignInPage: React.FC = () => {
     }
 
     try {
-      // Logic: Use the apiService we just built. 
+      // Logic: Use the apiService we just built
       // This hits Render, gets the JWT, and saves it to localStorage automatically.
       const data = await apiService.login({ username, password });
 
