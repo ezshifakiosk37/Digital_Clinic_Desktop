@@ -200,6 +200,16 @@ const DemographicPage: React.FC = () => {
       if (response.success) {
         setEntryId(response.entryId);
         setToken(response.token);
+        localStorage.setItem('localClinic_entryId', response.entryId);
+        localStorage.setItem('localClinic_pendingSession', JSON.stringify({
+          entryId: response.entryId,
+          token: response.token,
+          phoneNumber: form.phoneNumber,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          age: form.age,
+          gender: form.gender,
+        }));
         setShowTokenDialog(true);
       }
     } catch (error: any) {

@@ -58,6 +58,7 @@ const VitalsPage = () => {
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [verifyingToken, setVerifyingToken] = useState(false);
+  const [autoVerifying, setAutoVerifying] = useState(false);
   const [symptomOther, setSymptomOther] = useState("");
   const [isCalibrateModalOpen, setIsCalibrateModalOpen] = useState(false);
   const [manualWeightInput, setManualWeightInput] = useState("");
@@ -172,8 +173,31 @@ const VitalsPage = () => {
 
   useEffect(() => {
     fetchVitalsQueue();
+
+    // ── Auto-session from demographic registration ──
+    const pending = localStorage.getItem('localClinic_pendingSession');
+    if (pending) {
+      try {
+        const p = JSON.parse(pending);
+        localStorage.removeItem('localClinic_pendingSession'); // consume it once
+        // Just set the token number — the second useEffect will call handleVerifyToken
+        localStorage.setItem('localClinic_autoVerifyToken', p.token?.toString() || '');
+        setTokenNumber(p.token?.toString() || '');
+      } catch (e) {
+        console.error('Failed to restore pending session:', e);
+      }
+    }
   }, []);
 
+  useEffect(() => {
+    const autoToken = localStorage.getItem('localClinic_autoVerifyToken');
+    if (autoToken && tokenNumber === autoToken) {
+      localStorage.removeItem('localClinic_autoVerifyToken'); // consume it
+      setAutoVerifying(true);
+      setOpenTokenDialog(false); // keep dialog hidden
+      handleVerifyToken().finally(() => setAutoVerifying(false));
+    }
+  }, [tokenNumber]);
   useEffect(() => {
     tempUnitRef.current = tempUnit;
   }, [tempUnit]);
@@ -447,6 +471,7 @@ const VitalsPage = () => {
   const handleVerifyToken = async () => {
     if (!tokenNumber) return;
     setVerifyingToken(true);
+    setOpenTokenDialog(false);
 
     try {
       const res = await apiService.verifyToken(parseInt(tokenNumber).toString());
@@ -816,6 +841,15 @@ const VitalsPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
+
+      {/* ── AUTO-VERIFY FULLSCREEN LOADER ── */}
+      {autoVerifying && (
+        <div className="fixed inset-0 z-[999] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+          <div className="w-14 h-14 rounded-full border-4 border-[#0297d6] border-t-transparent animate-spin" />
+          <p className="text-slate-600 font-semibold text-base">Starting patient session...</p>
+        </div>
+      )}
+
       {/* ── RAPID TESTING PAGE ── */}
       {showRapidTesting && (
         <RapidTestingPage
