@@ -1,6 +1,6 @@
 'use client'
 import React, { useEffect, useState, useCallback } from 'react'
-import { Printer, X, Loader2 } from 'lucide-react'
+import { Printer, X, Loader2, ChevronDown, Mail, FileDown } from 'lucide-react'
 import { BluetoothPrinterModal } from '@/app/dashboard/consultation/components/BluetoothPrinterModel'
 import { apiService } from '@/app/_utils/apiService'
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge'
@@ -53,6 +53,12 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
     const [error, setError] = useState<string | null>(null)
     const [isPrinting, setIsPrinting] = useState(false)
     const [isBTModalOpen, setIsBTModalOpen] = useState(false)
+    const [showActionDropdown, setShowActionDropdown] = useState(false)
+    const [isSendingEmail, setIsSendingEmail] = useState(false)
+    const [isSavingPdf, setIsSavingPdf] = useState(false)
+    const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'found' | 'not_found' | 'sent' | 'error'>('idle')
+    const [patientEmail, setPatientEmail] = useState<string | null>(null)
+    const [showEmailConfirm, setShowEmailConfirm] = useState(false)
 
     // Fetch full report when modal opens and vitalsId exists
     useEffect(() => {
@@ -241,6 +247,100 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         }, 150)
     }, [buildPrintPayload])
 
+    const handleSendEmail = async () => {
+        setShowActionDropdown(false)
+        setEmailStatus('checking')
+        try {
+            const res = await apiService.getPatientEmail(report?.patient?.id)
+            if (res.success && res.email) {
+                setPatientEmail(res.email)
+                setEmailStatus('found')
+                setShowEmailConfirm(true)
+            } else {
+                setPatientEmail(null)
+                setEmailStatus('not_found')
+                setTimeout(() => setEmailStatus('idle'), 3000)
+            }
+        } catch {
+            setEmailStatus('error')
+            setTimeout(() => setEmailStatus('idle'), 3000)
+        }
+    }
+
+    const handleConfirmSendEmail = async () => {
+        if (!patientEmail || !vitalsId) return
+        setIsSendingEmail(true)
+        try {
+            const payload = buildPrintPayload()
+            const res = await apiService.sendVitalReportEmail(vitalsId, patientEmail, payload)
+            if (res.success) {
+                setEmailStatus('sent')
+                setShowEmailConfirm(false)
+                setTimeout(() => setEmailStatus('idle'), 3000)
+            } else {
+                setEmailStatus('error')
+                setTimeout(() => setEmailStatus('idle'), 3000)
+            }
+        } catch {
+            setEmailStatus('error')
+            setTimeout(() => setEmailStatus('idle'), 3000)
+        } finally {
+            setIsSendingEmail(false)
+        }
+    }
+
+const handleSaveAsPdf = async () => {
+        setShowActionDropdown(false)
+        const el = document.getElementById('vital-report-paper')
+        if (!el || !report) return
+
+        setIsSavingPdf(true)
+        try {
+            const { default: jsPDF } = await import('jspdf')
+
+            // Clone into an isolated iframe to avoid oklch/Tailwind CSS conflicts
+            const iframe = document.createElement('iframe')
+            iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:340px;height:auto;border:none;'
+            document.body.appendChild(iframe)
+
+            const iframeDoc = iframe.contentDocument!
+            iframeDoc.open()
+            iframeDoc.write(`
+                <html><head><style>
+                    *{margin:0;padding:0;box-sizing:border-box;font-family:monospace}
+                    body{background:#fff;color:#111;width:340px;padding:16px}
+                    img{display:block;margin:0 auto 4px;height:44px}
+                </style></head><body>${el.innerHTML}</body></html>
+            `)
+            iframeDoc.close()
+
+            await new Promise(r => setTimeout(r, 300))
+
+            const { default: html2canvas } = await import('html2canvas')
+            const canvas = await html2canvas(iframeDoc.body, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                windowWidth: 340,
+            })
+
+            document.body.removeChild(iframe)
+
+            const imgData = canvas.toDataURL('image/png')
+            const pdf = new jsPDF({ unit: 'px', format: [canvas.width / 2, canvas.height / 2] })
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2)
+
+            const firstName = report.patient.firstName?.trim() || 'Patient'
+            const lastName = report.patient.lastName?.trim() || ''
+            pdf.save(`${firstName}_${lastName}.pdf`)
+        } catch (err) {
+            console.error('PDF save error:', err)
+            alert('Failed to save PDF')
+        } finally {
+            setIsSavingPdf(false)
+        }
+    }
+
     if (!isOpen) return null
 
     console.log(report)
@@ -390,15 +490,90 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                         )}
                     </div>
 
-                    <div className="px-5 py-4 border-t border-slate-100">
+                    {/* Email confirm dialog */}
+                    {showEmailConfirm && (
+                        <div className="px-5 py-4 border-t border-slate-100 bg-blue-50">
+                            <p className="text-xs font-bold text-slate-700 mb-1">Send report to:</p>
+                            <p className="text-sm font-black text-[#0297d6] mb-3">{patientEmail}</p>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => { setShowEmailConfirm(false); setEmailStatus('idle') }}
+                                    className="flex-1 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-600 hover:bg-slate-100"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirmSendEmail}
+                                    disabled={isSendingEmail}
+                                    className="flex-1 py-2.5 rounded-xl bg-[#0297d6] text-white text-xs font-bold hover:bg-[#0286c2] flex items-center justify-center gap-1 disabled:opacity-60"
+                                >
+                                    {isSendingEmail ? <><Loader2 size={12} className="animate-spin" />Sending...</> : <><Mail size={12} />Send Report</>}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Status toasts */}
+                    {emailStatus === 'not_found' && (
+                        <div className="mx-5 mb-2 py-2 px-3 bg-orange-100 text-orange-700 rounded-xl text-xs font-bold text-center">
+                            No email found for this patient.
+                        </div>
+                    )}
+                    {emailStatus === 'sent' && (
+                        <div className="mx-5 mb-2 py-2 px-3 bg-green-100 text-green-700 rounded-xl text-xs font-bold text-center">
+                            ✓ Report sent successfully!
+                        </div>
+                    )}
+                    {emailStatus === 'error' && (
+                        <div className="mx-5 mb-2 py-2 px-3 bg-red-100 text-red-700 rounded-xl text-xs font-bold text-center">
+                            Failed to send email. Try again.
+                        </div>
+                    )}
+
+                    <div className="px-5 py-4 border-t border-slate-100 flex gap-2 relative">
+                        {/* Print button */}
                         <button
                             onClick={handlePrintClick}
-                            disabled={loading || !report}
-                            className={`w-full py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all
-                ${(loading || !report) ? 'bg-slate-300 cursor-not-allowed text-slate-500' : 'bg-slate-900 hover:bg-[#0297d6] text-white active:scale-95'}`}
+                            disabled={loading || !report || isPrinting}
+                            className={`flex-1 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all
+                                ${(loading || !report) ? 'bg-slate-300 cursor-not-allowed text-slate-500' : 'bg-slate-900 hover:bg-[#0297d6] text-white active:scale-95'}`}
                         >
-                            {isPrinting ? <><Loader2 size={15} className="animate-spin" />Processing...</> : <><Printer size={15} />Print Vital Report</>}
+                            {isPrinting ? <><Loader2 size={15} className="animate-spin" />Processing...</> : <><Printer size={15} />Print</>}
                         </button>
+
+                        {/* Action button */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowActionDropdown(p => !p)}
+                                disabled={loading || !report}
+                                className={`h-full px-4 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-1 transition-all
+                                    ${(loading || !report) ? 'bg-slate-300 cursor-not-allowed text-slate-500' : 'bg-slate-900 hover:bg-[#0297d6] text-white active:scale-95'}`}
+                            >
+                                Action <ChevronDown size={13} />
+                            </button>
+
+                            {showActionDropdown && (
+                                <div className="absolute bottom-full right-0 mb-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-10">
+                                    <button
+                                        onClick={handleSendEmail}
+                                        disabled={emailStatus === 'checking'}
+                                        className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                                    >
+                                        {emailStatus === 'checking'
+                                            ? <><Loader2 size={13} className="animate-spin" />Checking...</>
+                                            : <><Mail size={13} className="text-[#0297d6]" />Send via Email</>
+                                        }
+                                    </button>
+                                    <div className="border-t border-slate-100" />
+                                    <button
+                                        onClick={handleSaveAsPdf}
+                                        className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+                                    >
+                                        <FileDown size={13} className="text-[#0297d6]" />Save as PDF
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

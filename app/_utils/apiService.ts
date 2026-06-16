@@ -542,6 +542,25 @@ export const apiService = {
         });
         return handleResponse(response);
     },
+
+    //send vital report via email
+    getPatientEmail: async (patientId: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/report/patient-email/${patientId}`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+        return handleResponse(response);
+    },
+
+    sendVitalReportEmail: async (vitalsId: string, email: string, payload: any) => {
+        const response = await fetch(`${API_BASE_URL}/api/report/vitals/${vitalsId}/send-email`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ email, payload }),
+        });
+        return handleResponse(response);
+    },
+
     getAllDoctors: async () => {
         const response = await fetch(`${API_BASE_URL}/api/doctors/all`, {
             method: 'GET',
