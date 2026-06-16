@@ -771,7 +771,7 @@ const handleVerifyByPhone = async () => {
 };
 
   // Fetch history specifically by phone number (Independent of token)
-  const handleSearchHistory = async () => {
+const handleSearchHistory = async (): Promise<void> => {
     if (!historySearchPhone) {
       alert("Please enter a phone number");
       return;
