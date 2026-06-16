@@ -343,7 +343,7 @@ const handleSaveAsPdf = async () => {
 
     if (!isOpen) return null
 
-    console.log(report)
+    // console.log(report)
 
     return (
         <>
