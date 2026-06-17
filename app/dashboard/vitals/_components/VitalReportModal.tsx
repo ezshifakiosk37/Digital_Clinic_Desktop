@@ -153,7 +153,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
             if (eyeLines.length) sections.push('--- EYE SCREENING ---\n' + eyeLines.join('\n'));
         }
 
-        // --- COLOR BLIND TEST ---
+        // --- COLOR BLIND TEST -
         if (colorBlindTesting && shouldShow(colorBlindTesting.colorBlindResult)) {
             sections.push(`--- COLOR BLIND SCREENING ---\nResult: ${shortenResult(colorBlindTesting.colorBlindResult)}`);
         }
