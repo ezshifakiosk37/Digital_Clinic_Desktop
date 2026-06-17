@@ -561,6 +561,25 @@ export const apiService = {
         return handleResponse(response);
     },
 
+    sendVitalReportEmailPdf: async (vitalsId: string, formData: FormData) => {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_BASE_URL}/api/report/vitals/${vitalsId}/send-email-pdf`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }, // NO Content-Type — let browser set multipart
+            body: formData,
+        });
+        return handleResponse(response);
+    },
+
+    updatePatientEmail: async (patientId: string, email: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/report/patient-email/${patientId}`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ email }),
+        });
+        return handleResponse(response);
+    },
+
     getAllDoctors: async () => {
         const response = await fetch(`${API_BASE_URL}/api/doctors/all`, {
             method: 'GET',

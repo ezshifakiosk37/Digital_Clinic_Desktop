@@ -59,6 +59,10 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
     const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'found' | 'not_found' | 'sent' | 'error'>('idle')
     const [patientEmail, setPatientEmail] = useState<string | null>(null)
     const [showEmailConfirm, setShowEmailConfirm] = useState(false)
+    const [isEditingEmail, setIsEditingEmail] = useState(false)
+    const [editedEmail, setEditedEmail] = useState('')
+    const [noEmailInput, setNoEmailInput] = useState('')
+    const [isSavingEmail, setIsSavingEmail] = useState(false)
 
     // Fetch full report when modal opens and vitalsId exists
     useEffect(() => {
@@ -250,16 +254,20 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
     const handleSendEmail = async () => {
         setShowActionDropdown(false)
         setEmailStatus('checking')
+        setIsEditingEmail(false)
+        setNoEmailInput('')
         try {
             const res = await apiService.getPatientEmail(report?.patient?.id)
             if (res.success && res.email) {
                 setPatientEmail(res.email)
+                setEditedEmail(res.email)
                 setEmailStatus('found')
                 setShowEmailConfirm(true)
             } else {
                 setPatientEmail(null)
+                setEditedEmail('')
                 setEmailStatus('not_found')
-                setTimeout(() => setEmailStatus('idle'), 3000)
+                setShowEmailConfirm(true)
             }
         } catch {
             setEmailStatus('error')
@@ -267,12 +275,71 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         }
     }
 
+    const handleSaveEmail = async (emailToSave: string) => {
+        if (!emailToSave.trim() || !report?.patient?.id) return
+        setIsSavingEmail(true)
+        try {
+            await apiService.updatePatientEmail(report.patient.id, emailToSave.trim())
+            setPatientEmail(emailToSave.trim())
+            setEditedEmail(emailToSave.trim())
+            setIsEditingEmail(false)
+            setEmailStatus('found')
+        } catch {
+            alert('Failed to save email')
+        } finally {
+            setIsSavingEmail(false)
+        }
+    }
+
+    const generatePdfBlob = async (): Promise<Blob | null> => {
+        const el = document.getElementById('vital-report-paper')
+        if (!el) return null
+        try {
+            const { default: jsPDF } = await import('jspdf')
+            const iframe = document.createElement('iframe')
+            iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:340px;height:auto;border:none;'
+            document.body.appendChild(iframe)
+            const iframeDoc = iframe.contentDocument!
+            iframeDoc.open()
+            iframeDoc.write(`<html><head><style>
+                *{margin:0;padding:0;box-sizing:border-box;font-family:monospace}
+                body{background:#fff;color:#111;width:340px;padding:16px}
+                img{display:block;margin:0 auto 4px;height:44px}
+            </style></head><body>${el.innerHTML}</body></html>`)
+            iframeDoc.close()
+            await new Promise(r => setTimeout(r, 300))
+            const { default: html2canvas } = await import('html2canvas')
+            const canvas = await html2canvas(iframeDoc.body, { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 340 })
+            document.body.removeChild(iframe)
+            const imgData = canvas.toDataURL('image/png')
+            const pdf = new jsPDF({ unit: 'px', format: [canvas.width / 2, canvas.height / 2] })
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2)
+            return pdf.output('blob')
+        } catch (err) {
+            console.error('PDF generation error:', err)
+            return null
+        }
+    }
+
     const handleConfirmSendEmail = async () => {
-        if (!patientEmail || !vitalsId) return
+        const emailToUse = isEditingEmail ? editedEmail : patientEmail
+        if (!emailToUse || !vitalsId) return
         setIsSendingEmail(true)
         try {
-            const payload = buildPrintPayload()
-            const res = await apiService.sendVitalReportEmail(vitalsId, patientEmail, payload)
+            const pdfBlob = await generatePdfBlob()
+            if (!pdfBlob) throw new Error('Failed to generate PDF')
+
+            const firstName = report.patient.firstName?.trim() || 'Patient'
+            const lastName = report.patient.lastName?.trim() || ''
+            const fileName = `${firstName}_${lastName}.pdf`
+
+            const formData = new FormData()
+            formData.append('pdf', pdfBlob, fileName)
+            formData.append('email', emailToUse)
+            formData.append('patientName', `${firstName} ${lastName}`)
+            formData.append('token', report.patient.token || '')
+
+            const res = await apiService.sendVitalReportEmailPdf(vitalsId, formData)
             if (res.success) {
                 setEmailStatus('sent')
                 setShowEmailConfirm(false)
@@ -289,7 +356,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         }
     }
 
-const handleSaveAsPdf = async () => {
+    const handleSaveAsPdf = async () => {
         setShowActionDropdown(false)
         const el = document.getElementById('vital-report-paper')
         if (!el || !report) return
@@ -477,48 +544,103 @@ const handleSaveAsPdf = async () => {
                                     </>
                                 )}
                                 <div className="foot" style={{ marginTop: 16, textAlign: 'center', fontSize: 8, letterSpacing: 2, opacity: 1 }}>
-                                    This Digital Prescription from EZShifa as seen by the doctor does not require stamp or signature
-                                    and is not valid for court.
+                                    This Digital Report from EZShifa does not require stamp or signature
+                                    and is not valid for Legal proceedings.
                                 </div>
-                                <div className="foot" style={{ marginTop: 16, textAlign: 'center', fontSize: 8, letterSpacing: 2, opacity: 1 }}>
-                                    This prescription is based on visual consultation (VOC) offered by EZShifa.
-                                </div>
-                                <div className="foot" style={{ marginTop: 16, textAlign: 'center', fontSize: 8, textTransform: 'uppercase', letterSpacing: 2, opacity: 0.4 }}>
-                                    *** End of Vital Report ***
-                                </div>
+                                
                             </div>
                         )}
                     </div>
 
                     {/* Email confirm dialog */}
                     {showEmailConfirm && (
-                        <div className="px-5 py-4 border-t border-slate-100 bg-blue-50">
-                            <p className="text-xs font-bold text-slate-700 mb-1">Send report to:</p>
-                            <p className="text-sm font-black text-[#0297d6] mb-3">{patientEmail}</p>
-                            <div className="flex gap-2">
+                        <div className="px-5 py-4 border-t border-slate-100 bg-blue-50 space-y-3">
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                {emailStatus === 'not_found' ? 'No email on file — add one:' : 'Send report to:'}
+                            </p>
+
+                            {/* Email found — show with edit option */}
+                            {emailStatus === 'found' && !isEditingEmail && (
+                                <div className="flex items-center gap-2">
+                                    <span className="flex-1 text-sm font-black text-[#0297d6] truncate">{patientEmail}</span>
+                                    <button
+                                        onClick={() => { setIsEditingEmail(true); setEditedEmail(patientEmail || '') }}
+                                        className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100"
+                                        title="Edit email"
+                                    >
+                                        ✏️
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Editing existing email */}
+                            {emailStatus === 'found' && isEditingEmail && (
+                                <div className="flex gap-2">
+                                    <input
+                                        type="email"
+                                        value={editedEmail}
+                                        onChange={e => setEditedEmail(e.target.value)}
+                                        className="flex-1 px-3 py-2 text-xs border-2 border-[#0297d6] rounded-xl outline-none font-bold"
+                                        placeholder="Enter new email"
+                                        autoFocus
+                                    />
+                                    <button
+                                        onClick={() => handleSaveEmail(editedEmail)}
+                                        disabled={isSavingEmail || !editedEmail.trim()}
+                                        className="px-3 py-2 bg-[#0297d6] text-white text-xs font-bold rounded-xl disabled:opacity-50"
+                                    >
+                                        {isSavingEmail ? <Loader2 size={12} className="animate-spin" /> : 'Save'}
+                                    </button>
+                                    <button
+                                        onClick={() => setIsEditingEmail(false)}
+                                        className="px-3 py-2 border border-slate-300 text-slate-600 text-xs font-bold rounded-xl"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* No email — input to add */}
+                            {emailStatus === 'not_found' && (
+                                <div className="flex gap-2">
+                                    <input
+                                        type="email"
+                                        value={noEmailInput}
+                                        onChange={e => setNoEmailInput(e.target.value)}
+                                        className="flex-1 px-3 py-2 text-xs border-2 border-[#0297d6] rounded-xl outline-none font-bold"
+                                        placeholder="patient@email.com"
+                                        autoFocus
+                                    />
+                                    <button
+                                        onClick={() => handleSaveEmail(noEmailInput)}
+                                        disabled={isSavingEmail || !noEmailInput.trim()}
+                                        className="px-3 py-2 bg-[#0297d6] text-white text-xs font-bold rounded-xl disabled:opacity-50"
+                                    >
+                                        {isSavingEmail ? <Loader2 size={12} className="animate-spin" /> : 'Save'}
+                                    </button>
+                                </div>
+                            )}
+
+                            <div className="flex gap-2 pt-1">
                                 <button
-                                    onClick={() => { setShowEmailConfirm(false); setEmailStatus('idle') }}
+                                    onClick={() => { setShowEmailConfirm(false); setEmailStatus('idle'); setIsEditingEmail(false) }}
                                     className="flex-1 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-600 hover:bg-slate-100"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleConfirmSendEmail}
-                                    disabled={isSendingEmail}
-                                    className="flex-1 py-2.5 rounded-xl bg-[#0297d6] text-white text-xs font-bold hover:bg-[#0286c2] flex items-center justify-center gap-1 disabled:opacity-60"
+                                    disabled={isSendingEmail || emailStatus === 'not_found' || isEditingEmail}
+                                    className="flex-1 py-2.5 rounded-xl bg-[#0297d6] text-white text-xs font-bold hover:bg-[#0286c2] flex items-center justify-center gap-1 disabled:opacity-50"
                                 >
-                                    {isSendingEmail ? <><Loader2 size={12} className="animate-spin" />Sending...</> : <><Mail size={12} />Send Report</>}
+                                    {isSendingEmail ? <><Loader2 size={12} className="animate-spin" />Sending...</> : <><Mail size={12} />Send PDF</>}
                                 </button>
                             </div>
                         </div>
                     )}
 
                     {/* Status toasts */}
-                    {emailStatus === 'not_found' && (
-                        <div className="mx-5 mb-2 py-2 px-3 bg-orange-100 text-orange-700 rounded-xl text-xs font-bold text-center">
-                            No email found for this patient.
-                        </div>
-                    )}
+
                     {emailStatus === 'sent' && (
                         <div className="mx-5 mb-2 py-2 px-3 bg-green-100 text-green-700 rounded-xl text-xs font-bold text-center">
                             ✓ Report sent successfully!
