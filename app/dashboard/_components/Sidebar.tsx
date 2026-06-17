@@ -21,6 +21,7 @@ export default function Sidebar() {
   const [activeTab, setActiveTab] = useState(pathname);
   const [isOpen, setIsOpen] = useState(false);
   const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
+  const [navigating, setNavigating] = useState(false);
   const router = useRouter();
 
   const staffMenuItems: MenuItem[] = [
@@ -52,6 +53,7 @@ export default function Sidebar() {
   };
 
   const handleRouteChange = (path: string, name?: string) => {
+    setNavigating(true);
     if (isDoctor && name === 'Profile') {
       window.dispatchEvent(new CustomEvent('doctor-show-profile'));
       setActiveTab('/dashboard/consultation/profile');
@@ -67,6 +69,7 @@ export default function Sidebar() {
     setActiveTab(path);
     router.push(path);
     setIsOpen(false);
+    setTimeout(() => setNavigating(false), 1000);
   };
 
   useEffect(() => {
@@ -142,11 +145,19 @@ export default function Sidebar() {
               >
                 <div className="flex items-center gap-3">
                   <span className={`shrink-0 transition-transform duration-200 ${isActive ? "scale-110" : "group-hover:scale-110"}`}>
-                    {item.icon}
+                    {navigating && isActive ? (
+                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                    ) : (
+                      item.icon
+                    )}
                   </span>
                   {isOpen && (
                     <span className="text-sm whitespace-nowrap">{item.name}</span>
                   )}
+                  
                 </div>
                 <div className={`transition-all duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
                   {isActive
