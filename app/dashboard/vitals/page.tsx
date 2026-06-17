@@ -79,14 +79,12 @@ const VitalsPage = () => {
   const [tempUnit, setTempUnit] = useState<'°C' | '°F'>('°C');
   const tempUnitRef = useRef(tempUnit); // keep ref in sync with state
   const [showNoSessionToast, setShowNoSessionToast] = useState(false);
-  const [showRapidTesting, setShowRapidTesting] = useState(false);
+  type AppTab = 'vitals' | 'rapid' | 'eye' | 'colorblind' | 'hearing';
+  const [activeTab, setActiveTab] = useState<AppTab>('vitals');
   const [rapidTestingData, setRapidTestingData] = useState<RapidTestingData | null>(null);
   const [rapidTestingId, setRapidTestingId] = useState<string>('');
-  const [showEyeTesting, setShowEyeTesting] = useState(false);
   const [eyeTestingData, setEyeTestingData] = useState<EyeTestingData | null>(null);
-  const [showColorBlindTest, setShowColorBlindTest] = useState(false);
   const [colorBlindData, setColorBlindData] = useState<ColorBlindTestData | null>(null);
-  const [showHearingTest, setShowHearingTest] = useState(false);
   const [hearingTestData, setHearingTestData] = useState<HearingTestData | null>(null);
   const [showVitalReport, setShowVitalReport] = useState(false)
   // ── Prefetched data for comparison (Change 3 & 4) ──
@@ -176,6 +174,12 @@ const VitalsPage = () => {
   useEffect(() => {
     fetchVitalsQueue();
 
+    // ── Restore tab if PWA was killed mid-flow ──
+    const savedTab = localStorage.getItem('localClinic_activeTab') as AppTab | null;
+    if (savedTab && ['rapid', 'eye', 'colorblind', 'hearing'].includes(savedTab)) {
+      setActiveTab(savedTab);
+    }
+
     // ── Auto-session from demographic registration ──
     const pending = localStorage.getItem('localClinic_pendingSession');
     if (pending) {
@@ -203,6 +207,15 @@ const VitalsPage = () => {
   useEffect(() => {
     tempUnitRef.current = tempUnit;
   }, [tempUnit]);
+
+  // ── Persist active tab so PWA restart returns to same page ──
+  useEffect(() => {
+    if (activeTab !== 'vitals') {
+      localStorage.setItem('localClinic_activeTab', activeTab);
+    } else {
+      localStorage.removeItem('localClinic_activeTab');
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     AndroidBridge.initVitalsListener((newVitals) => {
@@ -300,12 +313,13 @@ const VitalsPage = () => {
     // setPatientType('Walk-in');
     setVitalsSaved(false);
     setVitalsId('');
+    setActiveTab('vitals');
     setRapidTestingId('');
     setRapidTestingData(null);
-    setShowEyeTesting(false);
     setEyeTestingData(null);
-    setShowHearingTest(false);
+    setColorBlindData(null);
     setHearingTestData(null);
+    localStorage.removeItem('localClinic_activeTab');
     setVitalsQueue(prev => prev.filter(p => p.id !== patient.id));
   };
 
@@ -452,7 +466,7 @@ const VitalsPage = () => {
       }
 
       // Navigate to Rapid Testing with vitalsId
-      setShowRapidTesting(true);
+      setActiveTab('rapid');
     } catch (error: any) {
       alert(`Failed: ${error.message}`);
     } finally {
@@ -587,14 +601,13 @@ const VitalsPage = () => {
         setStep(1);
         setVitalsSaved(false);
         setVitalsId(fetchedVitalsId);
+        setActiveTab('vitals');
         setRapidTestingId('');
         setRapidTestingData(null);
-        setShowEyeTesting(false);
         setEyeTestingData(null);
-        setShowColorBlindTest(false);
         setColorBlindData(null);
-        setShowHearingTest(false);
         setHearingTestData(null);
+        localStorage.removeItem('localClinic_activeTab');
       }
 
     } catch (error: any) {
@@ -606,7 +619,7 @@ const VitalsPage = () => {
         setShowInvalidToast(true);
         setTimeout(() => setShowInvalidToast(false), 3000);
       }
-      setOpenTokenDialog(true); 
+      setOpenTokenDialog(true);
     } finally {
       setVerifyingToken(false);
     }
@@ -744,14 +757,13 @@ const VitalsPage = () => {
       setStep(1);
       setVitalsSaved(false);
       setVitalsId(fetchedVitalsId);
+      setActiveTab('vitals');
       setRapidTestingId('');
       setRapidTestingData(null);
-      setShowEyeTesting(false);
       setEyeTestingData(null);
-      setShowColorBlindTest(false);
       setColorBlindData(null);
-      setShowHearingTest(false);
       setHearingTestData(null);
+      localStorage.removeItem('localClinic_activeTab');
 
     } catch (error: any) {
       const msg = error.message || '';
@@ -1013,7 +1025,7 @@ const VitalsPage = () => {
       )}
 
       {/* ── RAPID TESTING PAGE ── */}
-      {showRapidTesting && (
+      {activeTab === 'rapid' && (
         <RapidTestingPage
           vitalsId={vitalsId}
           prefetchedData={prefetchedRapidData}
@@ -1028,16 +1040,10 @@ const VitalsPage = () => {
                 console.error("Rapid testing save failed:", err);
               }
             }
-            setShowRapidTesting(false);
-            setShowEyeTesting(true);
+            setActiveTab('eye');
           }}
-          onSkip={() => {
-            setShowRapidTesting(false);
-            setShowEyeTesting(true);
-          }}
-          onBack={() => {
-            setShowRapidTesting(false);
-          }}
+          onSkip={() => setActiveTab('eye')}
+          onBack={() => setActiveTab('vitals')}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
           sessionToken={sessionToken}
@@ -1045,7 +1051,8 @@ const VitalsPage = () => {
           sessionGender={sessionGender}
         />
       )}
-      {showEyeTesting && (
+
+      {activeTab === 'eye' && (
         <EyeTestingpage
           vitalsId={vitalsId}
           prefetchedData={prefetchedEyeData}
@@ -1066,30 +1073,21 @@ const VitalsPage = () => {
                 console.error("Eye testing save failed:", err);
               }
             }
-            setShowEyeTesting(false);
-            setShowColorBlindTest(true);
+            setActiveTab('colorblind');
           }}
           onSkip={() => {
-            setShowEyeTesting(false);
-            setShowColorBlindTest(false);
-            setShowHearingTest(false);
+            setActiveTab('vitals');
             setStep(2);
           }}
-          onSkipToColorBlind={() => {
-            setShowEyeTesting(false);
-            setShowColorBlindTest(true);
-          }}
-          onBack={() => {
-            setShowEyeTesting(false);
-            setShowRapidTesting(true);
-          }}
+          onSkipToColorBlind={() => setActiveTab('colorblind')}
+          onBack={() => setActiveTab('rapid')}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
           sessionToken={sessionToken}
         />
       )}
 
-      {showColorBlindTest && (
+      {activeTab === 'colorblind' && (
         <ColorBlindTestPage
           vitalsId={vitalsId}
           prefetchedData={prefetchedColorBlindData}
@@ -1109,24 +1107,17 @@ const VitalsPage = () => {
                 console.error("Color blind save failed:", err);
               }
             }
-            setShowColorBlindTest(false);
-            setShowHearingTest(true);
+            setActiveTab('hearing');
           }}
-          onSkip={() => {
-            setShowColorBlindTest(false);
-            setShowHearingTest(true);
-          }}
-          onBack={() => {
-            setShowColorBlindTest(false);
-            setShowEyeTesting(true);
-          }}
+          onSkip={() => setActiveTab('hearing')}
+          onBack={() => setActiveTab('eye')}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
           sessionToken={sessionToken}
         />
       )}
 
-      {showHearingTest && (
+      {activeTab === 'hearing' && (
         <HearingTestPage
           vitalsId={vitalsId}
           prefetchedData={prefetchedHearingData}
@@ -1141,30 +1132,26 @@ const VitalsPage = () => {
                 console.error("Hearing test save failed:", err);
               }
             }
-            setShowHearingTest(false);
+            setActiveTab('vitals');
             setStep(2);
           }}
           onSkip={() => {
-            setShowHearingTest(false);
+            setActiveTab('vitals');
             setStep(2);
           }}
-          onBack={() => {
-            setShowHearingTest(false);
-            setShowColorBlindTest(true);
-          }}
+          onBack={() => setActiveTab('colorblind')}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
           sessionToken={sessionToken}
         />
       )}
-      {/* ── VITAL REPORT MODAL ── */}
-      <VitalReportModal
+      {/* vital report modal */}
+      < VitalReportModal
         isOpen={showVitalReport}
         onClose={() => setShowVitalReport(false)}
         vitalsId={vitalsId}
       />
-      {/* ── TOASTS — always mounted regardless of which page is showing ── */}
-      {/* Success Toast */}
+      {/* success toast */}
       <div className={`fixed top-6 right-6 z-200 transition-all duration-500 ${showSuccessToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
         <div className="bg-green-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 font-semibold text-sm">
           <div className="bg-white/20 rounded-full p-1">
@@ -1214,7 +1201,7 @@ const VitalsPage = () => {
         </div>
       </div>
 
-      {!showRapidTesting && !showEyeTesting && !showColorBlindTest && !showHearingTest && (
+      {activeTab === 'vitals' && (
         <>
           <Navbar
             variant="vitals"

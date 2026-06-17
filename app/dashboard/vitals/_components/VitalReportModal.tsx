@@ -41,7 +41,7 @@ const Row = ({ label, value }: { label: string; value: string }) => (
 const SectionTitle = ({ title }: { title: string }) => (
     <div style={{
         fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 2,
-        color: '#0297d6', borderBottom: '1px solid #0297d6', paddingBottom: 3, marginBottom: 6, marginTop: 10
+        color: '#0297d6', borderBottom: '1px solid #0297d6', paddingBottom: 8, marginBottom: 6, marginTop: 10
     }}>
         {title}
     </div>
