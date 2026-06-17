@@ -12,6 +12,7 @@ import logo from "@/public/logo2.png"
 import logoSmall from "@/public/logosmall.png"
 import { usePathname, useRouter } from 'next/navigation';
 import { apiService } from '@/app/_utils/apiService';
+import SignOutDialog from '@/app/sign-in/_components/SignOutDialog';
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge';
 
 export default function Sidebar() {
@@ -19,6 +20,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState(pathname);
   const [isOpen, setIsOpen] = useState(false);
+  const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
   const router = useRouter();
 
   const staffMenuItems: MenuItem[] = [
@@ -37,6 +39,7 @@ export default function Sidebar() {
 
 
   const handleSignOut = () => {
+    setSignOutDialogOpen(false);
     if (isDoctor) {
       window.dispatchEvent(new CustomEvent('doctor-logout-requested'));
       setIsOpen(false);
@@ -159,7 +162,7 @@ export default function Sidebar() {
         {/* Sign Out */}
         <div className="p-3 border-t border-slate-200 bg-white">
           <button
-            onClick={handleSignOut}
+            onClick={() => setSignOutDialogOpen(true)}
             title="Sign Out"
             className="w-full flex items-center cursor-pointer gap-3 px-2 py-3 text-slate-500 font-bold hover:bg-red-50 hover:text-red-500 rounded-2xl transition-all group justify-center"
           >
@@ -172,6 +175,11 @@ export default function Sidebar() {
           </button>
         </div>
       </aside>
+      <SignOutDialog
+        open={signOutDialogOpen}
+        onConfirm={handleSignOut}
+        onCancel={() => setSignOutDialogOpen(false)}
+      />
     </>
   );
 }
