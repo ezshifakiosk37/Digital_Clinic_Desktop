@@ -22,6 +22,7 @@ export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
   const [navigating, setNavigating] = useState(false);
+  const [signOutLoading, setSignOutLoading] = useState(false);
   const router = useRouter();
 
   const staffMenuItems: MenuItem[] = [
@@ -41,6 +42,7 @@ export default function Sidebar() {
 
   const handleSignOut = () => {
     setSignOutDialogOpen(false);
+    setSignOutLoading(true);
     if (isDoctor) {
       window.dispatchEvent(new CustomEvent('doctor-logout-requested'));
       setIsOpen(false);
@@ -58,18 +60,19 @@ export default function Sidebar() {
       window.dispatchEvent(new CustomEvent('doctor-show-profile'));
       setActiveTab('/dashboard/consultation/profile');
       setIsOpen(false);
+      setNavigating(false);
       return;
     }
     if (isDoctor && name === 'Consultation') {
       window.dispatchEvent(new CustomEvent('doctor-show-dashboard'));
       setActiveTab('/dashboard/consultation');
       setIsOpen(false);
+      setNavigating(false);
       return;
     }
     setActiveTab(path);
     router.push(path);
     setIsOpen(false);
-    setTimeout(() => setNavigating(false), 1000);
   };
 
   useEffect(() => {
@@ -86,11 +89,19 @@ export default function Sidebar() {
     return () => window.removeEventListener('toggle-mobile-sidebar', handleMobileToggle);
   }, []);
 
+
+  useEffect(() => {
+    if (navigating && pathname === activeTab) {
+      setNavigating(false);
+    }
+  }, [pathname, activeTab, navigating]);
+
   return (
     <>
       {/* Overlay */}
       {isOpen && (
         <div
+
           className="fixed inset-0 bg-black/30 z-20"
           onClick={() => setIsOpen(false)}
         />
@@ -130,9 +141,7 @@ export default function Sidebar() {
         {/* Nav Items */}
         <nav className="flex-1 space-y-3">
           {menuItems.map((item) => {
-            const isActive = isDoctor
-              ? activeTab === item.path
-              : pathname.startsWith(item.path);
+            const isActive = activeTab === item.path;
             return (
               <button
                 key={item.name}
@@ -157,7 +166,7 @@ export default function Sidebar() {
                   {isOpen && (
                     <span className="text-sm whitespace-nowrap">{item.name}</span>
                   )}
-                  
+
                 </div>
                 <div className={`transition-all duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
                   {isActive
@@ -190,6 +199,7 @@ export default function Sidebar() {
         open={signOutDialogOpen}
         onConfirm={handleSignOut}
         onCancel={() => setSignOutDialogOpen(false)}
+        isLoading={signOutLoading}
       />
     </>
   );

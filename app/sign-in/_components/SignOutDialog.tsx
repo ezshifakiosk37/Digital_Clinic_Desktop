@@ -15,9 +15,10 @@ interface SignOutDialogProps {
   open: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  isLoading?: boolean;
 }
 
-const SignOutDialog: React.FC<SignOutDialogProps> = ({ open, onConfirm, onCancel }) => {
+const SignOutDialog: React.FC<SignOutDialogProps> = ({ open, onConfirm, onCancel, isLoading = false }) => {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onCancel(); }}>
       <DialogContent className="sm:max-w-sm">
@@ -35,19 +36,30 @@ const SignOutDialog: React.FC<SignOutDialogProps> = ({ open, onConfirm, onCancel
 
         <DialogFooter >
           <div className="flex flex-col w-full mt-1 mb-1 gap-2">
-          <Button
-            className="w-full cursor-pointer"
-            onClick={onConfirm}
-          >
-            Sign Out
-          </Button>
-          <Button
-            className="w-full cursor-pointer bg-white text-red"
-            onClick={onCancel}
-          >
-            Cancel
-          </Button>
-        </div>
+            <Button
+              className="w-full cursor-pointer"
+              onClick={onConfirm}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  Signing out…
+                </span>
+              ) : (
+                "Sign Out"
+              )}
+            </Button>
+            <Button
+              className="w-full cursor-pointer bg-white text-red"
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
