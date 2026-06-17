@@ -174,6 +174,49 @@ const VitalsPage = () => {
   useEffect(() => {
     fetchVitalsQueue();
 
+    // ── Restore full session if PWA was killed or page refreshed ──
+    const savedSession = localStorage.getItem('localClinic_session');
+    if (savedSession) {
+      try {
+        const s = JSON.parse(savedSession);
+        if (s.sessionPhone) {
+          setSessionPhone(s.sessionPhone);
+          setSessionName(s.sessionName || '');
+          setSessionAge(s.sessionAge);
+          setSessionGender(s.sessionGender);
+          setTokenNumber(s.tokenNumber || '');
+          setSessionToken(s.sessionToken || '');
+          setVitalsId(s.vitalsId || '');
+          setStep(s.step || 1);
+          setHeightUnit(s.heightUnit || 'ft');
+          setTempUnit(s.tempUnit || '°C');
+          if (s.vitals) setVitals(s.vitals);
+          if (s.rapidTestingData) setRapidTestingData(s.rapidTestingData);
+          if (s.eyeTestingData) setEyeTestingData(s.eyeTestingData);
+          if (s.colorBlindData) setColorBlindData(s.colorBlindData);
+          if (s.hearingTestData) setHearingTestData(s.hearingTestData);
+          setOpenTokenDialog(false);
+
+          // Also trigger a background re-fetch of prefetched data from DB
+          if (s.vitalsId) {
+            Promise.all([
+              apiService.getRapidTesting(s.vitalsId).catch(() => null),
+              apiService.getEyeTesting(s.vitalsId).catch(() => null),
+              apiService.getColorBlind(s.vitalsId).catch(() => null),
+              apiService.getHearingTest(s.vitalsId).catch(() => null),
+            ]).then(([rapidRes, eyeRes, colorRes, hearingRes]) => {
+              setPrefetchedRapidData(rapidRes?.data ?? null);
+              setPrefetchedEyeData(eyeRes?.data ?? null);
+              setPrefetchedColorBlindData(colorRes?.data ?? null);
+              setPrefetchedHearingData(hearingRes?.data ?? null);
+            }).catch(console.error);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to restore session:', e);
+      }
+    }
+
     // ── Restore tab if PWA was killed mid-flow ──
     const savedTab = localStorage.getItem('localClinic_activeTab') as AppTab | null;
     if (savedTab && ['rapid', 'eye', 'colorblind', 'hearing'].includes(savedTab)) {
@@ -217,6 +260,32 @@ const VitalsPage = () => {
     }
   }, [activeTab]);
 
+  // ── Persist full session so refresh/PWA kill restores everything ──
+  useEffect(() => {
+    if (!sessionPhone) return; // don't persist empty session
+    localStorage.setItem('localClinic_session', JSON.stringify({
+      sessionPhone,
+      sessionName,
+      sessionAge,
+      sessionGender,
+      tokenNumber,
+      sessionToken,
+      vitalsId,
+      step,
+      heightUnit,
+      tempUnit,
+      vitals,
+      rapidTestingData,
+      eyeTestingData,
+      colorBlindData,
+      hearingTestData,
+    }));
+  }, [
+    sessionPhone, sessionName, sessionAge, sessionGender,
+    tokenNumber, sessionToken, vitalsId, step,
+    heightUnit, tempUnit, vitals,
+    rapidTestingData, eyeTestingData, colorBlindData, hearingTestData,
+  ]);
   useEffect(() => {
     AndroidBridge.initVitalsListener((newVitals) => {
       setVitals(prev => {
@@ -320,6 +389,7 @@ const VitalsPage = () => {
     setColorBlindData(null);
     setHearingTestData(null);
     localStorage.removeItem('localClinic_activeTab');
+    localStorage.removeItem('localClinic_session');
     setVitalsQueue(prev => prev.filter(p => p.id !== patient.id));
   };
 
@@ -608,6 +678,7 @@ const VitalsPage = () => {
         setColorBlindData(null);
         setHearingTestData(null);
         localStorage.removeItem('localClinic_activeTab');
+        localStorage.removeItem('localClinic_session');
       }
 
     } catch (error: any) {
@@ -764,6 +835,7 @@ const VitalsPage = () => {
       setColorBlindData(null);
       setHearingTestData(null);
       localStorage.removeItem('localClinic_activeTab');
+      localStorage.removeItem('localClinic_session');
 
     } catch (error: any) {
       const msg = error.message || '';
