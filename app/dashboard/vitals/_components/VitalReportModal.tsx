@@ -277,6 +277,10 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
 
     const handleSaveEmail = async (emailToSave: string) => {
         if (!emailToSave.trim() || !report?.patient?.id) return
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailToSave.trim())) {
+            alert('Please enter a valid email address.')
+            return
+        }
         setIsSavingEmail(true)
         try {
             await apiService.updatePatientEmail(report.patient.id, emailToSave.trim())
@@ -321,9 +325,15 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
         }
     }
 
+    const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+
     const handleConfirmSendEmail = async () => {
         const emailToUse = isEditingEmail ? editedEmail : patientEmail
         if (!emailToUse || !vitalsId) return
+        if (!isValidEmail(emailToUse)) {
+            alert('Please enter a valid email address.')
+            return
+        }
         setIsSendingEmail(true)
         try {
             const pdfBlob = await generatePdfBlob()
@@ -547,7 +557,7 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
                                     This Digital Report from EZShifa does not require stamp or signature
                                     and is not valid for Legal proceedings.
                                 </div>
-                                
+
                             </div>
                         )}
                     </div>
