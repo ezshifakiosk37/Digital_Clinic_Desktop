@@ -236,6 +236,7 @@ interface EyeTestingPageProps {
     onNext: (data: EyeTestingData) => void
     onSkip: () => void
     onSkipToColorBlind: () => void
+    onBack?: () => void
     sessionName?: string
     sessionPhone?: string
     sessionToken?: string
@@ -249,6 +250,7 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
     onNext,
     onSkip,
     onSkipToColorBlind,
+    onBack,
     sessionName = '',
     sessionPhone = '',
     sessionToken = '',
@@ -398,7 +400,7 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
 
                     <div className="flex justify-between mb-12 pb-6 pt-2">
                         <button
-                            onClick={onSkip}
+                            onClick={onBack}
                             className="px-8 py-3 border border-slate-200 rounded-xl font-medium"
                         >
                             ← Back

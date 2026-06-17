@@ -473,7 +473,6 @@ const VitalsPage = () => {
   const handleVerifyToken = async () => {
     if (!tokenNumber) return;
     setVerifyingToken(true);
-    setOpenTokenDialog(false);
 
     try {
       const res = await apiService.verifyToken(parseInt(tokenNumber).toString());
@@ -571,6 +570,7 @@ const VitalsPage = () => {
           setPrefetchedHearingData(null);
         }
 
+        setOpenTokenDialog(false);
         setVitals(initialVitals);
         localStorage.setItem("localClinic_entryId", res.patientId);
         setSessionPhone(res.phoneNumber);
@@ -606,172 +606,173 @@ const VitalsPage = () => {
         setShowInvalidToast(true);
         setTimeout(() => setShowInvalidToast(false), 3000);
       }
+      setOpenTokenDialog(true); 
     } finally {
       setVerifyingToken(false);
     }
   };
 
-const handleVerifyByPhone = async () => {
-  if (!phoneSearch) return;
-  setVerifyingToken(true);
-  setOpenTokenDialog(false);
+  const handleVerifyByPhone = async () => {
+    if (!phoneSearch) return;
+    setVerifyingToken(true);
 
-  try {
-    // 1️⃣ Get today's token for this phone number
-    const tokenRes = await apiService.getTodayTokenByPhone(phoneSearch);
-    if (!tokenRes.success || !tokenRes.token) {
-      setShowInvalidToast(true);
-      setTimeout(() => setShowInvalidToast(false), 3000);
-      setOpenTokenDialog(true);
-      return;
-    }
-
-    const tokenToUse = tokenRes.token;
-    const patientId = tokenRes.patientId;
-
-    // 2️⃣ Verify the token (checks date + not used)
-    const verifyRes = await apiService.verifyToken(parseInt(tokenToUse).toString());
-    if (!verifyRes.success) {
-      setShowInvalidToast(true);
-      setTimeout(() => setShowInvalidToast(false), 3000);
-      setOpenTokenDialog(true);
-      return;
-    }
-
-    // 3️⃣ Fetch latest vitals for this patient + token
-    const latestRes = await apiService.getLatestVitals(patientId, tokenToUse);
-
-    let initialVitals = {
-      BP: { value1: '', value2: '' },
-      PulseRate: '',
-      Temperature: '',
-      Spo2: '',
-      Height: '',
-      Weight: '',
-      symptoms: [] as string[],
-    };
-    let fetchedVitalsId = '';
-
-    if (latestRes.success && latestRes.vital) {
-      const v = latestRes.vital;
-      fetchedVitalsId = v.id || '';
-
-      const savedHeightUnit = (v.heightUnit as 'ft' | 'cm') || 'ft';
-      const savedTempUnit = (v.temperatureUnit as '°C' | '°F') || '°C';
-      setHeightUnit(savedHeightUnit);
-      setTempUnit(savedTempUnit);
-
-      const displayHeight = (() => {
-        if (!v.Height) return '';
-        if (savedHeightUnit === 'cm') return v.Height;
-        const totalInches = parseFloat(v.Height) / 2.54;
-        const ft = Math.floor(totalInches / 12);
-        const inch = Math.round(totalInches % 12);
-        return `${ft}.${inch}`;
-      })();
-
-      const displayTemp = (() => {
-        if (!v.Temperature) return '';
-        if (savedTempUnit === '°C') return v.Temperature;
-        return ((parseFloat(v.Temperature) * 9 / 5) + 32).toFixed(1);
-      })();
-
-      initialVitals = {
-        BP: { value1: v.Systolic || '', value2: v.Diastolic || '' },
-        PulseRate: v.PulseRate || '',
-        Temperature: displayTemp,
-        Spo2: v.BloodOxygen || '',
-        Height: displayHeight,
-        Weight: v.Weight || '',
-        symptoms: v.symptoms
-          ? (typeof v.symptoms === 'string'
-            ? v.symptoms.split(',').map((s: string) => s.trim())
-            : Array.isArray(v.symptoms) ? v.symptoms : [])
-          : [],
-      };
-
-      setPrefetchedVitals({
-        PulseRate: v.PulseRate || '',
-        Spo2: v.BloodOxygen || '',
-        BP: { value1: v.Systolic || '', value2: v.Diastolic || '' },
-        Temperature: v.Temperature || '',
-        Weight: v.Weight || '',
-        Height: v.Height || '',
-        symptoms: initialVitals.symptoms,
-        heightUnit: v.heightUnit || 'ft',
-        temperatureUnit: v.temperatureUnit || '°C',
-      });
-
-      if (fetchedVitalsId) {
-        try {
-          const [rapidRes, eyeRes, colorRes, hearingRes] = await Promise.all([
-            apiService.getRapidTesting(fetchedVitalsId).catch(() => null),
-            apiService.getEyeTesting(fetchedVitalsId).catch(() => null),
-            apiService.getColorBlind(fetchedVitalsId).catch(() => null),
-            apiService.getHearingTest(fetchedVitalsId).catch(() => null),
-          ]);
-          setPrefetchedRapidData(rapidRes?.data ?? null);
-          setPrefetchedEyeData(eyeRes?.data ?? null);
-          setPrefetchedColorBlindData(colorRes?.data ?? null);
-          setPrefetchedHearingData(hearingRes?.data ?? null);
-        } catch (err) {
-          console.error('Failed to prefetch test data:', err);
-        }
+    try {
+      // 1️⃣ Get today's token for this phone number
+      const tokenRes = await apiService.getTodayTokenByPhone(phoneSearch);
+      if (!tokenRes.success || !tokenRes.token) {
+        setShowInvalidToast(true);
+        setTimeout(() => setShowInvalidToast(false), 3000);
+        setOpenTokenDialog(true);
+        return;
       }
-    } else {
-      setPrefetchedVitals(null);
-      setPrefetchedRapidData(null);
-      setPrefetchedEyeData(null);
-      setPrefetchedColorBlindData(null);
-      setPrefetchedHearingData(null);
-    }
 
-    // 4️⃣ Set session state
-    localStorage.setItem('localClinic_entryId', patientId);
-    setVitals(initialVitals);
-    setSessionPhone(phoneSearch);
-    setSessionName(verifyRes.firstName && verifyRes.lastName
-      ? `${verifyRes.firstName} ${verifyRes.lastName}`.trim()
-      : verifyRes.name || '');
-    setSessionAge(verifyRes.age || '');
-    setSessionGender(verifyRes.gender || '');
-    setTokenNumber(tokenToUse);
-    setSessionToken(tokenToUse);
-    setOpenTokenDialog(false);
-    setHistory([]);
-    setHistorySearchPhone('');
-    setStep(1);
-    setVitalsSaved(false);
-    setVitalsId(fetchedVitalsId);
-    setRapidTestingId('');
-    setRapidTestingData(null);
-    setShowEyeTesting(false);
-    setEyeTestingData(null);
-    setShowColorBlindTest(false);
-    setColorBlindData(null);
-    setShowHearingTest(false);
-    setHearingTestData(null);
+      const tokenToUse = tokenRes.token;
+      const patientId = tokenRes.patientId;
 
-  } catch (error: any) {
-    const msg = error.message || '';
-    if (msg.toLowerCase().includes('already used')) {
-      setShowExpiredToast(true);
-      setTimeout(() => setShowExpiredToast(false), 3000);
-    } else if (msg.toLowerCase().includes('not generated') || msg.toLowerCase().includes('404')) {
-      setShowInvalidToast(true);
-      setTimeout(() => setShowInvalidToast(false), 3000);
-    } else {
-      setShowInvalidToast(true);
-      setTimeout(() => setShowInvalidToast(false), 3000);
+      // 2️⃣ Verify the token (checks date + not used)
+      const verifyRes = await apiService.verifyToken(parseInt(tokenToUse).toString());
+      if (!verifyRes.success) {
+        setShowInvalidToast(true);
+        setTimeout(() => setShowInvalidToast(false), 3000);
+        setOpenTokenDialog(true);
+        return;
+      }
+
+      // 3️⃣ Fetch latest vitals for this patient + token
+      const latestRes = await apiService.getLatestVitals(patientId, tokenToUse);
+
+      let initialVitals = {
+        BP: { value1: '', value2: '' },
+        PulseRate: '',
+        Temperature: '',
+        Spo2: '',
+        Height: '',
+        Weight: '',
+        symptoms: [] as string[],
+      };
+      let fetchedVitalsId = '';
+
+      if (latestRes.success && latestRes.vital) {
+        const v = latestRes.vital;
+        fetchedVitalsId = v.id || '';
+
+        const savedHeightUnit = (v.heightUnit as 'ft' | 'cm') || 'ft';
+        const savedTempUnit = (v.temperatureUnit as '°C' | '°F') || '°C';
+        setHeightUnit(savedHeightUnit);
+        setTempUnit(savedTempUnit);
+
+        const displayHeight = (() => {
+          if (!v.Height) return '';
+          if (savedHeightUnit === 'cm') return v.Height;
+          const totalInches = parseFloat(v.Height) / 2.54;
+          const ft = Math.floor(totalInches / 12);
+          const inch = Math.round(totalInches % 12);
+          return `${ft}.${inch}`;
+        })();
+
+        const displayTemp = (() => {
+          if (!v.Temperature) return '';
+          if (savedTempUnit === '°C') return v.Temperature;
+          return ((parseFloat(v.Temperature) * 9 / 5) + 32).toFixed(1);
+        })();
+
+        initialVitals = {
+          BP: { value1: v.Systolic || '', value2: v.Diastolic || '' },
+          PulseRate: v.PulseRate || '',
+          Temperature: displayTemp,
+          Spo2: v.BloodOxygen || '',
+          Height: displayHeight,
+          Weight: v.Weight || '',
+          symptoms: v.symptoms
+            ? (typeof v.symptoms === 'string'
+              ? v.symptoms.split(',').map((s: string) => s.trim())
+              : Array.isArray(v.symptoms) ? v.symptoms : [])
+            : [],
+        };
+
+        setPrefetchedVitals({
+          PulseRate: v.PulseRate || '',
+          Spo2: v.BloodOxygen || '',
+          BP: { value1: v.Systolic || '', value2: v.Diastolic || '' },
+          Temperature: v.Temperature || '',
+          Weight: v.Weight || '',
+          Height: v.Height || '',
+          symptoms: initialVitals.symptoms,
+          heightUnit: v.heightUnit || 'ft',
+          temperatureUnit: v.temperatureUnit || '°C',
+        });
+
+        if (fetchedVitalsId) {
+          try {
+            const [rapidRes, eyeRes, colorRes, hearingRes] = await Promise.all([
+              apiService.getRapidTesting(fetchedVitalsId).catch(() => null),
+              apiService.getEyeTesting(fetchedVitalsId).catch(() => null),
+              apiService.getColorBlind(fetchedVitalsId).catch(() => null),
+              apiService.getHearingTest(fetchedVitalsId).catch(() => null),
+            ]);
+            setPrefetchedRapidData(rapidRes?.data ?? null);
+            setPrefetchedEyeData(eyeRes?.data ?? null);
+            setPrefetchedColorBlindData(colorRes?.data ?? null);
+            setPrefetchedHearingData(hearingRes?.data ?? null);
+          } catch (err) {
+            console.error('Failed to prefetch test data:', err);
+          }
+        }
+      } else {
+        setPrefetchedVitals(null);
+        setPrefetchedRapidData(null);
+        setPrefetchedEyeData(null);
+        setPrefetchedColorBlindData(null);
+        setPrefetchedHearingData(null);
+      }
+
+      // 4️⃣ Set session state
+      setOpenTokenDialog(false);
+      localStorage.setItem('localClinic_entryId', patientId);
+      setVitals(initialVitals);
+      setSessionPhone(phoneSearch);
+      setSessionName(verifyRes.firstName && verifyRes.lastName
+        ? `${verifyRes.firstName} ${verifyRes.lastName}`.trim()
+        : verifyRes.name || '');
+      setSessionAge(verifyRes.age || '');
+      setSessionGender(verifyRes.gender || '');
+      setTokenNumber(tokenToUse);
+      setSessionToken(tokenToUse);
+      setOpenTokenDialog(false);
+      setHistory([]);
+      setHistorySearchPhone('');
+      setStep(1);
+      setVitalsSaved(false);
+      setVitalsId(fetchedVitalsId);
+      setRapidTestingId('');
+      setRapidTestingData(null);
+      setShowEyeTesting(false);
+      setEyeTestingData(null);
+      setShowColorBlindTest(false);
+      setColorBlindData(null);
+      setShowHearingTest(false);
+      setHearingTestData(null);
+
+    } catch (error: any) {
+      const msg = error.message || '';
+      if (msg.toLowerCase().includes('already used')) {
+        setShowExpiredToast(true);
+        setTimeout(() => setShowExpiredToast(false), 3000);
+      } else if (msg.toLowerCase().includes('not generated') || msg.toLowerCase().includes('404')) {
+        setShowInvalidToast(true);
+        setTimeout(() => setShowInvalidToast(false), 3000);
+      } else {
+        setShowInvalidToast(true);
+        setTimeout(() => setShowInvalidToast(false), 3000);
+      }
+      setOpenTokenDialog(true);
+    } finally {
+      setVerifyingToken(false);
     }
-    setOpenTokenDialog(true);
-  } finally {
-    setVerifyingToken(false);
-  }
-};
+  };
 
   // Fetch history specifically by phone number (Independent of token)
-const handleSearchHistory = async (): Promise<void> => {
+  const handleSearchHistory = async (): Promise<void> => {
     if (!historySearchPhone) {
       alert("Please enter a phone number");
       return;
@@ -1077,6 +1078,10 @@ const handleSearchHistory = async (): Promise<void> => {
           onSkipToColorBlind={() => {
             setShowEyeTesting(false);
             setShowColorBlindTest(true);
+          }}
+          onBack={() => {
+            setShowEyeTesting(false);
+            setShowRapidTesting(true);
           }}
           sessionName={sessionName}
           sessionPhone={sessionPhone}
