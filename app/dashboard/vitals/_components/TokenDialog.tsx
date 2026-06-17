@@ -103,7 +103,7 @@ const TokenDialog = ({
           ) : (
             <input
               type="tel"
-              placeholder="e.g. 03001234567"
+              placeholder="e.g. 3001234567"
               value={phoneSearch}
               onChange={(e) => setPhoneSearch(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
