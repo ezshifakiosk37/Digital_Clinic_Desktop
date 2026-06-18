@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { cn } from "@/lib/utils"
 import { apiService } from '@/app/_utils/apiService';
 import ISO6391 from 'iso-639-1';
-import Webcam from 'react-webcam';
 import {
   Command,
   CommandEmpty,

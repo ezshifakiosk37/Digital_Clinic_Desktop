@@ -26,6 +26,7 @@ import EyeTestingpage, { EyeTestingData } from './_components/EyeTestingpage'
 import ColorBlindTestPage, { ColorBlindTestData } from './_components/ColorBlindTestPage'
 import HearingTestPage, { HearingTestData } from './_components/HearingTestPage'
 import VitalReportModal from './_components/VitalReportModal'
+import { downloadPDF } from '@/app/_utils/pdfExport';
 
 
 const VitalsPage = () => {
@@ -936,7 +937,6 @@ const VitalsPage = () => {
       Array.isArray(rec.symptoms)
         ? rec.symptoms.join(", ")
         : (rec.symptoms || "—"),
-
     ]);
 
     autoTable(doc, {
@@ -948,7 +948,11 @@ const VitalsPage = () => {
       columnStyles: { 8: { cellWidth: 50 } },
     });
 
-    doc.save(`History_${historySearchPhone}.pdf`);
+    // ✅ REPLACE this line:
+    // doc.save(`History_${historySearchPhone}.pdf`);
+
+    // ✅ WITH this:
+    downloadPDF(doc, `History_${historySearchPhone}.pdf`);
   };
 
 

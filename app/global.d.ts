@@ -9,12 +9,15 @@ declare global {
        */
       playIncomingCallSound: () => void;
       stopIncomingCallSound: () => void;
-      /** * NEW: Triggers the native Android request for the FCM token.
+      
+      /** 
+       * NEW: Triggers the native Android request for the FCM token.
        * The result is sent back via window.onFcmTokenReceived.
        */
       requestFcmToken: () => void;
 
-      /** * NEW: Deletes the current FCM token and unregisters the device.
+      /** 
+       * NEW: Deletes the current FCM token and unregisters the device.
        * Useful for security during Doctor Logout.
        */
       unregisterFcmDevice: () => void;
@@ -81,9 +84,20 @@ declare global {
       * The web side must define window.receiveEcgFile(base64, filename).
       */
       sendEcgFileToWeb: (filename: string) => void;
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // NEW: PDF DOWNLOAD (Added Here)
+      // ─────────────────────────────────────────────────────────────────────────
+      /** 
+       * Downloads a PDF file to the device's Downloads folder.
+       * @param base64Data - The Base64 encoded PDF data
+       * @param fileName - The desired file name (e.g., "report.pdf")
+       */
+      downloadPDF: (base64Data: string, fileName: string) => void;
     };
 
-    /** * NEW: Receives the FCM token from Android. 
+    /** 
+     * NEW: Receives the FCM token from Android. 
      * Format: '{"token": "xyz...", "error": null}' 
      */
     onFcmTokenReceived?: (jsonString: string) => void;
@@ -117,5 +131,15 @@ declare global {
     // ─────────────────────────────────────────────────────────────────────────
     /** Called by Android when an ECG file is detected and its Base64 content is ready. */
     receiveEcgFile?: (base64: string, filename: string) => void;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PDF DOWNLOAD RESULT CALLBACK (Added Here)
+    // ─────────────────────────────────────────────────────────────────────────
+    /** 
+     * Called by Android when a PDF download completes or fails.
+     * @param success - True if download succeeded, false otherwise
+     * @param message - Success or error message
+     */
+    onPDFDownloadResult?: (success: boolean, message: string) => void;
   }
 }
