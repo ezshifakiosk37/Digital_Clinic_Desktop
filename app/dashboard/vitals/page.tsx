@@ -517,6 +517,7 @@ const VitalsPage = () => {
       console.log('[vitalsToSave] Height:', vitals.Height, 'heightUnit:', heightUnit, 'Temp:', vitals.Temperature, 'tempUnit:', tempUnit);
 
       let currentVitalsId = vitalsId;
+      const previousVitalsId = vitalsId; // capture old id before overwriting
 
       // If vitals changed or no existing vitalsId → insert new row
       if (!currentVitalsId || vitalsChanged(vitalsToSave, prefetchedVitals)) {
@@ -533,6 +534,13 @@ const VitalsPage = () => {
         setVitalsId(currentVitalsId);
         setShowSuccessToast(true);
         setTimeout(() => setShowSuccessToast(false), 3000);
+
+        // ── If a previous row existed, copy its tests to the new row in background ──
+        if (previousVitalsId && previousVitalsId !== currentVitalsId) {
+          apiService.copyTestsToNewVitals(previousVitalsId, currentVitalsId).catch(err => {
+            console.error("Background test copy failed:", err);
+          });
+        }
       }
 
       // Navigate to Rapid Testing with vitalsId

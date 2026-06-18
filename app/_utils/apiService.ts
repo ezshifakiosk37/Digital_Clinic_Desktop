@@ -142,7 +142,14 @@ export const apiService = {
         });
         return handleResponse(response);
     },
-
+    copyTestsToNewVitals: async (oldVitalsId: string, newVitalsId: string) => {
+        const response = await fetch(`${API_BASE_URL}/api/vitals/copy-tests`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ oldVitalsId, newVitalsId }),
+        });
+        return handleResponse(response);
+    },
     updateSymptoms: async (vitalsId: string, symptoms: string[], bmi?: string | null) => {
         const response = await fetch(`${API_BASE_URL}/api/vitals/update-symptoms/${vitalsId}`, {
             method: 'PATCH',
