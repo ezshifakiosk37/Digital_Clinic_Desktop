@@ -201,6 +201,11 @@ const DemographicPage: React.FC = () => {
         setEntryId(response.entryId);
         setToken(response.token);
         localStorage.setItem('localClinic_entryId', response.entryId);
+
+        // ── Clear any previous patient session so vitals starts fresh ──
+        localStorage.removeItem('localClinic_session');
+        localStorage.removeItem('localClinic_activeTab');
+
         localStorage.setItem('localClinic_pendingSession', JSON.stringify({
           entryId: response.entryId,
           token: response.token,

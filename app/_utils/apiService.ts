@@ -144,14 +144,12 @@ export const apiService = {
     },
 
     updateSymptoms: async (vitalsId: string, symptoms: string[], bmi?: string | null) => {
-        const response = await fetch(`${API_BASE_URL}/api/vitals/update/${vitalsId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/vitals/update-symptoms/${vitalsId}`, {
             method: 'PATCH',
             headers: getHeaders(),
             body: JSON.stringify({
-                vitals: {
-                    symptoms: symptoms.length ? symptoms : ['Unknown'],
-                    ...(bmi !== undefined && { bmi }),
-                }
+                symptoms: symptoms.length ? symptoms : ['Unknown'],
+                ...(bmi !== undefined && { bmi }),
             }),
         });
         return handleResponse(response);
