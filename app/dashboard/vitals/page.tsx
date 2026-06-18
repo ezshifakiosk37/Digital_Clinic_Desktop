@@ -1779,8 +1779,8 @@ const VitalsPage = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
-                        {filteredVitalsQueue.map((p, i) => (
-                          <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                        {[...filteredVitalsQueue].sort((a, b) => (a.vitalsRecorded === b.vitalsRecorded ? 0 : a.vitalsRecorded ? 1 : -1)).map((p, i) => (
+                          <tr key={p.id} className={`transition-colors ${p.vitalsRecorded ? 'opacity-40 bg-slate-50' : 'hover:bg-slate-50/50'}`}>
                             <td className="px-4 py-3 text-sm text-slate-400 font-medium">{i + 1}</td>
                             <td className="px-4 py-3 text-sm font-bold text-[#0297d6]">#{p.token}</td>
                             <td className="px-4 py-3 text-sm font-semibold text-slate-700">
@@ -1789,12 +1789,18 @@ const VitalsPage = () => {
                             </td>
                             <td className="px-4 py-3 text-sm text-slate-500 hidden sm:table-cell">{p.phoneNumber}</td>
                             <td className="px-4 py-3 text-right">
-                              <button
-                                onClick={() => startSessionFromQueue(p)}
-                                className="bg-[#0297d6] hover:bg-[#0286c2] text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors"
-                              >
-                                START
-                              </button>
+                              {p.vitalsRecorded ? (
+                                <span className="text-xs font-bold px-4 py-2 rounded-lg bg-green-100 text-green-600 cursor-default">
+                                  DONE
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => startSessionFromQueue(p)}
+                                  className="bg-[#0297d6] hover:bg-[#0286c2] text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors"
+                                >
+                                  START
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}
