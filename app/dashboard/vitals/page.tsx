@@ -1098,7 +1098,7 @@ const VitalsPage = () => {
 
       {/* ── AUTO-VERIFY FULLSCREEN LOADER ── */}
       {autoVerifying && (
-        <div className="fixed inset-0 z-[999] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+        <div className="fixed inset-0 z-999 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
           <div className="w-14 h-14 rounded-full border-4 border-[#0297d6] border-t-transparent animate-spin" />
           <p className="text-slate-600 font-semibold text-base">Starting patient session...</p>
         </div>

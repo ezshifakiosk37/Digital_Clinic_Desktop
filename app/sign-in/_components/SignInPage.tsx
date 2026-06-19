@@ -17,6 +17,8 @@ const SignInPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState<boolean>(false)
   const [showPassword, setShowPassword] = useState(false);
+  const [showErrorToast, setShowErrorToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -25,7 +27,9 @@ const SignInPage: React.FC = () => {
 
     // Brutal Logic: Don't even try if the fields are empty
     if (!username || !password) {
-      alert("Username and Password are required.");
+      setToastMessage("Username and Password are required.");
+      setShowErrorToast(true);
+      setTimeout(() => setShowErrorToast(false), 3000);
       setLoading(false);
       return;
     }
@@ -51,10 +55,15 @@ const SignInPage: React.FC = () => {
       //   router.push('/dashboard/demographic');
       //}
 
-      
+
     } catch (error: any) {
-      console.error('Login error:', error);
-      alert(error.message || 'Login failed. Please check your credentials.');
+      setToastMessage(
+        error.status === 401
+          ? 'Incorrect username or password. Please try again.'
+          : error.message || 'Login failed. Please try again.'
+      );
+      setShowErrorToast(true);
+      setTimeout(() => setShowErrorToast(false), 3000);
       setLoading(false);
     }
   };
@@ -117,9 +126,17 @@ const SignInPage: React.FC = () => {
                 </button>
               </div>
             </div>
+            {showErrorToast && (
+              <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 text-sm font-semibold px-4 py-3 rounded-xl">
+                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
+                </svg>
+                {toastMessage}
+              </div>
+            )}
             <Button type="submit" className="w-full text-md py-6 mt-3 cursor-pointer">
               Sign In
-              {loading && <Loader className='animate-spin'/>}
+              {loading && <Loader className='animate-spin' />}
             </Button>
           </form>
         </CardContent>
