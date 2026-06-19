@@ -47,7 +47,7 @@ const Navbar: React.FC<NavbarProps> = ({
 
         {/* Doctor name — always visible */}
         <div className="text-right hidden md:block">
-          <p className="text-[12px] font-semibold uppercase tracking-wide leading-tight max-w-[120px] truncate">{fullName}</p>
+          <p className="text-[12px] font-semibold uppercase tracking-wide leading-tight max-w-30 truncate">{fullName}</p>
         </div>
 
         {/* Status label — always visible */}
@@ -68,7 +68,10 @@ const Navbar: React.FC<NavbarProps> = ({
 
         {/* Profile Avatar */}
         <div
-          onClick={onProfileClick}
+          onClick={() => {
+            onProfileClick();
+            window.dispatchEvent(new CustomEvent('doctor-show-profile'));
+          }}
           className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white flex items-center justify-center text-[#0297d6] font-bold text-sm md:text-lg border-2 border-white/30 cursor-pointer hover:border-white transition-all overflow-hidden shrink-0"
         >
           {doctorPhoto ? (

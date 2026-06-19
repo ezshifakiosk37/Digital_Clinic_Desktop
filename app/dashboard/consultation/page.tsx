@@ -596,7 +596,7 @@ const EZShifaPortal = () => {
                             <p className="text-sm text-slate-500">{walkinSearchResult.phoneNumber || '—'}</p>
                           </td>
                           <td className="px-5 py-4">
-                            <p className="text-sm text-slate-600 max-w-[160px] line-clamp-2 leading-snug">{walkinSearchResult.symptoms || '—'}</p>
+                            <p className="text-sm text-slate-600 max-w-40 line-clamp-2 leading-snug">{walkinSearchResult.symptoms || '—'}</p>
                           </td>
                           <td className="px-5 py-4 text-right">
                             <button
@@ -711,7 +711,7 @@ const EZShifaPortal = () => {
                       {/* <td className="px-3 md:px-8 py-4 font-medium text-slate-400">{i + 1}</td> */}
                       <td className="px-3 md:px-8 py-4 font-bold text-slate-400">#{p.token}</td>
                       <td className="px-3 md:px-8 py-4 text-slate-600 font-semibold whitespace-nowrap">{p.firstName} {p.lastName}</td>
-                      <td className="px-3 md:px-8 py-4 text-slate-500 text-sm max-w-[160px]">
+                      <td className="px-3 md:px-8 py-4 text-slate-500 text-sm max-w-40">
                         <span className="line-clamp-2 leading-snug">{p.symptoms || '—'}</span>
                       </td>
                       <td className="px-4 py-4 text-right">
