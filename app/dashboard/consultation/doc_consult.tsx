@@ -31,6 +31,16 @@ const DocConsult: React.FC<DocConsultProps> = ({
     const [isPrinting, setIsPrinting] = useState(false);
     const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
 
+
+    const vitalLabels: Record<string, string> = {
+        bp: 'BP',
+        temp: 'Temp',
+        pulse: 'Pulse',
+        weight: 'Weight',
+        bloodoxygen: 'SpO2',
+        height: 'Height',
+        bmi: 'BMI',
+    };
     const splitDosage = (val: string) => {
         const match = val?.match(/^(\d*\.?\d*)\s*(.*)$/);
         return { num: match?.[1] ?? '', unit: match?.[2] || 'Tab' };
@@ -203,7 +213,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
                             <div className="grid grid-cols-3 lg:grid-cols-2 gap-2 lg:gap-3">
                                 {selectedPatient.vitals && Object.entries(selectedPatient.vitals).map(([k, v]) => (
                                     <div key={k} className="bg-white p-2 lg:p-4 rounded-xl lg:rounded-2xl border border-slate-100">
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{k.toUpperCase()}</p>
+                                        <p className="text-[14px] font-black text-[#0297d6] uppercase tracking-widest">{vitalLabels[k.toLowerCase()] ?? k.toUpperCase()}</p>
                                         <p className="text-sm lg:text-base font-black text-slate-800 mt-0.5 lg:mt-1">{String(v)}</p>
                                     </div>
                                 ))}
@@ -503,7 +513,7 @@ const DocConsult: React.FC<DocConsultProps> = ({
                                                     <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
                                                         {vitalEntries.map(([k, v]) => (
                                                             <div key={k} className="flex justify-between text-[10px]">
-                                                                <span className="font-bold uppercase text-slate-500">{k}:</span>
+                                                                <span className="font-bold text-slate-500">{vitalLabels[k.toLowerCase()] ?? k.toUpperCase()}:</span>
                                                                 <span className="font-semibold">{String(v)}</span>
                                                             </div>
                                                         ))}
