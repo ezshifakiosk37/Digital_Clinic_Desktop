@@ -277,13 +277,68 @@ const DemographicPage: React.FC = () => {
     }
   };
 
+  const COUNTRY_LANGUAGES: Record<string, string[]> = {
+    PK: ['Urdu', 'English', 'Punjabi', 'Sindhi', 'Pashto', 'Balochi', 'Saraiki', 'Arabic'],
+    IN: ['Hindi', 'English', 'Bengali', 'Telugu', 'Marathi', 'Tamil', 'Gujarati', 'Urdu', 'Kannada', 'Odia', 'Punjabi', 'Malayalam'],
+    US: ['English', 'Spanish', 'French', 'Chinese', 'Arabic', 'Tagalog', 'Vietnamese', 'Korean'],
+    GB: ['English', 'Welsh', 'Scottish Gaelic', 'Irish', 'Punjabi', 'Urdu', 'Bengali', 'Arabic'],
+    SA: ['Arabic', 'English', 'Urdu', 'Tagalog'],
+    AE: ['Arabic', 'English', 'Urdu', 'Hindi', 'Tagalog'],
+    AF: ['Pashto', 'Dari', 'Uzbek', 'Turkmen', 'Arabic'],
+    BD: ['Bengali', 'English', 'Urdu'],
+    CN: ['Mandarin', 'Cantonese', 'Wu', 'English'],
+    FR: ['French', 'English', 'Arabic', 'Spanish'],
+    DE: ['German', 'English', 'Turkish', 'Arabic'],
+    TR: ['Turkish', 'Kurdish', 'Arabic', 'English'],
+    IR: ['Persian', 'Azerbaijani', 'Kurdish', 'Arabic', 'English'],
+    EG: ['Arabic', 'English', 'French'],
+    NG: ['English', 'Hausa', 'Yoruba', 'Igbo', 'Fulani'],
+    ID: ['Indonesian', 'Javanese', 'Sundanese', 'Madurese', 'English', 'Arabic'],
+    MY: ['Malay', 'English', 'Mandarin', 'Tamil', 'Arabic'],
+    PH: ['Filipino', 'English', 'Cebuano', 'Ilocano', 'Tagalog'],
+    RU: ['Russian', 'English', 'Tatar', 'Ukrainian'],
+    BR: ['Portuguese', 'English', 'Spanish'],
+    CA: ['English', 'French', 'Punjabi', 'Mandarin', 'Arabic'],
+    AU: ['English', 'Mandarin', 'Arabic', 'Cantonese', 'Vietnamese'],
+    JP: ['Japanese', 'English'],
+    KR: ['Korean', 'English'],
+    IT: ['Italian', 'English', 'Arabic', 'Romanian'],
+    ES: ['Spanish', 'Catalan', 'Galician', 'Basque', 'English'],
+    NL: ['Dutch', 'English', 'Arabic', 'Turkish'],
+    ZA: ['Zulu', 'Xhosa', 'Afrikaans', 'English', 'Sotho', 'Tswana'],
+    KE: ['Swahili', 'English', 'Kikuyu', 'Luo'],
+    GH: ['English', 'Twi', 'Fante', 'Ewe', 'Hausa'],
+    NP: ['Nepali', 'Maithili', 'Bhojpuri', 'English', 'Hindi'],
+    LK: ['Sinhala', 'Tamil', 'English'],
+    MM: ['Burmese', 'English', 'Shan', 'Karen'],
+    TH: ['Thai', 'English', 'Malay', 'Burmese'],
+    VN: ['Vietnamese', 'English', 'Khmer', 'Chinese'],
+    IQ: ['Arabic', 'Kurdish', 'English'],
+    SY: ['Arabic', 'Kurdish', 'English', 'Armenian'],
+    JO: ['Arabic', 'English'],
+    LB: ['Arabic', 'French', 'English'],
+    KW: ['Arabic', 'English', 'Urdu'],
+    QA: ['Arabic', 'English', 'Urdu', 'Hindi'],
+    OM: ['Arabic', 'English', 'Balochi', 'Urdu'],
+    BH: ['Arabic', 'English', 'Urdu'],
+    YE: ['Arabic', 'English'],
+    SD: ['Arabic', 'English', 'Nubian', 'Beja'],
+    ET: ['Amharic', 'Oromo', 'Tigrinya', 'English', 'Somali'],
+    SO: ['Somali', 'Arabic', 'English'],
+    MA: ['Arabic', 'Berber', 'French', 'English'],
+    DZ: ['Arabic', 'Berber', 'French', 'English'],
+    TN: ['Arabic', 'French', 'English'],
+    LY: ['Arabic', 'English', 'Berber'],
+  };
+
+  const DEFAULT_LANGUAGES = ['English', 'Arabic', 'French', 'Spanish', 'Portuguese', 'German', 'Chinese', 'Russian', 'Hindi', 'Urdu'];
+
   const languageList = useMemo(() => {
-    return ISO6391.getAllCodes().map(code => ({
-      code,
-      name: ISO6391.getName(code),
-      nativeName: ISO6391.getNativeName(code)
-    })).sort((a, b) => a.name.localeCompare(b.name));
-  }, []);
+    const langs = (form.country && COUNTRY_LANGUAGES[form.country])
+      ? COUNTRY_LANGUAGES[form.country]
+      : DEFAULT_LANGUAGES;
+    return langs.map(name => ({ name }));
+  }, [form.country]);
 
   return (
     <div className="min-h-dvh bg-slate-50 flex flex-col items-center w-full">
@@ -554,7 +609,7 @@ const DemographicPage: React.FC = () => {
                           const selected = Array.isArray(form.languages) && form.languages.includes(lang.name)
                           return (
                             <CommandItem
-                              key={lang.code}
+                              key={lang.name}
                               onSelect={() => {
                                 const current = Array.isArray(form.languages) ? form.languages : []
                                 const updated = selected
@@ -567,7 +622,7 @@ const DemographicPage: React.FC = () => {
                               <div className={cn("flex h-4 w-4 items-center justify-center rounded border border-primary", selected ? "bg-primary text-primary-foreground" : "opacity-50")}>
                                 {selected && <Check className="h-3 w-3" />}
                               </div>
-                              {lang.name} {lang.nativeName !== lang.name ? `(${lang.nativeName})` : ''}
+                              {lang.name}
                             </CommandItem>
                           )
                         })}
