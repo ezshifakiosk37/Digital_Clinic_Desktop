@@ -48,7 +48,7 @@ const VitalsPage = () => {
   const [tokenNumber, setTokenNumber] = useState("");
   const [sessionPhone, setSessionPhone] = useState(""); // Phone of current active patient
   const [historySearchPhone, setHistorySearchPhone] = useState(""); // Phone for history lookup
-  const [openTokenDialog, setOpenTokenDialog] = useState(true);
+  const [openTokenDialog, setOpenTokenDialog] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [sessionName, setSessionName] = useState("");
   const [sessionToken, setSessionToken] = useState("");
@@ -252,14 +252,14 @@ const VitalsPage = () => {
     tempUnitRef.current = tempUnit;
   }, [tempUnit]);
 
-  // ── Persist active tab so PWA restart returns to same page ──
-  useEffect(() => {
-    if (activeTab !== 'vitals') {
-      localStorage.setItem('localClinic_activeTab', activeTab);
-    } else {
-      localStorage.removeItem('localClinic_activeTab');
-    }
-  }, [activeTab]);
+  // // ── Persist active tab so PWA restart returns to same page ──
+  // useEffect(() => {
+  //   if (activeTab !== 'vitals') {
+  //     localStorage.setItem('localClinic_activeTab', activeTab);
+  //   } else {
+  //     localStorage.removeItem('localClinic_activeTab');
+  //   }
+  // }, [activeTab]);
 
   // ── Persist full session so refresh/PWA kill restores everything ──
   useEffect(() => {
