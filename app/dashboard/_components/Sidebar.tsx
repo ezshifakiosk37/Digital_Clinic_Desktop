@@ -26,10 +26,10 @@ export default function Sidebar() {
   const router = useRouter();
 
   const staffMenuItems: MenuItem[] = [
-    { name: "Demographic", path: "/dashboard/demographic", icon: <User size={22} /> },
-    { name: "Vitals", path: "/dashboard/vitals", icon: <Activity size={22} /> },
-    { name: "Online Consultation", path: "/dashboard/onlineConsult", icon: <Stethoscope size={22} /> },
-    { name: "Pharmacy", path: "/dashboard/pharmacy", icon: <BriefcaseMedical size={22} /> },
+    { name: "Demographic", path: "/dashboard/demographic/", icon: <User size={22} /> },
+    { name: "Vitals", path: "/dashboard/vitals/", icon: <Activity size={22} /> },
+    { name: "Online Consultation", path: "/dashboard/onlineConsult/", icon: <Stethoscope size={22} /> },
+    { name: "Pharmacy", path: "/dashboard/pharmacy/", icon: <BriefcaseMedical size={22} /> },
   ];
 
   const doctorMenuItems: MenuItem[] = [
@@ -142,6 +142,7 @@ export default function Sidebar() {
         <nav className="flex-1 space-y-3">
           {menuItems.map((item) => {
             const isActive = activeTab === item.path;
+            console.log(activeTab)
             return (
               <button
                 key={item.name}
