@@ -31,17 +31,15 @@ import { downloadPDF } from '@/app/_utils/pdfExport';
 
 const VitalsPage = () => {
   const [vitals, setVitals] = useState({
-    BP: { value1: '120', value2: '80' },
-    PulseRate: "90",
-    Temperature: '37',
-    Spo2: '93',
-    Height: "5.6",
-    Weight: "65",
+    BP: { value1: '', value2: '' },
+    PulseRate: "",
+    Temperature: '',
+    Spo2: '',
+    Height: "",
+    Weight: "",
     symptoms: [] as string[]
   });
 
-  const [otherSymptom, setOtherSymptom] = useState("");
-  const [showOtherInput, setShowOtherInput] = useState(false);
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [fetching, setFetching] = useState(false);
