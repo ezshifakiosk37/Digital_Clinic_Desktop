@@ -1381,7 +1381,7 @@ const VitalsPage = () => {
               <section className={openTokenDialog ? "blur-sm pointer-events-none" : ""}>
 
                 {/* ── PERSISTENT HEADER (shows on both steps) ── */}
-                {/* Step indicator */}
+                {/* Step indicator
                 <div className="flex justify-center items-center gap-2 mb-5">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${step === 1 ? 'bg-[#0297d6] text-white' : 'bg-green-500 text-white'}`}>
                     {step === 1 ? '1' : '✓'}
@@ -1390,7 +1390,7 @@ const VitalsPage = () => {
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${step === 2 ? 'bg-[#0297d6] text-white' : 'bg-slate-200 text-slate-400'}`}>
                     2
                   </div>
-                </div>
+                </div> */}
 
                 {/* ── STEP 1: VITALS ── */}
                 {step === 1 && (
@@ -1501,25 +1501,6 @@ const VitalsPage = () => {
                 {/* ── STEP 2: SYMPTOMS + CONSULT TYPE + SAVE ── */}
                 {step === 2 && (
                   <>
-                    {/* Consultation Type Selector
-                <div className="bg-white p-4 rounded-2xl shadow-lg shadow-black/10 border border-slate-100 mb-6">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Consultation Type</p>
-                  <div className="flex gap-3">
-                    {(['Walk-in', 'Online Consultation'] as const).map((type) => (
-                      <button
-                        key={type}
-                        onClick={() => setPatientType(type)}
-                        className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all border-2 ${patientType === type
-                          ? 'bg-primary text-white border-primary'
-                          : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-primary/40'
-                          }`}
-                      >
-                        {type === 'Walk-in' ? '🏥 Walk-in' : '💻 Online Consultation'}
-                      </button>
-                    ))}
-                  </div>
-                </div> */}
-
                     {/* Symptoms */}
                     <div className="mb-6">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Symptoms</p>
