@@ -80,7 +80,10 @@ const DocProfile: React.FC<DocProfileProps> = ({
   return (
     <div className="p-3 md:p-6">
       <button
-        onClick={() => setActivePage('dashboard')}
+        onClick={() => {
+          window.dispatchEvent(new CustomEvent('doctor-show-dashboard'));
+          setActivePage('dashboard');
+        }}
         className="bg-[#0297d6] text-white py-3 px-6 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-[#0288c2] transition-all mb-4"
       >
         ← Back to Queue

@@ -89,6 +89,17 @@ export default function Sidebar() {
     return () => window.removeEventListener('toggle-mobile-sidebar', handleMobileToggle);
   }, []);
 
+  useEffect(() => {
+    const onProfile = () => setActiveTab('/dashboard/consultation/profile');
+    const onDashboard = () => setActiveTab('/dashboard/consultation');
+    window.addEventListener('doctor-show-profile', onProfile);
+    window.addEventListener('doctor-show-dashboard', onDashboard);
+    return () => {
+      window.removeEventListener('doctor-show-profile', onProfile);
+      window.removeEventListener('doctor-show-dashboard', onDashboard);
+    };
+  }, []);
+
 
   useEffect(() => {
     if (navigating && pathname === activeTab) {
