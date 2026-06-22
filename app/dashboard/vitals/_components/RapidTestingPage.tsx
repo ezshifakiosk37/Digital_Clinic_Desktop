@@ -486,13 +486,13 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                         {/* Secondary action: only visible when a report exists */}
                         {annotatedPdfUrl && (
                             <div className="text-center -mt-1">
-                                <button
-                                    onClick={() => setIsPdfModalOpen(true)}
-                                    className="text-xs text-[#0297d6] hover:text-[#0280bb] font-medium flex items-center justify-center gap-1"
+                                <h2
+                                 
+                                    className="text-xs text-green-500 font-medium flex items-center justify-center gap-1"
                                 >
                                     <FileText className="w-3 h-3" />
-                                    View latest ECG report
-                                </button>
+                                    ECG Report Added
+                                </h2>
                             </div>
                         )}
 

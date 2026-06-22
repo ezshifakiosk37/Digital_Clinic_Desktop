@@ -1,0 +1,124 @@
+@startuml Digital_Clinic_Ecosystem_Stack
+
+title Digital Clinic Ecosystem — Technology & Business Layer Stack
+
+skinparam componentStyle rectangle
+skinparam wrapWidth 220
+skinparam packageStyle rectangle
+
+' =====================================================================
+' REPO 1: Digital_Clinic_Desktop (Next.js Web App)
+' =====================================================================
+package "Digital_Clinic_Desktop (Next.js Web App)" {
+
+  package "Presentation Layer (Next.js App Router)" {
+    [app/\n(Pages, Layouts, Routes)] as AppRouter
+    [components/ui/\n(Shadcn UI Components)] as UIComponents
+    [public/\n(Static assets, icons, images)] as Public
+  }
+
+  package "Styling & Tooling" {
+    [Tailwind CSS\n(postcss.config.mjs)] as Tailwind
+    [TypeScript\n(tsconfig.json)] as TS
+    [ESLint\n(eslint.config.mjs)] as ESLint
+    [next.config.ts] as NextConfig
+  }
+
+  package "Business Logic Layer (lib/)" {
+    [Patient Management\n(registration, records)] as PatientMgmt
+    [Auth & Access Control\n(roles, permissions)] as Auth
+    [Shared Utilities\n(validators, formatters, helpers)] as Utils
+  }
+
+  package "Data Layer" {
+    [DB diagram/\n(Schema design)] as DBDiagram
+    database "Clinic Database\n(Patients, Users, Records)" as DB
+  }
+
+  [Vercel\n(clinic-setup.vercel.app)] as Vercel
+}
+
+' =====================================================================
+' REPO 2: Bifurcation_Android_App (Android Kiosk + Hardware Bridge)
+' =====================================================================
+package "Bifurcation_Android_App (Android Kiosk App)" {
+
+  package "Presentation Layer" {
+    [MainActivity\n(Compose host, permissions)] as MainActivity
+    [WebView\n(loads clinic-setup.vercel.app)] as WebViewComp
+    [KeyboardUtils\n(KeyboardHeightObserver)] as KeyboardUtils
+  }
+
+  package "JS Bridge Layer" {
+    [AndroidBridge\n(@JavascriptInterface \"AndroidNative\")] as AndroidBridge
+    [Type.kt\n(VendingCommand contract)] as TypeKt
+  }
+
+  package "Hardware Integration Layer" {
+    [BluetoothPrinterManager\n(Bluetooth Classic SPP, ESC/POS)] as PrinterMgr
+    [SerialManager\n(USB-Serial to ESP32)] as SerialMgr
+    [MedicineService\n(JSON -> ESP32 protocol translator)] as MedicineSvc
+    [GlucoseManager\n(BLE GATT, Glucose Service 0x1808)] as GlucoseMgr
+    [GlucoseBluetoothPairing\n(auto-PIN pairing receiver)] as GlucosePairing
+    [EcgMonitorService\n(FileObserver, foreground service)] as EcgService
+  }
+}
+
+' =====================================================================
+' EXTERNAL HARDWARE / THIRD-PARTY APPS
+' =====================================================================
+package "External Hardware & Apps" {
+  [Thermal Receipt Printer\n(Bluetooth SPP)] as ExtPrinter
+  [ESP32 Controller\n(Medicine Dispenser + Weight Scale)] as ExtESP32
+  [BLE Glucometer\n(ACCU-CHEK Guide, \"meter+\" device)] as ExtGlucometer
+  [Kardia ECG Device + App\n(AliveCor, com.alivecor.aliveecg)] as ExtKardia
+}
+
+' ===================== RELATIONSHIPS: DESKTOP APP =====================
+AppRouter --> UIComponents : renders
+AppRouter --> Public : serves static assets
+UIComponents ..> Tailwind : styled with
+AppRouter ..> TS : type-checked by
+AppRouter ..> ESLint : linted by
+AppRouter ..> NextConfig : configured by
+
+AppRouter --> PatientMgmt : invokes
+AppRouter --> Auth : invokes
+PatientMgmt --> Utils : uses
+Auth --> Utils : uses
+
+PatientMgmt --> DB : reads/writes
+Auth --> DB : reads/writes
+DBDiagram .. DB : documents schema
+
+AppRouter --> Vercel : deployed to
+
+' ===================== RELATIONSHIPS: ANDROID APP =====================
+MainActivity --> WebViewComp : hosts & configures
+MainActivity --> KeyboardUtils : (legacy, IME insets now via Compose)
+MainActivity --> AndroidBridge : creates & attaches
+
+WebViewComp --> AndroidBridge : addJavascriptInterface("AndroidNative")
+AndroidBridge ..> TypeKt : (vending command contract)
+
+AndroidBridge --> PrinterMgr : printReceipt / printImage / printThermal
+AndroidBridge --> SerialMgr : connectUsb / sendWeightCalibrationCommand
+AndroidBridge --> MedicineSvc : sendMedicinePacket
+AndroidBridge --> GlucoseMgr : startGlucoseManager / requestGlucoseReading
+AndroidBridge --> EcgService : startEcgFileMonitoring / getPendingEcgFile
+
+MedicineSvc --> SerialMgr : sendData("D:R..,C..,Q..")
+GlucosePairing ..> GlucoseMgr : auto-accepts BLE pairing (PIN)
+
+' ===================== RELATIONSHIPS: HARDWARE =====================
+PrinterMgr --> ExtPrinter : Bluetooth SPP socket
+SerialMgr --> ExtESP32 : USB-serial (9600 baud)
+GlucoseMgr --> ExtGlucometer : BLE GATT (scan/connect/read)
+EcgService --> ExtKardia : watches Downloads/ for "ecg-*" files
+
+' ===================== CROSS-REPO INTEGRATION =====================
+WebViewComp --> Vercel : loads clinic web app (HTTPS)
+AndroidBridge ..> AppRouter : pushes results via\nevaluateJavascript()\n(window.onPrintersLoaded, onGlucoseReceived,\nonSerialData, receiveEcgFile, etc.)
+AppRouter ..> AndroidBridge : calls window.AndroidNative.*\n(getPairedPrinters, printThermal,\nsendMedicinePacket, downloadPDF, etc.)
+
+@enduml

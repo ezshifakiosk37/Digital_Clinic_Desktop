@@ -186,7 +186,7 @@ const VitalsPage = () => {
           setTokenNumber(s.tokenNumber || '');
           setSessionToken(s.sessionToken || '');
           setVitalsId(s.vitalsId || '');
-          setStep(s.step || 1);
+          setStep(1);
           setHeightUnit(s.heightUnit || 'ft');
           setTempUnit(s.tempUnit || '°C');
           if (s.vitals) setVitals(s.vitals);

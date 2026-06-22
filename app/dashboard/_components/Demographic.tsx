@@ -394,6 +394,7 @@ const DemographicPage: React.FC = () => {
                     className="border-none focus-visible:ring-0 h-9 flex-1 rounded-none py-0"
                     placeholder="3331111111"
                     value={form.phoneNumber || ""}
+                    type='number'
                     onChange={(e) => updateForm('phoneNumber', e.target.value)}
                   />
                 </div>
@@ -407,6 +408,7 @@ const DemographicPage: React.FC = () => {
                     className="h-9 py-0 flex-1"
                     placeholder="42201XXXXXXXX"
                     value={form.cnic || ""}
+                    type='number'
                     onChange={(e) => updateForm('cnic', e.target.value)}
                     onKeyDown={handleKeyDown}
                   />

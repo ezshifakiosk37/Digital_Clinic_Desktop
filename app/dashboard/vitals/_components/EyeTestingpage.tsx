@@ -100,12 +100,14 @@ const ChartTest = ({
     const rows = CHART_ROWS[chartType]
     const [rowIndex, setRowIndex] = useState(0)
     const [canRead, setCanRead] = useState(false)
+    const [Loading, setLoading] = useState(false)
 
     const currentRow = rows[rowIndex]
     const isUrdu = chartType === 'Urdu'
     const isLastRow = rowIndex === rows.length - 1
 
     const handleNext = () => {
+        setLoading(true)
         if (canRead) {
             onDone(currentRow.vision)
         } else if (isLastRow) {
@@ -114,6 +116,7 @@ const ChartTest = ({
             setRowIndex(p => p + 1)
             setCanRead(false)
         }
+        
     }
 
     const resultLabel = canRead || isLastRow ? currentRow.vision : ''
@@ -191,9 +194,11 @@ const ChartTest = ({
                 <div className="flex justify-end px-5 py-4 bg-white">
                     <button
                         onClick={handleNext}
-                        className="bg-[#0297d6] text-white font-bold px-10 py-3 rounded-full shadow-lg hover:bg-[#0280bb] transition-colors"
+                        disabled={Loading}
+                        className="bg-[#0297d6] text-white font-bold px-10 py-3 rounded-full shadow-lg hover:bg-[#0280bb] disabled:opacity-50 transition-colors"
                     >
-                        Next
+                        
+                        {Loading ? "Saving..." : "Next"}
                     </button>
                 </div>
             )}
@@ -272,6 +277,7 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
     const handleBegin = () => {
         setIsLoading(true);
         setStage('info_stand');
+        setIsLoading(false)
     };
 
     const classifyVision = (vision: string): 'Normal' | 'Consultation Required' => {
@@ -350,6 +356,7 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
                                 onClick={() => onSkipToColorBlind()}
                                 className="flex-1 py-3 rounded-xl bg-[#0297d6] text-white font-bold text-sm hover:bg-[#0280bb]"
                             >
+                        
                                 Next →
                             </button>
                         </div>
@@ -374,11 +381,11 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
             />
             <div className=' mt-1 mr-2 flex justify-end'>
                 <button
-                onClick={onSkip}
-                className="bg-[#0297d6] text-white font-bold px-4 py-2 rounded-full text-sm"
-            >
-                Skip All
-            </button>
+                    onClick={onSkip}
+                    className="bg-[#0297d6] text-white font-bold px-4 py-2 rounded-full text-sm"
+                >
+                    Skip All
+                </button>
             </div>
             {/* Select Stage - 2x2 Grid (Fixed button visibility) */}
             {stage === 'select' && (
@@ -428,8 +435,11 @@ const EyeTestingPage: React.FC<EyeTestingPageProps> = ({
             )}
             {/* Info & Test Screens */}
             {stage === 'info_stand' && <InfoDialog message="Stand at mark line for eye examination." onOk={() => setStage('info_cover_left')} />}
-            {stage === 'info_cover_left' && <InfoDialog message="Cover your LEFT EYE while examination" onOk={() => setStage('test_left')} />}
-            {stage === 'info_cover_right' && <InfoDialog message="Cover your RIGHT EYE while examination" onOk={() => setStage('test_right')} />}
+
+            {stage === 'info_cover_left' && <InfoDialog message="Cover your RIGHT EYE while examination" onOk={() => setStage('test_left')} />}
+
+            {stage === 'info_cover_right' && <InfoDialog message="Cover your LEFT EYE while examination" onOk={() => setStage('test_right')} />}
+
 
             {stage === 'test_left' && <ChartTest chartType={chartType} eye="left" onDone={handleLeftDone} setStage={setStage} />}
             {stage === 'test_right' && <ChartTest chartType={chartType} eye="right" onDone={handleRightDone} setStage={setStage} />}
