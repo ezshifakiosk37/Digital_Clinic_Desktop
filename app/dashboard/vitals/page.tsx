@@ -1396,29 +1396,6 @@ const VitalsPage = () => {
                 {step === 1 && (
                   <>
                     <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
-                      <VitalCard type={VitalType.PULSE_RATE} onChange={(val) => handleUpdate('PulseRate', val)} value={vitals.PulseRate} />
-                      <VitalCard type={VitalType.BLOOD_PRESSURE} onChange1={(val) => handleBPUpdate('value1', val)} onChange2={(val) => handleBPUpdate('value2', val)} isDualValue value1={vitals.BP.value1} value2={vitals.BP.value2} />
-                      <VitalCard
-                        type={VitalType.TEMPERATURE}
-                        onChange={handleTemperatureChange}
-                        value={vitals.Temperature}
-                        toggleTempUnit={toggleTempUnit}
-                        tempUnit={tempUnit}
-                      />
-                      <VitalCard type={VitalType.BLOOD_OXYGEN} onChange={(val) => handleUpdate('Spo2', val)} value={vitals.Spo2} />
-                      <VitalCard
-                        type={VitalType.WEIGHT}
-                        onChange={(val) => handleUpdate('Weight', val)}
-                        value={vitals.Weight}
-                        onCalibrate={handleStartCalibration}
-                      />
-                      <WeightCalibrationModal
-                        isOpen={isCalibrateModalOpen}
-                        onClose={handleCancelCalibration}
-                        onConfirm={handleFinalizeCalibration}
-                        knownWeightValue={manualWeightInput}
-                        setKnownWeightValue={setManualWeightInput}
-                      />
                       <VitalCard
                         type={VitalType.HEIGHT}
                         toggleHeightUnit={toggleHeightUnit}
@@ -1426,19 +1403,6 @@ const VitalsPage = () => {
                         customContent={
                           <div className="flex flex-col gap-2 w-full">
                             {/* Unit toggle + camera button */}
-                            <div className="flex items-center gap-2">
-                              {/* ft/cm toggle
-                          <button
-                            onClick={toggleHeightUnit}
-                            className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5 text-xs font-bold shrink-0"
-                          >
-                            <span className={`px-2 py-1 rounded-md transition-colors ${heightUnit === 'ft' ? 'bg-[#0297d6] text-white' : 'text-slate-400'}`}>ft</span>
-                            <span className={`px-2 py-1 rounded-md transition-colors ${heightUnit === 'cm' ? 'bg-[#0297d6] text-white' : 'text-slate-400'}`}>cm</span>
-                          </button> */}
-                              {/* Camera measure button */}
-
-
-                            </div>
                             <div className='flex w-full justify-between'>
                               {/* Input fields */}
                               {heightUnit === 'ft' ? (
@@ -1484,6 +1448,29 @@ const VitalsPage = () => {
                           </div>
                         }
                       />
+                      <VitalCard
+                        type={VitalType.WEIGHT}
+                        onChange={(val) => handleUpdate('Weight', val)}
+                        value={vitals.Weight}
+                        onCalibrate={handleStartCalibration}
+                      />
+                      <WeightCalibrationModal
+                        isOpen={isCalibrateModalOpen}
+                        onClose={handleCancelCalibration}
+                        onConfirm={handleFinalizeCalibration}
+                        knownWeightValue={manualWeightInput}
+                        setKnownWeightValue={setManualWeightInput}
+                      />
+                      <VitalCard
+                        type={VitalType.TEMPERATURE}
+                        onChange={handleTemperatureChange}
+                        value={vitals.Temperature}
+                        toggleTempUnit={toggleTempUnit}
+                        tempUnit={tempUnit}
+                      />
+                      <VitalCard type={VitalType.BLOOD_OXYGEN} onChange={(val) => handleUpdate('Spo2', val)} value={vitals.Spo2} />
+                      <VitalCard type={VitalType.PULSE_RATE} onChange={(val) => handleUpdate('PulseRate', val)} value={vitals.PulseRate} />
+                      <VitalCard type={VitalType.BLOOD_PRESSURE} onChange1={(val) => handleBPUpdate('value1', val)} onChange2={(val) => handleBPUpdate('value2', val)} isDualValue value1={vitals.BP.value1} value2={vitals.BP.value2} />
                       <div className="col-span-2 md:col-span-2 lg:col-span-1 lg:col-start-2">
                         <div className='justify-center w-full sm:w-79 md:w-79 md:ml-40 lg:w-full lg:ml-0'>
                           <VitalCard
