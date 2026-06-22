@@ -37,6 +37,7 @@ const Navbar: React.FC<NavbarProps> = ({ variant, onAddToken }) => {
   useEffect(() => {
     if (typeof window !== 'undefined' && window.AndroidNative) {
       setShowReconnectButton(true)
+      onReconnectPress()
     } else {
       setShowReconnectButton(false)
     }
