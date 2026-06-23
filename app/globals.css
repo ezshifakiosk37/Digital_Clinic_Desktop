@@ -1,40 +1,9 @@
 @import "tailwindcss";
 
 html,
-body {
+body{
   font-family: var(--font-quicksand), sans-serif;
 }
-
-/* globals.css */
-
-/* 1. Force html/body to fill the screen but allow overflow */
-html {
-  height: 100%;
-  overflow-y: auto !important;
-}
-
-body {
-  min-height: 100%;
-  height: auto !important;
-  /* Override any framework height locking */
-  overflow-y: auto !important;
-  margin: 0;
-}
-
-/* 2. The root wrapper must ALWAYS be taller than the screen when keyboard is open */
-#root-wrapper {
-  min-height: 100dvh;
-  /* This is the magic line - we add the keyboard height */
-  padding-bottom: env(keyboard-inset-height, 0px);
-  box-sizing: border-box;
-  /* Ensures padding doesn't break the min-height calculation */
-  display: block;
-}
-
-.your-bottom-input-container {
-  padding-bottom: env(keyboard-inset-height, 0px);
-}
-
 /* Remove number input spinners globally */
 input[type='number']::-webkit-outer-spin-button,
 input[type='number']::-webkit-inner-spin-button {
@@ -45,7 +14,6 @@ input[type='number']::-webkit-inner-spin-button {
 input[type='number'] {
   -moz-appearance: textfield;
 }
-
 :root {
   --primary: #0297d6;
   --secondary: #992b90;
@@ -123,15 +91,11 @@ input[type='number'] {
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
 }
-
 @layer base {
-
   /* This targets inputs and selects without causing Tailwind errors */
-  input:not([type="button"]):not([type="submit"]),
+  input:not([type="button"]):not([type="submit"]), 
   select {
-    background-color: rgba(248, 250, 252, 0.5) !important;
-    /* slate-50/50 */
-    border-color: rgba(241, 245, 249, 0.8) !important;
-    /* slate-100/80 */
+    background-color: rgba(248, 250, 252, 0.5) !important; /* slate-50/50 */
+    border-color: rgba(241, 245, 249, 0.8) !important;    /* slate-100/80 */
   }
 }

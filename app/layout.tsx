@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Outfit } from "next/font/google";
 import { CallQueueProvider } from "./_context/CallQueueContext";
 import { Providers } from "./Provider";
-import { KeyboardScrollFix } from "./keyboardScrollFix";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,12 +40,8 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} ${quicksand.variable} antialiased`}>
         <CallQueueProvider>
           {/* FIX: minHeight forces the wrapper to overflow the body when keyboard opens */}
-          <div id="root-wrapper" style={{ 
-            minHeight: '100dvh', 
-            paddingBottom: 'env(keyboard-inset-height, 0px)' 
-          }}>
+          <div>
             <Providers>
-            <KeyboardScrollFix/>
               {children}
             </Providers>
           </div>
