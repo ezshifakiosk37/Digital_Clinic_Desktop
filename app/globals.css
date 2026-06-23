@@ -5,14 +5,19 @@ body{
   font-family: var(--font-quicksand), sans-serif;
 }
 
-html, body {
+html {
+  overflow-y: auto;
   height: 100%;
+}
+
+body {
+  overflow-y: auto;
+  height: 100%;
+  margin: 0;
+  /* Remove the inline overflow from your layout and let CSS handle it */
 }
 .your-bottom-input-container {
     padding-bottom: env(keyboard-inset-height, 0px);
-}
-body {
-  min-height: 100dvh;
 }
 /* Remove number input spinners globally */
 input[type='number']::-webkit-outer-spin-button,

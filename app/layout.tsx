@@ -2,7 +2,6 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Outfit } from "next/font/google";
 import { CallQueueProvider } from "./_context/CallQueueContext";
-import { EcgGlobalListener } from "./dashboard/vitals/_components/EcgGlobalListener";
 import { Providers } from "./Provider";
 
 const geistSans = Geist({
@@ -27,9 +26,7 @@ export const metadata: Metadata = {
   viewport: {
     width: "device-width",
     initialScale: 1,
-    // This is the magic line: tells the browser to resize the visual viewport 
-    // and update the CSS environment variable when the keyboard appears.
-    interactiveWidget: "resizes-content", 
+    interactiveWidget: "resizes-content", // <-- KEY: Enables the CSS variable
   },
 };
 
@@ -39,17 +36,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" style={{ height: "100%" }}>
-      <body
-        style={{
-          height: "100%",
-          margin: 0,
-          overflow: "auto",
-        }}
-        className={`${geistSans.variable} ${geistMono.variable} ${quicksand.variable} antialiased`}
-      >
+    <html lang="en">
+      <body className={`${geistSans.variable} ${geistMono.variable} ${quicksand.variable} antialiased`}>
         <CallQueueProvider>
-          <div style={{ paddingBottom: 'env(keyboard-inset-height, 0px)' }}>
+          {/* FIX: minHeight forces the wrapper to overflow the body when keyboard opens */}
+          <div style={{ 
+            minHeight: '100dvh', 
+            paddingBottom: 'env(keyboard-inset-height, 0px)' 
+          }}>
             <Providers>
               {children}
             </Providers>
