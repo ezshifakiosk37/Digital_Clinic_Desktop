@@ -8,6 +8,9 @@ body{
 html, body {
   height: 100%;
 }
+.your-bottom-input-container {
+    padding-bottom: env(keyboard-inset-height, 0px);
+}
 body {
   min-height: 100dvh;
 }

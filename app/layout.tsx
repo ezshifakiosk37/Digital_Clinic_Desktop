@@ -42,7 +42,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${quicksand.variable} antialiased`}
       >
         <CallQueueProvider>
-          <div>
+          <div style={{ paddingBottom: 'env(keyboard-inset-height, 0px)' }}>
             <Providers>
               {children}
             </Providers>
