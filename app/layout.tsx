@@ -24,6 +24,13 @@ const quicksand = Outfit({
 export const metadata: Metadata = {
   title: "EZBifurcation",
   description: "A complete digitized clinic structure",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    // This is the magic line: tells the browser to resize the visual viewport 
+    // and update the CSS environment variable when the keyboard appears.
+    interactiveWidget: "resizes-content", 
+  },
 };
 
 export default function RootLayout({
