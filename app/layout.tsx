@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Outfit } from "next/font/google";
 import { CallQueueProvider } from "./_context/CallQueueContext";
+import { EcgGlobalListener } from "./dashboard/vitals/_components/EcgGlobalListener";
 import { Providers } from "./Provider";
 
 const geistSans = Geist({
@@ -23,11 +24,6 @@ const quicksand = Outfit({
 export const metadata: Metadata = {
   title: "EZBifurcation",
   description: "A complete digitized clinic structure",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    interactiveWidget: "resizes-content", // <-- KEY: Enables the CSS variable
-  },
 };
 
 export default function RootLayout({
@@ -36,10 +32,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${quicksand.variable} antialiased`}>
+    <html lang="en" style={{ height: "100%" }}>
+      <body
+        style={{
+          height: "100%",
+          margin: 0,
+          overflow: "auto",
+        }}
+        className={`${geistSans.variable} ${geistMono.variable} ${quicksand.variable} antialiased`}
+      >
         <CallQueueProvider>
-          {/* FIX: minHeight forces the wrapper to overflow the body when keyboard opens */}
           <div>
             <Providers>
               {children}
