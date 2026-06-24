@@ -357,7 +357,10 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
         if (bridge?.setPatientName && sessionName) {
             bridge.setPatientName(sessionName)
         }
-    }, [sessionName])
+        if (bridge?.setPatientPhone && sessionPhone) {
+            bridge.setPatientPhone(sessionPhone)
+        }
+    }, [sessionName, sessionPhone])
 
     const handleCheckECG = () => {
         const bridge = window.AndroidNative
