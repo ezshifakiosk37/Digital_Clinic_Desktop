@@ -249,7 +249,6 @@ const Page = () => {
             try {
                 if (!(window as any).AndroidNative) {
                     handleWebPrint();
-                    setIsPrinting(false);
                     return;
                 }
 
@@ -258,7 +257,7 @@ const Page = () => {
                     date: new Date().toLocaleDateString(),
                     token: p.token || "N/A",
                     patient: { name: `${p.patient.firstName} ${p.patient.lastName}`, ageSex: `${p.patient.age ?? ""}Y / ${p.patient.gender ?? ""}` },
-                    vitals: buildVitalsForPrint(fullReport),   // <-- the missing piece
+                    vitals: buildVitalsForPrint(fullReport),
                     diagnosis: p.diagnosis || "N/A",
                     labTests: getLabTests(p),
                     notes: p.clinicalNotes || "",
@@ -276,10 +275,12 @@ const Page = () => {
             } catch (err) {
                 console.error("[Print] Mapping error:", err);
                 alert("Failed to prepare prescription for printing.");
-                setIsPrinting(false);
+            } finally {
+                setIsPrinting(false);          // <-- match VitalReportModal exactly
+                setIsPrinterModalOpen(false);  // close the BT modal the same way
             }
         }, 150);
-    }, [selectedPrescription]);
+    }, [selectedPrescription, fullReport]);
 
     // ── Save as PDF ──────────────────────────────────────────────────────────
     const handleSaveAsPdf = async () => {
