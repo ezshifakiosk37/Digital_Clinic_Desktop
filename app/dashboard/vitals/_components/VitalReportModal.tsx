@@ -4,7 +4,6 @@ import { Printer, X, Loader2, ChevronDown, Mail, FileDown } from 'lucide-react'
 import { BluetoothPrinterModal } from '@/app/dashboard/consultation/components/BluetoothPrinterModel'
 import { apiService } from '@/app/_utils/apiService'
 import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge'
-import { downloadPDF } from '@/app/_utils/pdfExport'
 
 interface VitalReportModalProps {
     isOpen: boolean
@@ -368,92 +367,56 @@ const VitalReportModal: React.FC<VitalReportModalProps> = ({ isOpen, onClose, vi
     }
 
     const handleSaveAsPdf = async () => {
-        setShowActionDropdown(false);
-        const el = document.getElementById('vital-report-paper');
-        if (!el || !report) return;
+        setShowActionDropdown(false)
+        const el = document.getElementById('vital-report-paper')
+        if (!el || !report) return
 
-        setIsSavingPdf(true);
+        setIsSavingPdf(true)
         try {
-            const { default: jsPDF } = await import('jspdf');
+            const { default: jsPDF } = await import('jspdf')
 
-            // --- Thermal printer paper width (80mm) ---
-            const THERMAL_WIDTH_MM = 80;           // 80mm = standard receipt width
-            const THERMAL_WIDTH_PT = THERMAL_WIDTH_MM * 72 / 25.4;   // ≈ 226.77 pt
+            // Clone into an isolated iframe to avoid oklch/Tailwind CSS conflicts
+            const iframe = document.createElement('iframe')
+            iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:340px;height:auto;border:none;'
+            document.body.appendChild(iframe)
 
-            // Clone into an isolated iframe (fixes oklch/Tailwind conflicts)
-            const iframe = document.createElement('iframe');
-            iframe.style.cssText =
-                'position:fixed;top:-9999px;left:-9999px;width:auto;height:auto;border:none;';
-            document.body.appendChild(iframe);
-
-            const iframeDoc = iframe.contentDocument!;
-            iframeDoc.open();
+            const iframeDoc = iframe.contentDocument!
+            iframeDoc.open()
             iframeDoc.write(`
-      <html>
-        <head>
-          <style>
-            * { margin:0; padding:0; box-sizing:border-box; font-family:monospace; }
-            body {
-              background:#fff;
-              color:#111;
-              padding:16px;
-              display:inline-block;   /* body width = content width */
-              width:auto;
-            }
-            img { display:block; margin:0 auto 4px; height:44px; }
-          </style>
-        </head>
-        <body>${el.innerHTML}</body>
-      </html>
-    `);
-            iframeDoc.close();
+                <html><head><style>
+                    *{margin:0;padding:0;box-sizing:border-box;font-family:monospace}
+                    body{background:#fff;color:#111;width:340px;padding:16px}
+                    img{display:block;margin:0 auto 4px;height:44px}
+                </style></head><body>${el.innerHTML}</body></html>
+            `)
+            iframeDoc.close()
 
-            await new Promise((r) => setTimeout(r, 300));
+            await new Promise(r => setTimeout(r, 300))
 
-            const body = iframeDoc.body;
-            const contentWidth = body.scrollWidth;
-            const contentHeight = body.scrollHeight;
-
-            // Capture the full content with html2canvas
-            const { default: html2canvas } = await import('html2canvas');
-            const canvas = await html2canvas(body, {
+            const { default: html2canvas } = await import('html2canvas')
+            const canvas = await html2canvas(iframeDoc.body, {
                 scale: 2,
                 useCORS: true,
                 backgroundColor: '#ffffff',
-                width: contentWidth,
-                height: contentHeight,
-                windowWidth: contentWidth,
-                windowHeight: contentHeight,
-            });
+                windowWidth: 340,
+            })
 
-            document.body.removeChild(iframe);
+            document.body.removeChild(iframe)
 
-            const imgData = canvas.toDataURL('image/png');
+            const imgData = canvas.toDataURL('image/png')
+            const pdf = new jsPDF({ unit: 'px', format: [canvas.width / 2, canvas.height / 2] })
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2)
 
-            // ---- PDF page size: width = thermal width, height proportional ----
-            const imgWidthPt = canvas.width / 2;     // because scale=2, actual size is half
-            const imgHeightPt = canvas.height / 2;
-            const scaleFactor = THERMAL_WIDTH_PT / imgWidthPt;
-            const pdfWidth = THERMAL_WIDTH_PT;
-            const pdfHeight = imgHeightPt * scaleFactor;
-
-            const pdf = new jsPDF({ unit: 'pt', format: [pdfWidth, pdfHeight] });
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-
-            // Save using the universal Android‑compatible download function
-            const firstName = report.patient.firstName?.trim() || 'Patient';
-            const lastName = report.patient.lastName?.trim() || '';
-            const fileName = `${firstName}_${lastName}.pdf`;
-
-            downloadPDF(pdf, fileName);
-
+            const firstName = report.patient.firstName?.trim() || 'Patient'
+            const lastName = report.patient.lastName?.trim() || ''
+            pdf.save(`${firstName}_${lastName}.pdf`)
         } catch (err) {
-            console.error('PDF save error:', err);
-            alert('Failed to save PDF');
+            console.error('PDF save error:', err)
+            alert('Failed to save PDF')
         } finally {
-            setIsSavingPdf(false);
+            setIsSavingPdf(false)
         }
-    };
+    }
 
     if (!isOpen) return null
 

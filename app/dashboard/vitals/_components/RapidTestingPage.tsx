@@ -352,6 +352,16 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
         }
     }, []) // runs once; session data is not needed for this non-annotation test
 
+    useEffect(() => {
+        const bridge = (window as any).AndroidNative
+        if (bridge?.setPatientName && sessionName) {
+            bridge.setPatientName(sessionName)
+        }
+        if (bridge?.setPatientPhone && sessionPhone) {
+            bridge.setPatientPhone(sessionPhone)
+        }
+    }, [sessionName, sessionPhone])
+
     const handleCheckECG = () => {
         const bridge = window.AndroidNative
         if (bridge?.openKardiaApp) {
@@ -487,7 +497,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                         {annotatedPdfUrl && (
                             <div className="text-center -mt-1">
                                 <h2
-                                 
+
                                     className="text-xs text-green-500 font-medium flex items-center justify-center gap-1"
                                 >
                                     <FileText className="w-3 h-3" />
