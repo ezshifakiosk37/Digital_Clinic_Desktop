@@ -791,7 +791,7 @@ const DemographicPage: React.FC = () => {
             {/* Surgical History */}
             <div className="md:col-span-3 border-t border-slate-100 pt-3">
               <div className="flex flex-row items-center justify-between gap-4 bg-slate-50/50 border border-slate-100 rounded-lg px-4 py-2">
-                <span className="text-sm font-semibold text-slate-600">Any surgical History in the past? <span className='text-red-500'>*</span></span>
+                <span className="text-sm font-semibold text-slate-600">Any surgical History? <span className='text-red-500'>*</span></span>
                 <div className="flex gap-6">
                   {['Yes', 'No'].map((option) => (
                     <label key={option} className="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700">
