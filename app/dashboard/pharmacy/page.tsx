@@ -7,7 +7,7 @@ import { AndroidBridge } from '@/app/_utils/AndroidBridges/AndroidBridge';
 import type { PrescriptionWithPatient } from "@/app/_utils/types";
 import { BluetoothPrinterModal } from '../consultation/components/BluetoothPrinterModel';
 import { downloadPDF } from '@/app/_utils/pdfExport';
- 
+
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
 // ── Helpers (mirror VitalReportModal) ──────────────────────────────────────
@@ -90,28 +90,28 @@ const rapidFields = [
     { key: 'cholesterol', label: 'Cholesterol', unit: 'mg/dL' },
     { key: 'bodyFat', label: 'Body Fat', unit: '%' },
 ];
- 
+
 const Page = () => {
- 
+
     const [queue, setQueue] = useState<PrescriptionWithPatient[]>([]);
     const [search, setSearch] = useState("");
     const [loadingQueue, setLoadingQueue] = useState(false);
- 
+
     // ── Modal state ────────────────────────────────────────────────────────
     const [selectedPrescription, setSelectedPrescription] = useState<PrescriptionWithPatient | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
- 
+
     // ── Full report data (fetched once on page load) ──────────────────────
     const [fullReport, setFullReport] = useState<any>(null);
     const [loadingReport, setLoadingReport] = useState(false);
- 
+
     // ── Action states (inside modal) ──────────────────────────────────────
     const [isPrinting, setIsPrinting] = useState(false);
     const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
     const [isSavingPdf, setIsSavingPdf] = useState(false);
     const [isDispensing, setIsDispensing] = useState(false);
     const [showActionDropdown, setShowActionDropdown] = useState(false);
- 
+
     // ── Email states (inside modal) ──────────────────────────────────────
     const [isSendingEmail, setIsSendingEmail] = useState(false);
     const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'found' | 'not_found' | 'sent' | 'error'>('idle');
@@ -121,7 +121,7 @@ const Page = () => {
     const [editedEmail, setEditedEmail] = useState('');
     const [noEmailInput, setNoEmailInput] = useState('');
     const [isSavingEmail, setIsSavingEmail] = useState(false);
- 
+
     // ── Load queue ──────────────────────────────────────────────────────────
     const loadQueue = async () => {
         setLoadingQueue(true);
@@ -134,11 +134,11 @@ const Page = () => {
             setLoadingQueue(false);
         }
     };
- 
+
     useEffect(() => {
         loadQueue();
     }, []);
- 
+
     // ── Fetch full report ONCE on page load ──────────────────────────────
     useEffect(() => {
         let vitalsId = null;
@@ -176,7 +176,7 @@ const Page = () => {
         };
         fetchReport();
     }, []); // runs once on mount
- 
+
     // ── Reset modal states when closed ─────────────────────────────────────
     useEffect(() => {
         if (!isModalOpen) {
@@ -189,17 +189,17 @@ const Page = () => {
             // Keep fullReport – it's page‑level data
         }
     }, [isModalOpen]);
- 
+
     // ── Android print callback ─────────────────────────────────────────────
     useEffect(() => {
         (window as any).onPrintResult = (success: boolean, message: string) => {
             setIsPrinting(false);
             setIsPrinterModalOpen(false);
-            
+
         };
         return () => { delete (window as any).onPrintResult; };
     }, []);
- 
+
     // ── Filtered queue ─────────────────────────────────────────────────────
     const filteredPrescriptions = queue.filter((item) => {
         if (!search) return true;
@@ -208,12 +208,12 @@ const Page = () => {
         const rev = `${item.patient.lastName || ""} ${item.patient.firstName || ""}`.toLowerCase();
         return full.includes(q) || rev.includes(q) || String(item.token || "").toLowerCase().includes(q);
     });
- 
+
     // ── Helper to get lab tests array ──────────────────────────────────────
     const getLabTests = (p: PrescriptionWithPatient) => {
         return p.labTest ? p.labTest.split(',').map((t: string) => t.trim()).filter(Boolean) : [];
     };
- 
+
     // ── Modal actions (unchanged) ──────────────────────────────────────────
     const handleWebPrint = () => {
         const el = document.getElementById('prescription-paper-modal');
@@ -233,16 +233,16 @@ const Page = () => {
     `);
         win.document.close();
     };
- 
+
     const handlePrint = () => {
         if (!window.AndroidNative) { handleWebPrint(); return; }
         setIsPrinterModalOpen(true);
     };
- 
+
     const executePrint = useCallback(() => {
         const p = selectedPrescription;
         if (!p) return;
- 
+
         setIsPrinting(true);
         setTimeout(() => {
             try {
@@ -251,15 +251,13 @@ const Page = () => {
                     setIsPrinting(false);
                     return;
                 }
- 
+
                 const printPayload = {
                     clinicName: "EZShifa Digital Health",
                     date: new Date().toLocaleDateString(),
                     token: p.token || "N/A",
-                    patient: {
-                        name: `${p.patient.firstName} ${p.patient.lastName}`,
-                        ageSex: `${p.patient.age ?? ""}Y / ${p.patient.gender ?? ""}`,
-                    },
+                    patient: { name: `${p.patient.firstName} ${p.patient.lastName}`, ageSex: `${p.patient.age ?? ""}Y / ${p.patient.gender ?? ""}` },
+                    vitals: buildVitalsForPrint(fullReport),   // <-- the missing piece
                     diagnosis: p.diagnosis || "N/A",
                     labTests: getLabTests(p),
                     notes: p.clinicalNotes || "",
@@ -272,7 +270,7 @@ const Page = () => {
                             schedule: `${m.morning ? 1 : 0}-${m.afternoon ? 1 : 0}-${m.night ? 1 : 0}`,
                         })),
                 };
- 
+
                 (window as any).AndroidNative.printThermal(JSON.stringify(printPayload));
             } catch (err) {
                 console.error("[Print] Mapping error:", err);
@@ -281,24 +279,24 @@ const Page = () => {
             }
         }, 150);
     }, [selectedPrescription]);
- 
+
     // ── Save as PDF ──────────────────────────────────────────────────────────
     const handleSaveAsPdf = async () => {
         setShowActionDropdown(false);
         const el = document.getElementById('prescription-paper-modal');
         const p = selectedPrescription;
         if (!el || !p) return;
- 
+
         setIsSavingPdf(true);
         try {
             const { default: jsPDF } = await import('jspdf');
             const THERMAL_WIDTH_MM = 80;
             const THERMAL_WIDTH_PT = THERMAL_WIDTH_MM * 72 / 25.4;
- 
+
             const iframe = document.createElement('iframe');
             iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:auto;height:auto;border:none;';
             document.body.appendChild(iframe);
- 
+
             const iframeDoc = iframe.contentDocument!;
             iframeDoc.open();
             iframeDoc.write(`
@@ -314,13 +312,13 @@ const Page = () => {
       </html>
     `);
             iframeDoc.close();
- 
+
             await new Promise((r) => setTimeout(r, 300));
- 
+
             const body = iframeDoc.body;
             const contentWidth = body.scrollWidth;
             const contentHeight = body.scrollHeight;
- 
+
             const { default: html2canvas } = await import('html2canvas');
             const canvas = await html2canvas(body, {
                 scale: 2,
@@ -331,23 +329,23 @@ const Page = () => {
                 windowWidth: contentWidth,
                 windowHeight: contentHeight,
             });
- 
+
             document.body.removeChild(iframe);
- 
+
             const imgData = canvas.toDataURL('image/png');
             const imgWidthPt = canvas.width / 2;
             const imgHeightPt = canvas.height / 2;
             const scaleFactor = THERMAL_WIDTH_PT / imgWidthPt;
             const pdfWidth = THERMAL_WIDTH_PT;
             const pdfHeight = imgHeightPt * scaleFactor;
- 
+
             const pdf = new jsPDF({ unit: 'pt', format: [pdfWidth, pdfHeight] });
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
- 
+
             const firstName = p.patient.firstName?.trim() || 'Patient';
             const lastName = p.patient.lastName?.trim() || '';
             const fileName = `${firstName}_${lastName}_Rx.pdf`;
- 
+
             downloadPDF(pdf, fileName);
         } catch (err) {
             console.error('PDF save error:', err);
@@ -356,7 +354,7 @@ const Page = () => {
             setIsSavingPdf(false);
         }
     };
- 
+
     // ── Generate PDF blob (for email) ──────────────────────────────────────
     const generatePdfBlob = async (): Promise<Blob | null> => {
         const el = document.getElementById('prescription-paper-modal');
@@ -387,7 +385,7 @@ const Page = () => {
             return null;
         }
     };
- 
+
     // ── Email flow ──────────────────────────────────────────────────────────
     const handleSendEmail = async () => {
         const p = selectedPrescription;
@@ -435,7 +433,7 @@ const Page = () => {
             setIsSavingEmail(false);
         }
     };
- 
+
     const handleConfirmSendEmail = async () => {
         const p = selectedPrescription;
         const emailToUse = isEditingEmail ? editedEmail : patientEmail;
@@ -448,17 +446,17 @@ const Page = () => {
         try {
             const pdfBlob = await generatePdfBlob();
             if (!pdfBlob) throw new Error('Failed to generate PDF');
- 
+
             const firstName = p.patient.firstName?.trim() || 'Patient';
             const lastName = p.patient.lastName?.trim() || '';
             const fileName = `${firstName}_${lastName}_Rx.pdf`;
- 
+
             const formData = new FormData();
             formData.append('pdf', pdfBlob, fileName);
             formData.append('email', emailToUse);
             formData.append('patientName', `${firstName} ${lastName}`);
             formData.append('token', p.token || '');
- 
+
             const res = await apiService.sendVitalReportEmailPdf(p.patient_id, formData);
             if (res.success) {
                 setEmailStatus('sent');
@@ -475,14 +473,14 @@ const Page = () => {
             setIsSendingEmail(false);
         }
     };
- 
+
     // ── Dispense ─────────────────────────────────────────────────────────────
     const handleDispense = async () => {
         const p = selectedPrescription;
         if (!p) return;
- 
+
         const hardwareOk = AndroidBridge.dispenseMedicine(2, 4, 6);
- 
+
         if (!hardwareOk) {
             setIsDispensing(true);
             try {
@@ -493,16 +491,56 @@ const Page = () => {
                 setIsDispensing(false);
             }
         }
- 
+
         setShowActionDropdown(false);
     };
- 
+
+    const buildVitalsForPrint = (fullReport: any) => {
+        if (!fullReport) return {};
+        const v = fullReport.vitals || {};
+        const out: Record<string, string> = {};
+
+        if (shouldShow(v.Systolic) && shouldShow(v.Diastolic)) out['BP'] = `${v.Systolic}/${v.Diastolic} mmHg`;
+        if (shouldShow(v.BloodOxygen)) out['SpO2'] = `${v.BloodOxygen}%`;
+        if (shouldShow(v.PulseRate)) out['Pulse'] = `${v.PulseRate} bpm`;
+        if (shouldShow(v.Temperature)) out['Temp'] = formatTemperature(v.Temperature, v.temperatureUnit);
+        if (shouldShow(v.Weight)) out['Weight'] = `${v.Weight} kg`;
+        if (shouldShow(v.Height)) out['Height'] = formatHeight(v.Height, v.heightUnit);
+        if (shouldShow(v.bmi)) out['BMI'] = v.bmi;
+
+        const rt = fullReport.rapidTesting;
+        if (rt) {
+            rapidFields.forEach(f => {
+                if (shouldShow(rt[f.key])) {
+                    out[f.label] = `${shortenResult(rt[f.key])}${f.unit ? ' ' + f.unit : ''}`;
+                }
+            });
+        }
+
+        const et = fullReport.eyeTesting;
+        if (et?.leftEyeResult) out['Left Eye'] = shortenResult(et.leftEyeResult);
+        if (et?.rightEyeResult) out['Right Eye'] = shortenResult(et.rightEyeResult);
+
+        const ht = fullReport.hearingTesting;
+        if (ht?.leftEarResult) out['Left Ear'] = shortenResult(ht.leftEarResult);
+        if (ht?.rightEarResult) out['Right Ear'] = shortenResult(ht.rightEarResult);
+
+        const cb = fullReport.colorBlindTesting;
+        if (cb?.colorBlindResult) out['Color Blind'] = shortenResult(cb.colorBlindResult);
+
+        if (shouldShow(v.symptoms)) {
+            out['Symptoms'] = typeof v.symptoms === 'string' ? v.symptoms : v.symptoms.join(', ');
+        }
+
+        return out;
+    };
+
     // ── Render ──────────────────────────────────────────────────────────────
     return (
         <main className="min-h-dvh bg-slate-50">
- 
+
             <Navbar variant="pharmacy" />
- 
+
             <div className="max-w-6xl mx-auto px-4 py-8">
                 <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-x-hidden overflow-y-auto mb-6">
                     <div className="px-8 py-4 border-b flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
@@ -532,7 +570,7 @@ const Page = () => {
                             </button>
                         </div>
                     </div>
- 
+
                     <table className="w-full">
                         <thead className="bg-slate-50">
                             <tr className="text-sm text-slate-500 font-semibold">
@@ -577,7 +615,7 @@ const Page = () => {
                     </table>
                 </div>
             </div>
- 
+
             {/* ── Prescription Preview Modal ── */}
             {isModalOpen && selectedPrescription && (
                 <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setIsModalOpen(false)}>
@@ -588,7 +626,7 @@ const Page = () => {
                                 <X size={20} />
                             </button>
                         </div>
- 
+
                         <div className="overflow-y-auto flex-1 bg-slate-50 p-4">
                             {/* ── Prescription paper ── styled exactly like VitalReportModal ── */}
                             <div
@@ -602,7 +640,7 @@ const Page = () => {
                                     <div style={{ fontSize: 13, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 2 }}>Prescription</div>
                                     <div style={{ fontSize: 10, fontWeight: 700 }}>EZShifa Digital Health</div>
                                 </div>
- 
+
                                 {/* Patient info */}
                                 <div style={{ borderBottom: '1px dashed #bbb', paddingBottom: 8, marginBottom: 4 }}>
                                     <Row label="Name" value={`${selectedPrescription.patient.firstName} ${selectedPrescription.patient.lastName}`} />
@@ -612,7 +650,7 @@ const Page = () => {
                                     <Row label="Token" value={`#${selectedPrescription.token}`} />
                                     <Row label="Date" value={new Date().toLocaleDateString()} />
                                 </div>
- 
+
                                 {/* ── All screening data from fullReport ── */}
                                 {loadingReport ? (
                                     <div style={{ textAlign: 'center', padding: '8px 0' }}>
@@ -624,9 +662,9 @@ const Page = () => {
                                         {(() => {
                                             const v = fullReport.vitals;
                                             const hasVitals = shouldShow(v.Systolic) || shouldShow(v.Diastolic) ||
-                                                              shouldShow(v.BloodOxygen) || shouldShow(v.PulseRate) ||
-                                                              shouldShow(v.Temperature) || shouldShow(v.Weight) ||
-                                                              shouldShow(v.Height) || shouldShow(v.bmi);
+                                                shouldShow(v.BloodOxygen) || shouldShow(v.PulseRate) ||
+                                                shouldShow(v.Temperature) || shouldShow(v.Weight) ||
+                                                shouldShow(v.Height) || shouldShow(v.bmi);
                                             if (!hasVitals) return null;
                                             return (
                                                 <>
@@ -647,7 +685,7 @@ const Page = () => {
                                                 </>
                                             );
                                         })()}
- 
+
                                         {/* ── RAPID TESTING ── */}
                                         {(() => {
                                             const rt = fullReport.rapidTesting;
@@ -666,7 +704,7 @@ const Page = () => {
                                                 </>
                                             );
                                         })()}
- 
+
                                         {/* ── EYE TESTING ── */}
                                         {(() => {
                                             const et = fullReport.eyeTesting;
@@ -682,7 +720,7 @@ const Page = () => {
                                                 </>
                                             );
                                         })()}
- 
+
                                         {/* ── COLOR BLIND TESTING ── */}
                                         {(() => {
                                             const cb = fullReport.colorBlindTesting;
@@ -695,7 +733,7 @@ const Page = () => {
                                                 </>
                                             );
                                         })()}
- 
+
                                         {/* ── HEARING TESTING ── */}
                                         {(() => {
                                             const ht = fullReport.hearingTesting;
@@ -710,7 +748,7 @@ const Page = () => {
                                                 </>
                                             );
                                         })()}
- 
+
                                         {/* ── SYMPTOMS ── */}
                                         {(() => {
                                             const sym = fullReport.vitals?.symptoms;
@@ -726,7 +764,7 @@ const Page = () => {
                                         })()}
                                     </>
                                 ) : null}
- 
+
                                 {/* ── Diagnosis (from prescription) ── */}
                                 {selectedPrescription.diagnosis && (
                                     <>
@@ -736,7 +774,7 @@ const Page = () => {
                                         </div>
                                     </>
                                 )}
- 
+
                                 {/* ── Medicines ── */}
                                 {(() => {
                                     const meds = (selectedPrescription.medicines ?? []).filter((m: any) => m.medicineName);
@@ -760,7 +798,7 @@ const Page = () => {
                                         </>
                                     );
                                 })()}
- 
+
                                 {/* ── Lab Tests ── */}
                                 {getLabTests(selectedPrescription).length > 0 && (
                                     <>
@@ -775,7 +813,7 @@ const Page = () => {
                                         </ul>
                                     </>
                                 )}
- 
+
                                 {/* ── Clinical Notes ── */}
                                 {selectedPrescription.clinicalNotes && (
                                     <>
@@ -785,14 +823,14 @@ const Page = () => {
                                         </div>
                                     </>
                                 )}
- 
+
                                 {/* Footer */}
                                 <div style={{ marginTop: 16, textAlign: 'center', fontSize: 8, letterSpacing: 2, opacity: 1 }}>
                                     This Digital Report from EZShifa does not require stamp or signature
                                     and is not valid for Legal proceedings.
                                 </div>
                             </div>
- 
+
                             {/* ── Email confirm dialog ── (unchanged) ── */}
                             {showEmailConfirm && (
                                 <div className="mt-4 px-5 py-4 rounded-2xl border border-slate-100 bg-blue-50 space-y-3">
@@ -871,7 +909,7 @@ const Page = () => {
                                     </div>
                                 </div>
                             )}
- 
+
                             {emailStatus === 'sent' && (
                                 <div className="mt-2 py-2 px-3 bg-green-100 text-green-700 rounded-xl text-xs font-bold text-center">
                                     ✓ Report sent successfully!
@@ -883,19 +921,18 @@ const Page = () => {
                                 </div>
                             )}
                         </div>
- 
+
                         {/* ── Footer actions ── (unchanged) ── */}
                         <div className="px-5 py-4 border-t border-slate-100 flex gap-2 relative">
                             <button
                                 onClick={handlePrint}
                                 disabled={isPrinting}
-                                className={`flex-1 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all ${
-                                    isPrinting ? 'bg-slate-300 cursor-not-allowed text-slate-500' : 'bg-slate-900 hover:bg-[#0297d6] text-white active:scale-95'
-                                }`}
+                                className={`flex-1 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all ${isPrinting ? 'bg-slate-300 cursor-not-allowed text-slate-500' : 'bg-slate-900 hover:bg-[#0297d6] text-white active:scale-95'
+                                    }`}
                             >
                                 {isPrinting ? <><Loader2 size={15} className="animate-spin" />Processing...</> : <><Printer size={15} />Print</>}
                             </button>
- 
+
                             <div className="relative">
                                 <button
                                     onClick={() => setShowActionDropdown(p => !p)}
@@ -903,7 +940,7 @@ const Page = () => {
                                 >
                                     Action <ChevronDown size={13} />
                                 </button>
- 
+
                                 {showActionDropdown && (
                                     <div className="absolute bottom-full right-0 mb-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-10">
                                         <button
@@ -945,7 +982,7 @@ const Page = () => {
                     </div>
                 </div>
             )}
- 
+
             <style>{`
                 @media print {
                     body * { visibility: hidden; }
@@ -969,5 +1006,5 @@ const Page = () => {
         </main>
     );
 };
- 
+
 export default Page;
