@@ -272,7 +272,7 @@ const Page = () => {
                         })),
                 };
 
-                (window as any).AndroidNative.printThermal(JSON.stringify(printPayload));
+                (window as any).AndroidNative.printVitalReport(JSON.stringify(printPayload));
             } catch (err) {
                 console.error("[Print] Mapping error:", err);
                 alert("Failed to prepare prescription for printing.");
