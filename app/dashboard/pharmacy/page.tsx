@@ -236,6 +236,7 @@ const Page = () => {
 
     const handlePrint = () => {
         if (!window.AndroidNative) { handleWebPrint(); return; }
+        setIsPrinting(false);          // force-clear any stale state from a previous attempt
         setIsPrinterModalOpen(true);
     };
 
