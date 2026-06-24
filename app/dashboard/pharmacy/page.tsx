@@ -235,7 +235,7 @@ const Page = () => {
     };
  
     const handlePrint = () => {
-        if (!(window as any).AndroidNative) { handleWebPrint(); return; }
+        if (!window.AndroidNative) { handleWebPrint(); return; }
         setIsPrinterModalOpen(true);
     };
  
@@ -414,7 +414,7 @@ const Page = () => {
             setTimeout(() => setEmailStatus('idle'), 3000);
         }
     };
- 
+
     const handleSaveEmail = async (emailToSave: string) => {
         const p = selectedPrescription;
         if (!emailToSave.trim() || !p) return;

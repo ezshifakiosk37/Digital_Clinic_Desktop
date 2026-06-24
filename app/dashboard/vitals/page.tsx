@@ -75,7 +75,7 @@ const VitalsPage = () => {
   const [vitalsSearch, setVitalsSearch] = useState("");
   const [isHeightCameraOpen, setIsHeightCameraOpen] = useState(false);
   const [heightUnit, setHeightUnit] = useState<'ft' | 'cm'>('ft');
-  const [tempUnit, setTempUnit] = useState<'°C' | '°F'>('°C');
+  const [tempUnit, setTempUnit] = useState<'°C' | '°F'>('°F');
   const tempUnitRef = useRef(tempUnit); // keep ref in sync with state
   const [showNoSessionToast, setShowNoSessionToast] = useState(false);
   type AppTab = 'vitals' | 'rapid' | 'eye' | 'colorblind' | 'hearing';
