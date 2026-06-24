@@ -128,7 +128,7 @@ export const BluetoothPrinterModal: React.FC<BluetoothPrinterModalProps> = ({
     return (
         // Backdrop
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-100 flex items-center justify-center p-4"
             style={{ background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)' }}
             onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
