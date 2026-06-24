@@ -1,3 +1,4 @@
+//app/dashboard/video-call/[vitalsid]/PrescriptionModel.tsx
 'use client'
 
 import React, { useState } from 'react';

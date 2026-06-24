@@ -1,3 +1,4 @@
+//app/dashboard/video-call/[vitalsid]/page.tsx
 'use client';
 
 import React from 'react';

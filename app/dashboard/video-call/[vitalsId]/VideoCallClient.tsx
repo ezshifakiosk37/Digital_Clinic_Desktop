@@ -1,3 +1,4 @@
+//app/dashboard/video-call/[vitalsid]/VideoCallClient.tsx
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -10,11 +11,12 @@ import { Button } from "@/components/ui/button";
 import {
   Mic, MicOff, Video, VideoOff, PhoneOff, Loader2,
   CameraOff, AlertCircle, ClipboardList,
-  User
+  User, FileText
 } from "lucide-react";
 import { apiService } from '@/app/_utils/apiService';
 import { PrescriptionModal } from './PrescriptionModel';
 import { PatientInfoModal } from './PatientInfoModal';
+import { PatientPrescriptionModal } from './PatientPrescriptionModal';
 
 interface VideoCallClientProps {
   vitalsId: string;
@@ -29,6 +31,7 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
   const [hasCamera, setHasCamera] = useState(true);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [isPrescriptionOpen, setIsPrescriptionOpen] = useState(false);
+  const [isPrescriptionViewOpen, setIsPrescriptionViewOpen] = useState(false);
 
   // Patient data – fetched directly from backend
   const [patientId, setPatientId] = useState<string | undefined>();
@@ -206,6 +209,13 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
           onClose={() => setIsPatientInfoOpen(false)}
           patient={patientInfo}
           loading={fetchingPatient}
+          vitalsId={vitalsId}
+        />
+      )}
+      {isPrescriptionViewOpen && (
+        <PatientPrescriptionModal
+          onClose={() => setIsPrescriptionViewOpen(false)}
+          vitalsId={vitalsId}
         />
       )}
 
@@ -291,6 +301,15 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
               title="Write Prescription"
             >
               <ClipboardList size={20} />
+            </Button>
+          )}
+          {!isDoctor && (
+            <Button
+              onClick={() => setIsPrescriptionViewOpen(true)}
+              className="rounded-full h-14 w-14 bg-[#0297d6] hover:bg-[#0288c2] text-white shadow-lg shadow-[#0297d6]/40 border-2 border-white/20 transition-all active:scale-95"
+              title="View Prescription"
+            >
+              <FileText size={20} />
             </Button>
           )}
         </div>
