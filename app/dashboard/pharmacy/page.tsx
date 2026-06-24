@@ -194,8 +194,8 @@ const Page = () => {
     useEffect(() => {
         (window as any).onPrintResult = (success: boolean, message: string) => {
             setIsPrinting(false);
-            if (success) setIsPrinterModalOpen(false);
-            else alert(`Print failed: ${message}`);
+            setIsPrinterModalOpen(false);
+            
         };
         return () => { delete (window as any).onPrintResult; };
     }, []);
@@ -500,13 +500,6 @@ const Page = () => {
     // ── Render ──────────────────────────────────────────────────────────────
     return (
         <main className="min-h-dvh bg-slate-50">
- 
-            <BluetoothPrinterModal
-                isOpen={isPrinterModalOpen}
-                onClose={() => { if (!isPrinting) setIsPrinterModalOpen(false); }}
-                onPrint={executePrint}
-                isPrinting={isPrinting}
-            />
  
             <Navbar variant="pharmacy" />
  
@@ -966,6 +959,13 @@ const Page = () => {
                     .print\\:hidden { display: none !important; }
                 }
             `}</style>
+
+            <BluetoothPrinterModal
+                isOpen={isPrinterModalOpen}
+                onClose={() => { if (!isPrinting) setIsPrinterModalOpen(false); }}
+                onPrint={executePrint}
+                isPrinting={isPrinting}
+            />
         </main>
     );
 };
