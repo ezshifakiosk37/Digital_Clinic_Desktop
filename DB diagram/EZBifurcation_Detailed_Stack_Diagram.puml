@@ -1,0 +1,218 @@
+@startuml Digital_Clinic_Ecosystem_Stack
+
+title Digital Clinic Ecosystem — Stack, Business Layer & Process Flow\n(Digital_Clinic_Desktop + Bifurcation_Clinic_API)
+
+skinparam componentStyle rectangle
+skinparam wrapWidth 230
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+' =====================================================================
+' REPO 1: Digital_Clinic_Desktop  — Next.js 15 / React 19 (Electron-wrapped kiosk app)
+' =====================================================================
+package "Digital_Clinic_Desktop  (Next.js Web/Desktop App)" {
+
+  package "Presentation Layer" {
+    [Sign-In\n(staff login, InputFields,\nSignOutDialog)] as SignIn
+    [Dashboard Shell\n(Navbar, Sidebar,\nUserProfileContext)] as DashShell
+    [Demographic\n(patient search/registration\nby phone or CNIC)] as Demographic
+    [Vitals Module\n(VitalCard, TokenDialog,\nWebcamPhotoModal)] as Vitals
+    package "Specialised Test Pages" {
+      [Eye Testing] as EyeUI
+      [Color Blind Testing] as ColorUI
+      [Hearing Testing] as HearingUI
+      [Rapid Testing\n(panel of strip tests)] as RapidUI
+      [ECG Global Listener\n(file-based capture)] as EcgUI
+      [Height Camera /\nWeight Calibration] as MeasureUI
+    }
+    [Video Call Page\n([vitalsId]/VideoCallClient,\nPatientInfoModal)] as VideoCallUI
+    [Prescription Modal\n(PatientPrescriptionModal,\nPrescriptionModel)] as RxUI
+    [Consultation Portal\n(doctor sign-in/up, docProfile,\nGlobalCallSidebar, CallStatusBadge,\nBluetoothPrinterModel)] as DocPortal
+    [Online Consult /\nPharmacy pages] as OnlinePharm
+  }
+
+  package "Client-side Business / Service Layer (app/_utils)" {
+    [apiService.ts\n(single fetch client —\nauth headers, error handling,\nall REST calls to API)] as ApiService
+    [AndroidBridge.ts\n(window.AndroidNative bridge\nfor kiosk hardware)] as AndroidBridge
+    [pdfExport.ts\n(jsPDF / pdf-lib / react-pdf\nreport rendering)] as PdfExport
+    [HardwareParser.ts /\nunitConversions.ts] as Parsers
+    [CallQueueContext /\nUserProfileContext\n(global React state)] as Contexts
+  }
+
+  package "Styling & Build Tooling" {
+    [Tailwind CSS + shadcn/Radix UI\n(components/ui/*)] as UIKit
+    [TypeScript / ESLint /\nnext.config.ts] as TSConfig
+    [Electron Forge\n(main.js, forge.config.js)\npackages kiosk desktop binary] as Electron
+  }
+
+  DashShell --> Demographic
+  DashShell --> Vitals
+  DashShell --> DocPortal
+  DashShell --> OnlinePharm
+  Vitals --> EyeUI
+  Vitals --> ColorUI
+  Vitals --> HearingUI
+  Vitals --> RapidUI
+  Vitals --> EcgUI
+  Vitals --> MeasureUI
+  Vitals --> VideoCallUI
+  VideoCallUI --> RxUI
+  SignIn ..> UIKit
+  DashShell ..> UIKit
+  Electron ..> DashShell : loads via electron-serve
+
+  Demographic --> ApiService
+  Vitals --> ApiService
+  RapidUI --> ApiService
+  EyeUI --> ApiService
+  ColorUI --> ApiService
+  HearingUI --> ApiService
+  VideoCallUI --> ApiService
+  RxUI --> ApiService
+  DocPortal --> ApiService
+  SignIn --> ApiService
+  VideoCallUI --> PdfExport
+  RxUI --> PdfExport
+  MeasureUI --> AndroidBridge
+  EcgUI --> AndroidBridge
+}
+
+' =====================================================================
+' REPO 2: Bifurcation_Clinic_API  — Express 5 / TypeScript REST API
+' =====================================================================
+package "Bifurcation_Clinic_API  (Express REST API)" {
+
+  package "API / Presentation Layer (src/routes)" {
+    [/api/auth\n(staff login, JWT issue)] as RAuth
+    [/api/doc-auth\n(doctor login, JWT issue)] as RDocAuth
+    [/api/doctors\n(register, profile, status,\nassigned-doctor, logout)] as RDoctors
+    [/api/patients  (protected)\nsearch, save, vitals history,\ntoday-queue/stats, prescriptions] as RPatients
+    [/api/vitals  (protected)\nsave/update vitals, rapid-testing,\neye/colour/hearing testing] as RVitals
+    [/api/medicines  (protected)\ninventory (row/column/qty)] as RMedicines
+    [/api/video\n(LiveKit room + token)] as RVideo
+    [/api/agoravideo\n(Agora RTC token per vitalsId)] as RAgora
+    [/api/notifications\nalert-doctor, accept-call,\ncall-status, end-call,\nFCM token mgmt] as RNotif
+    [/api/report\nPDF report fetch,\nemail report (nodemailer)] as RReport
+    [/api/upload\n(Cloudinary/multer photo upload)] as RUpload
+    [/health] as RHealth
+  }
+
+  package "Middleware / Cross-cutting" {
+    [authenticate / authenticateAny\n(JWT verify — middleware/auth.ts)] as MwAuth
+    [CORS + JSON/urlencoded\nparsers (src/index.ts)] as MwCors
+    [Global error handler] as MwErr
+  }
+
+  package "Business Logic Layer" {
+    [Patient Registration &\nDeduplication\n(by phone / CNIC)] as BizPatient
+    [Vitals & Diagnostics\nOrchestration\n(vitals, rapid/eye/colour/\nhearing test results)] as BizVitals
+    [Queue & Token\nManagement\n(today-queue, today-token,\nwalk-in vs online)] as BizQueue
+    [Doctor Availability &\nAssignment\n(kiosk → assigned doctor,\nonline/offline status)] as BizDoctor
+    [Tele-consultation\nOrchestration\n(create room, alert,\naccept/end call, status)] as BizConsult
+    [Prescription &\nMedicine Logic\n(diagnosis, dosage schedule,\nmedicine inventory)] as BizRx
+    [Report Generation &\nDelivery\n(PDF assembly, email dispatch)] as BizReport
+    [Audit Logging\n(audit_logs — actor, action,\nentity, changes)] as BizAudit
+  }
+
+  package "Data Access Layer (Drizzle ORM)" {
+    [src/db/schema.ts\n(table definitions & relations)] as Schema
+    [src/db/index.ts\n(Postgres connection pool)] as DbConn
+  }
+
+  database "PostgreSQL\n(admins, users, all_entries,\nvitals, rapid_testing, eye_testing,\ncolor_blind_testing, hearing_testing,\ndoctors, prescriptions,\nprescription_medicines,\ndoctor_logs, medicines_inventry,\naudit_logs)" as PG
+}
+
+' =====================================================================
+' EXTERNAL / THIRD-PARTY SERVICES
+' =====================================================================
+package "External Services & Infrastructure" {
+  [Vercel\n(hosts Next.js app +\nExpress API as separate deployments)] as Vercel
+  [Cloudinary\n(patient & doctor photo CDN)] as Cloudinary
+  [Firebase\n(FCM push notifications,\nfirebase-admin server SDK,\nfirebase client SDK)] as Firebase
+  [Agora RTC\n(agora-access-token,\nagora-rtc-sdk-ng)] as Agora
+  [LiveKit\n(livekit-server-sdk)] as LiveKit
+  [SMTP / Nodemailer\n(vital report emails)] as SMTP
+  [Kiosk Hardware\n(Bluetooth printer, ESP32,\nBLE glucometer, ECG device)] as Hardware
+}
+
+' ===================== CROSS-REPO / RUNTIME FLOW =====================
+ApiService ..> RAuth : POST /api/auth/login
+ApiService ..> RDocAuth : POST /api/doc-auth/login
+ApiService ..> RPatients : GET/POST /api/patients/*
+ApiService ..> RVitals : GET/POST/PATCH /api/vitals/*
+ApiService ..> RDoctors : /api/doctors/*
+ApiService ..> RNotif : /api/notifications/*
+ApiService ..> RAgora : GET /api/agoravideo/token/:vitalsId
+ApiService ..> RReport : /api/report/*
+ApiService ..> RUpload : (photo paths reference Cloudinary)
+
+RAuth --> MwAuth : issues JWT consumed by
+RDocAuth --> MwAuth
+MwAuth --> RPatients : protects
+MwAuth --> RVitals : protects
+MwAuth --> RMedicines : protects
+
+RPatients --> BizPatient
+RPatients --> BizQueue
+RVitals --> BizVitals
+RDoctors --> BizDoctor
+RNotif --> BizConsult
+RVideo --> BizConsult
+RAgora --> BizConsult
+RPatients --> BizRx
+RMedicines --> BizRx
+RReport --> BizReport
+RAuth ..> BizAudit
+RDoctors ..> BizAudit
+
+BizPatient --> Schema
+BizVitals --> Schema
+BizQueue --> Schema
+BizDoctor --> Schema
+BizConsult --> Schema
+BizRx --> Schema
+BizReport --> Schema
+BizAudit --> Schema
+Schema --> DbConn
+DbConn --> PG
+
+' ===================== EXTERNAL INTEGRATIONS =====================
+BizConsult --> Agora : generate RTC token / channel
+BizConsult --> LiveKit : create room / token (video.ts)
+BizConsult --> Firebase : send push via firebase-admin\n(alert-doctor)
+RNotif --> Firebase
+BizReport --> SMTP : send-email / send-email-pdf
+ApiService --> Cloudinary : direct browser upload\n(patient & doctor photos)
+RUpload --> Cloudinary
+VideoCallUI --> Agora : agora-rtc-sdk-ng (join call, client side)
+DashShell --> Vercel : deployed (clinic-setup.vercel.app)
+RHealth --> Vercel : deployed (Express API instance)
+AndroidBridge --> Hardware : USB-serial / Bluetooth / BLE
+
+' =====================================================================
+' PROCESS FLOW NOTE — End-to-end patient journey
+' =====================================================================
+note as ProcessFlow
+  **Business Process Flow**
+  1. Staff signs in (kiosk) → JWT stored client-side
+  2. Patient lookup by phone/CNIC (Demographic) → register if new (all_entries)
+  3. Vitals captured (BP, pulse, SpO2, temp, height, weight, BMI)
+     + optional specialised tests (eye / colour-blind / hearing / rapid panel / ECG)
+  4. Patient queued with a daily token (today-queue / today-token)
+  5. Doctor availability checked → kiosk "alert-doctor" triggers
+     FCM push notification to assigned/online doctor
+  6. Doctor accepts call → Agora/LiveKit room created →
+     video consultation between patient kiosk and doctor portal
+  7. Doctor records diagnosis, lab tests & prescription
+     (medicines with dosage / timing / duration) → saved to
+     prescriptions + prescription_medicines
+  8. Call ends → status updated → full vitals+Rx report assembled
+  9. Report exported as PDF (client) and/or emailed to patient
+     via the API's nodemailer-based /api/report routes
+  10. Every staff/doctor/admin action is recorded to audit_logs
+  11. Pharmacy / medicine inventory consulted for dispensing
+end note
+
+ProcessFlow .. BizConsult
+
+@enduml
