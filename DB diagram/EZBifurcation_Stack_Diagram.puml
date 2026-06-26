@@ -1,0 +1,58 @@
+@startuml Digital_Clinic_High_Level_Horizontal
+
+title Digital Clinic Ecosystem — High-Level Architecture
+
+skinparam componentStyle rectangle
+skinparam defaultFontSize 11
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+package "Frontend (Kiosk)" {
+  [Patient Registration] as Reg
+  [Vitals Capture] as Vitals
+  [Specialised Tests] as Tests
+  [Video Call] as Video
+  [Prescriptions] as Rx
+  [Reports] as Reports
+}
+
+package "Backend (API)" {
+  [Authentication] as Auth
+  [Patient Management] as PatientMgt
+  [Doctor Management] as DoctorMgt
+  [Queue Management] as Queue
+  [Consultation] as Consult
+  [Inventory] as Inventory
+}
+
+database "PostgreSQL Database" as DB
+
+package "External Services" {
+  [Agora/LiveKit Video] as VideoSvc
+  [Firebase Notifications] as NotifySvc
+  [SMTP Email] as EmailSvc
+  [Cloudinary Storage] as StorageSvc
+  [Hardware Devices] as HardwareSvc
+}
+
+' ===== Main flow left to right =====
+Reg --> PatientMgt
+Vitals --> PatientMgt
+Tests --> PatientMgt
+Video --> Consult
+Rx --> Inventory
+Reports --> PatientMgt
+
+PatientMgt --> DB
+DoctorMgt --> DB
+Queue --> DB
+Consult --> DB
+Inventory --> DB
+
+Consult --> VideoSvc
+Consult --> NotifySvc
+Reports --> EmailSvc
+Vitals --> StorageSvc
+Vitals --> HardwareSvc
+
+@enduml
