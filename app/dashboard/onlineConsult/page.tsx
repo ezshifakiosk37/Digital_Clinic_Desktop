@@ -443,7 +443,7 @@ const OnlineConsultPage = () => {
       {/* ── Symptoms Required Dialog ───────────────────────────────────────── */}
       {symptomsPatient && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
             <div className="px-6 py-5 border-b border-slate-100 flex items-start justify-between">
               <div>
                 <h3 className="font-bold text-slate-800 text-base">No Symptoms Recorded</h3>
