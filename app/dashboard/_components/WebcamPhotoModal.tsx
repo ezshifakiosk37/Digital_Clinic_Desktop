@@ -13,13 +13,24 @@ export const WebcamPhotoModal: React.FC<WebcamPhotoModalProps> = ({ isOpen, onCl
   const [preview, setPreview] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
 
+  // ── NEW: Show native overlay when modal opens ──
   useEffect(() => {
     if (isOpen) {
+      // Show loading overlay on Android
+      if (typeof window !== "undefined" && window.AndroidNative?.showCameraLoading) {
+        window.AndroidNative.showCameraLoading();
+      }
       setPreview(null);
       setCameraReady(false);
+    } else {
+      // Hide overlay when modal closes
+      if (typeof window !== "undefined" && window.AndroidNative?.hideCameraLoading) {
+        window.AndroidNative.hideCameraLoading();
+      }
     }
   }, [isOpen]);
 
+  // Prevent body scroll while modal is open
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -33,7 +44,10 @@ export const WebcamPhotoModal: React.FC<WebcamPhotoModalProps> = ({ isOpen, onCl
   const handleRetake = useCallback(() => setPreview(null), []);
 
   const handleUse = useCallback(() => {
-    if (preview) { onCapture(preview); onClose(); }
+    if (preview) {
+      onCapture(preview);
+      onClose();
+    }
   }, [preview, onCapture, onClose]);
 
   if (!isOpen) return null;
@@ -41,11 +55,9 @@ export const WebcamPhotoModal: React.FC<WebcamPhotoModalProps> = ({ isOpen, onCl
   return (
     <div className="fixed inset-0 z-99999 bg-black flex flex-col w-screen h-dvh touch-none">
 
-      {/* ── PREVIEW MODE ── */}
       {preview ? (
+        /* ── PREVIEW MODE ── */
         <div className="flex flex-col h-full">
-
-          {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 bg-black/60 backdrop-blur-md shrink-0">
             <button
               onClick={handleRetake}
@@ -61,13 +73,9 @@ export const WebcamPhotoModal: React.FC<WebcamPhotoModalProps> = ({ isOpen, onCl
               ✕
             </button>
           </div>
-
-          {/* Preview image */}
           <div className="flex-1 relative overflow-hidden">
             <img src={preview} alt="Preview" className="w-full h-full object-contain" />
           </div>
-
-          {/* Action buttons */}
           <div className="flex gap-3 px-5 pt-5 pb-10 bg-black/60 backdrop-blur-md shrink-0">
             <button
               onClick={handleRetake}
@@ -83,12 +91,9 @@ export const WebcamPhotoModal: React.FC<WebcamPhotoModalProps> = ({ isOpen, onCl
             </button>
           </div>
         </div>
-
       ) : (
         /* ── LIVE CAMERA MODE ── */
         <div className="relative w-full h-full flex flex-col">
-
-          {/* Top bar */}
           <div className="absolute top-0 left-0 right-0 z-10 flex items-center px-5 py-4 bg-linear-to-b from-black/70 to-transparent">
             <button
               onClick={onClose}
@@ -106,12 +111,23 @@ export const WebcamPhotoModal: React.FC<WebcamPhotoModalProps> = ({ isOpen, onCl
             screenshotFormat="image/jpeg"
             screenshotQuality={0.92}
             videoConstraints={{ facingMode: 'user' }}
-            onUserMedia={() => setCameraReady(true)}
-            onUserMediaError={() => setCameraReady(false)}
+            onUserMedia={() => {
+              setCameraReady(true);
+              // ── NEW: Hide native overlay when camera stream is ready ──
+              if (typeof window !== "undefined" && window.AndroidNative?.hideCameraLoading) {
+                window.AndroidNative.hideCameraLoading();
+              }
+            }}
+            onUserMediaError={() => {
+              setCameraReady(false);
+              // ── NEW: Hide overlay on error ──
+              if (typeof window !== "undefined" && window.AndroidNative?.hideCameraLoading) {
+                window.AndroidNative.hideCameraLoading();
+              }
+            }}
             className="w-full h-full object-cover block"
           />
 
-          {/* Bottom controls */}
           <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col items-center px-4 pt-5 pb-12 bg-linear-to-t from-black/70 to-transparent">
             <p className="text-white/60 text-xs mb-5">Tap to capture</p>
             <button
@@ -122,7 +138,6 @@ export const WebcamPhotoModal: React.FC<WebcamPhotoModalProps> = ({ isOpen, onCl
               <div className="w-full h-full rounded-full bg-[#0297d6]" />
             </button>
           </div>
-
         </div>
       )}
     </div>

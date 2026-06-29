@@ -22,6 +22,14 @@ declare global {
        */
       unregisterFcmDevice: () => void;
 
+      // ─────────────────────────────────────────────────────────────────────────
+      // NEW CAMERA LOADING OVERLAY (added here)
+      // ─────────────────────────────────────────────────────────────────────────
+      /** Shows the native camera loading overlay (spinner) */
+      showCameraLoading: () => void;
+      /** Hides the native camera loading overlay */
+      hideCameraLoading: () => void;
+
       /** Sends the specific 'c' character to calibrate the scale. */
       sendWeightCalibrationCommand: (command: string) => void;
 
