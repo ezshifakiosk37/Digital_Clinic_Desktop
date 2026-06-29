@@ -49,6 +49,7 @@ export default function Sidebar() {
     } else {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('localClinic_session')
       localStorage.removeItem('localClinic_entryId');
       router.push("/sign-in");
     }
