@@ -1,5 +1,5 @@
-// const API_BASE_URL = "https://bifurcation-clinic-api.vercel.app";
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = "https://bifurcation-clinic-api.vercel.app";
+// const API_BASE_URL = "http://localhost:5000";
 
 async function handleResponse(response: Response) {
     if (!response.ok) {
