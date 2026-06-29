@@ -486,6 +486,23 @@ const VitalsPage = () => {
     });
   };
 
+  // ── Shared check: does this token already have a prescription? ──
+  // Reuses verifyToken — your backend throws "already used" when a
+  // token already has a prescription against it.
+  const checkTokenHasPrescription = async (token: string): Promise<boolean> => {
+    if (!token) return false;
+    try {
+      await apiService.verifyToken(parseInt(token).toString());
+      return false; // verified clean → no prescription yet
+    } catch (error: any) {
+      const msg = (error.message || "").toLowerCase();
+      if (msg.includes("already used")) return true;
+      // Some other error (invalid token, network, etc.) — don't block on this,
+      // let the normal save flow surface it instead.
+      return false;
+    }
+  };
+
   const handleNextStep = async () => {
     if (!sessionPhone) {
       setOpenTokenDialog(true);
@@ -502,6 +519,14 @@ const VitalsPage = () => {
 
     setLoading(true);
     try {
+      // ── Block saving if this token already has a prescription ──
+      const hasPrescription = await checkTokenHasPrescription(sessionToken || tokenNumber);
+      if (hasPrescription) {
+        setShowExpiredToast(true);
+        setTimeout(() => setShowExpiredToast(false), 3000);
+        return;
+      }
+
       const vitalsToSave = {
         ...vitals,
         Height: vitals.Height,
