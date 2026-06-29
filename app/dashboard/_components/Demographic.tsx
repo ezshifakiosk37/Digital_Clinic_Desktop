@@ -258,7 +258,7 @@ const DemographicPage: React.FC = () => {
             }
           }
         } catch (err) {
-          // findPatientByPhone resolves to null on 404; any other error
+          // findPatientByPhone resolves to null on 404; any other errors
           // shouldn't block saving — just log it and proceed.
           console.error("Phone conflict check failed:", err);
         }
