@@ -13,17 +13,15 @@ export const WebcamPhotoModal: React.FC<WebcamPhotoModalProps> = ({ isOpen, onCl
   const [preview, setPreview] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
 
-  // ── NEW: Show native overlay when modal opens ──
+  // Show overlay when modal opens, hide when it closes
   useEffect(() => {
     if (isOpen) {
-      // Show loading overlay on Android
       if (typeof window !== "undefined" && window.AndroidNative?.showCameraLoading) {
         window.AndroidNative.showCameraLoading();
       }
       setPreview(null);
       setCameraReady(false);
     } else {
-      // Hide overlay when modal closes
       if (typeof window !== "undefined" && window.AndroidNative?.hideCameraLoading) {
         window.AndroidNative.hideCameraLoading();
       }
@@ -41,7 +39,14 @@ export const WebcamPhotoModal: React.FC<WebcamPhotoModalProps> = ({ isOpen, onCl
     if (imageSrc) setPreview(imageSrc);
   }, []);
 
-  const handleRetake = useCallback(() => setPreview(null), []);
+  // ── FIX: Show overlay again when retaking ──
+  const handleRetake = useCallback(() => {
+    setPreview(null);
+    // Show native overlay while camera re‑initialises
+    if (typeof window !== "undefined" && window.AndroidNative?.showCameraLoading) {
+      window.AndroidNative.showCameraLoading();
+    }
+  }, []);
 
   const handleUse = useCallback(() => {
     if (preview) {
@@ -104,7 +109,6 @@ export const WebcamPhotoModal: React.FC<WebcamPhotoModalProps> = ({ isOpen, onCl
             <span className="text-white text-sm font-semibold ml-3">Take Patient Photo</span>
           </div>
 
-          {/* Webcam */}
           <Webcam
             ref={webcamRef}
             audio={false}
@@ -113,14 +117,13 @@ export const WebcamPhotoModal: React.FC<WebcamPhotoModalProps> = ({ isOpen, onCl
             videoConstraints={{ facingMode: 'user' }}
             onUserMedia={() => {
               setCameraReady(true);
-              // ── NEW: Hide native overlay when camera stream is ready ──
+              // Hide overlay when stream is ready
               if (typeof window !== "undefined" && window.AndroidNative?.hideCameraLoading) {
                 window.AndroidNative.hideCameraLoading();
               }
             }}
             onUserMediaError={() => {
               setCameraReady(false);
-              // ── NEW: Hide overlay on error ──
               if (typeof window !== "undefined" && window.AndroidNative?.hideCameraLoading) {
                 window.AndroidNative.hideCameraLoading();
               }
