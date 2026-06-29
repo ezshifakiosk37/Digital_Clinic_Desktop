@@ -4,6 +4,14 @@ import { VitalType } from '../../../_utils/types';
 import { VITAL_CONFIGS } from '../../../_utils/data/constants';
 import { Button } from '@/components/ui/button';
 
+// ── Normal ranges shown under each vital (matches clinic reference ranges) ──
+const VITAL_RANGES: Partial<Record<VitalType, string>> = {
+  [VitalType.BMI]: 'Normal BMI: 18.5 - 24.9',
+  [VitalType.BLOOD_OXYGEN]: 'Min: 90%, Max: 100%',
+  [VitalType.PULSE_RATE]: 'Min: 40, Max: 100 beats per minute',
+  [VitalType.BLOOD_PRESSURE]: 'Systolic: 120-140, Diastolic: 80-90',
+};
+
 interface VitalCardProps {
   type: VitalType;
   value?: string;
@@ -42,6 +50,13 @@ const VitalCard: React.FC<VitalCardProps> = ({
   isDualValue = false
 }) => {
   const config = VITAL_CONFIGS[type];
+  // Temperature's range depends on which unit is currently displayed
+  const rangeText =
+    type === VitalType.TEMPERATURE
+      ? tempUnit === '°F'
+        ? 'Normal Temp: 98.6°F / 37.0°C'
+        : 'Normal Temp: 37.0°C / 98.6°F'
+      : VITAL_RANGES[type];
 
   return (
     <div className="bg-white p-3 md:p-5 rounded-2xl shadow-lg shadow-black/10 border border-slate-100 flex flex-col items-start hover:border-primary/20 transition-all group w-full">
@@ -119,6 +134,10 @@ const VitalCard: React.FC<VitalCardProps> = ({
           </span>
         )}
       </div>
+
+      {rangeText && (
+        <p className="mt-2 text-[15px] text-slate-400 font-medium">{rangeText}</p>
+      )}
 
       {timestamp && (
         <p className="mt-2 text-[10px] text-slate-400 font-medium">
