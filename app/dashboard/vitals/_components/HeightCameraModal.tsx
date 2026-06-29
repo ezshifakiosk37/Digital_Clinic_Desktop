@@ -1,5 +1,3 @@
-//HeightCameraModal.tsx
-
 'use client';
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
@@ -69,7 +67,6 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
     const [step, setStep] = useState<Step>('guide');
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [barY, setBarY] = useState<number>(100);         // head bar (red)
-    //   const [floorBarY, setFloorBarY] = useState<number>(0); // floor bar (blue) — draggable
     const [floorBarY, setFloorBarY] = useState<number>(0); // floor bar (blue) — fixed at bottom
     const [activeBar, setActiveBar] = useState<'head' | 'floor' | null>(null);
     const [calculatedHeight, setCalculatedHeight] = useState<string>('');
@@ -87,6 +84,10 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
             setCameraError('');
         } else {
             stopCamera();
+            // Hide native overlay when modal closes
+            if (typeof window !== "undefined" && window.AndroidNative?.hideCameraLoading) {
+                window.AndroidNative.hideCameraLoading();
+            }
         }
     }, [isOpen]);
 
@@ -95,6 +96,21 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
         document.body.style.overflow = isOpen ? 'hidden' : '';
         return () => { document.body.style.overflow = ''; };
     }, [isOpen]);
+
+    // ── Show/hide native overlay based on step ───────────────────────────────
+    useEffect(() => {
+        if (step === 'camera') {
+            // Show overlay when camera is initialising
+            if (typeof window !== "undefined" && window.AndroidNative?.showCameraLoading) {
+                window.AndroidNative.showCameraLoading();
+            }
+        } else {
+            // Hide overlay when leaving camera step (guide, adjust, confirm)
+            if (typeof window !== "undefined" && window.AndroidNative?.hideCameraLoading) {
+                window.AndroidNative.hideCameraLoading();
+            }
+        }
+    }, [step]);
 
     // ── Camera ─────────────────────────────────────────────────────────────────
     const startCamera = useCallback(() => {
@@ -123,20 +139,9 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
         setImgDisplayH(h);
         setBarY(h * 0.15);          // head bar near top
         setFloorBarY(h * 0.99);     // floor bar fixed at bottom
-        // setFloorBarY(h * 0.88);     // floor bar near bottom (patient's feet)
     }, []);
 
-    // ── Live height preview while draggingg
-    // const computeLiveHeight = useCallback((headY: number, floorY: number, frameH: number) => {
-    //     if (!frameH) return;
-    //     const headWorldY = pixelToWorldHeight(headY, frameH);
-    //     const floorWorldY = pixelToWorldHeight(floorY, frameH);
-    //     const heightInches = Math.round(headWorldY - floorWorldY);
-    //     if (heightInches <= 0 || heightInches > 120) return; // sanity check
-    //     const feet = Math.floor(heightInches / 12);
-    //     const inches = heightInches % 12;
-    //     setLiveHeight(`${feet}ft ${inches}in`);
-    // }, []);
+    // ── Live height preview while dragging
     const computeLiveHeight = useCallback((headY: number, _floorY: number, frameH: number) => {
         if (!frameH) return;
         const effectiveFloorY = frameH * 0.99; // always derive from frameH — never trust stale state
@@ -153,10 +158,8 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
     const clamp = (y: number, max: number) => Math.max(0, Math.min(max - 2, y));
 
     const onHeadMouseDown = (e: React.MouseEvent) => { e.preventDefault(); setActiveBar('head'); };
-    // const onFloorMouseDown = (e: React.MouseEvent) => { e.preventDefault(); setActiveBar('floor'); };
     const onFloorMouseDown = (_e: React.MouseEvent) => { };
     const onHeadTouchStart = () => setActiveBar('head');
-    // const onFloorTouchStart = () => setActiveBar('floor');
     const onFloorTouchStart = () => { };
 
     const onMouseMove = useCallback((e: MouseEvent) => {
@@ -202,21 +205,12 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
     }, [onMouseMove, onTouchMove, onDragEnd]);
 
     // ── Height calculation ─────────────────────────────────────────────────────
-    //
-    //  Uses real physics — no calibration factor.
-    //  headBarY  = pixel Y of top of head (from image top)
-    //  floorBarY = pixel Y of patient's heels (from image top)
-    //
-    //  worldHeight(pixelY) = CAMERA_HEIGHT + DISTANCE × tan(angle(pixelY))
-    //  personHeight = worldHeight(headBarY) - worldHeight(floorBarY)
-    //
     const calculateHeight = useCallback(() => {
         if (!imgRef.current) return;
         const frameH = imgRef.current.getBoundingClientRect().height;
         if (!frameH) return;
 
         const headWorldY = pixelToWorldHeight(barY, frameH);
-        // const floorWorldY = pixelToWorldHeight(floorBarY, frameH);
         const floorWorldY = pixelToWorldHeight(frameH * 0.99, frameH);
         const heightInches = Math.round(headWorldY - floorWorldY);
 
@@ -395,6 +389,18 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
                         audio={false}
                         screenshotFormat="image/jpeg"
                         videoConstraints={{ facingMode: 'user' }}
+                        onUserMedia={() => {
+                            // ── Hide native overlay when camera stream is ready ──
+                            if (typeof window !== "undefined" && window.AndroidNative?.hideCameraLoading) {
+                                window.AndroidNative.hideCameraLoading();
+                            }
+                        }}
+                        onUserMediaError={() => {
+                            // ── Hide overlay on error ──
+                            if (typeof window !== "undefined" && window.AndroidNative?.hideCameraLoading) {
+                                window.AndroidNative.hideCameraLoading();
+                            }
+                        }}
                         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     />
 
@@ -522,7 +528,6 @@ const HeightCameraModal: React.FC<HeightCameraModalProps> = ({ isOpen, onClose, 
                     </div>
 
                     {/* Calculate button */}
-
                     <div style={{
                         width: '100%', maxWidth: 480,
                         padding: '12px 16px 24px', flexShrink: 0, background: 'rgba(0,0,0,0.8)',
