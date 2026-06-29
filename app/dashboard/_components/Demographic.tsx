@@ -753,7 +753,7 @@ const DemographicPage: React.FC = () => {
                               <span key={val} className="bg-[#0297d6]/10 text-[#0297d6] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#0297d6]/20">{val}</span>
                             ))
                           ) : (
-                            <span className="text-slate-400 text-sm">Select multiple...</span>
+                            <span className="text-slate-400 text-sm">Select</span>
                           )}
                         </div>
                         <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
