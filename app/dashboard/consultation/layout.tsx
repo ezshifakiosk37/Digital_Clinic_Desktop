@@ -142,7 +142,7 @@ export default function ConsultationLayout({ children }: { children: React.React
 
     } else if (shouldCleanup) {
       // ✅ Guard: if doc_token is already gone, skip backend calls silently
-      // This happens when logout clears the token before this cleanup fires
+      //This happens when logout clears the token before this cleanup fires
       const jwt = localStorage.getItem('doc_token');
       if (!jwt) {
         console.log("[FCM] Skipping backend unregister — doc_token already cleared (logout in progress)");
