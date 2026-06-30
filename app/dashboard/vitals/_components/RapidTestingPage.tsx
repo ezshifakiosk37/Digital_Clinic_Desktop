@@ -18,6 +18,7 @@ import {
     FileText
 } from 'lucide-react'
 import ToastPopup from './ToastPopup'
+import { apiService } from '@/app/_utils/apiService';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type TestResult = 'Not Performed' | 'Normal' | 'Consultation Required'
@@ -300,6 +301,9 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     const [isNextLoading, setIsNextLoading] = useState(false)
     const sessionDataRef = useRef({ name: sessionName, age: '', gender: '' })
 
+    const [isUploadingEcg, setIsUploadingEcg] = useState(false)
+    const [ecgCloudinaryUrl, setEcgCloudinaryUrl] = useState(false)
+
     useEffect(() => {
         sessionDataRef.current = {
             name: sessionName,
@@ -322,29 +326,44 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
         let currentUrl: string | null = null
 
             ; (window as any).receiveEcgFile = async (base64: string, filename: string) => {
-                console.log('📄 Received ECG file:', filename)
-                setEcgPopup({ visible: true, filename })
+                console.log('📄 Received ECG file:', filename);
+                setEcgPopup({ visible: true, filename });
+                setIsUploadingEcg(true);
 
                 try {
-                    // Remove line breaks from Base64
-                    const cleanBase64 = base64.replace(/\s/g, '')
-                    const binaryString = atob(cleanBase64)
-                    const bytes = new Uint8Array(binaryString.length)
-                    for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i)
+                    // 1. Decode base64 → Blob → File
+                    const cleanBase64 = base64.replace(/\s/g, '');
+                    const binaryString = atob(cleanBase64);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    const blob = new Blob([bytes], { type: 'application/pdf' });
+                    const file = new File([blob], filename, { type: 'application/pdf' });
 
-                    // Revoke previous blob URL if it exists
-                    if (currentUrl) URL.revokeObjectURL(currentUrl)
+                    // 2. Call the apiService method
+                    const result = await apiService.uploadEcgReport(
+                        file,
+                        sessionName,    // from props
+                        sessionPhone    // from props
+                    );
 
-                    // Create blob URL for the embed modal
-                    const blob = new Blob([bytes], { type: 'application/pdf' })
-                    const url = URL.createObjectURL(blob)
-                    currentUrl = url
-                    setAnnotatedPdfUrl(url)
-                    console.log('Blob URL created:', url)
+                    // 3. Result contains { success, url, publicId }
+                    const cloudinaryUrl = result.url;
+                    setEcgCloudinaryUrl(cloudinaryUrl);
+
+                    console.log('ECG uploaded to Cloudinary:', cloudinaryUrl);
+
+                    // (Optional) Update the ECG test result to 'Normal' automatically
+                    // updateTest('ecg', 'Normal');
+
                 } catch (err) {
-                    console.error('Error creating blob URL:', err)
+                    console.error('Error uploading ECG:', err);
+                    // Show error toast if you have one
+                } finally {
+                    setIsUploadingEcg(false);
                 }
-            }
+            };
 
         return () => {
             delete (window as any).receiveEcgFile
@@ -494,7 +513,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                         </button>
 
                         {/* Secondary action: only visible when a report exists */}
-                        {annotatedPdfUrl && (
+                        {ecgCloudinaryUrl && (
                             <div className="text-center -mt-1">
                                 <h2
 

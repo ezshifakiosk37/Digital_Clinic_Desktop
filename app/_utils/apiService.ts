@@ -624,13 +624,22 @@ export const apiService = {
         });
         return handleResponse(response);
     },
-    //orignal
-    // removeDoctorFcmToken: async (token: string) => {
-    //     const response = await fetch(`${API_BASE_URL}/api/notifications/remove-fcm-token`, {
-    //         method: 'DELETE',
-    //         headers: getHeaders(),
-    //         body: JSON.stringify({ fcmToken: token }),
-    //     });
-    //     return handleResponse(response);
-    // },
+
+
+    // ✨ NEW: Upload ECG PDF
+    uploadEcgReport: async (file: File, patientName: string, patientPhone: string) => {
+
+        const formData = new FormData();
+        formData.append('file', file);                 // matches backend field name
+        formData.append('patientName', patientName);
+        formData.append('patientPhone', patientPhone);
+
+        const response = await fetch(`${API_BASE_URL}/api/ecg-report`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: formData,
+        });
+
+        return handleResponse(response);
+    },
 };
