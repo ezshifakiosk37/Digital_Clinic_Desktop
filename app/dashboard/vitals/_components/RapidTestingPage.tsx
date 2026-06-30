@@ -302,7 +302,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     const sessionDataRef = useRef({ name: sessionName, age: '', gender: '' })
 
     const [isUploadingEcg, setIsUploadingEcg] = useState(false)
-    const [ecgCloudinaryUrl, setEcgCloudinaryUrl] = useState(false)
+    const [ecgCloudinaryUrl, setEcgCloudinaryUrl] = useState<string | null>(null);
 
     useEffect(() => {
         sessionDataRef.current = {
@@ -521,13 +521,13 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                         {/* Secondary action: only visible when a report exists */}
                         {ecgCloudinaryUrl && (
                             <div className="text-center -mt-1">
-                                <h2
-
-                                    className="text-xs text-green-500 font-medium flex items-center justify-center gap-1"
+                                <button
+                                    onClick={() => setIsPdfModalOpen(true)}
+                                    className="text-xs text-green-500 font-medium flex items-center justify-center gap-1 hover:underline cursor-pointer"
                                 >
                                     <FileText className="w-3 h-3" />
-                                    ECG Report Added
-                                </h2>
+                                    View ECG Report
+                                </button>
                             </div>
                         )}
 
@@ -602,7 +602,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
             </div>
 
             {/* PDF Modal */}
-            {isPdfModalOpen && annotatedPdfUrl && (
+            {isPdfModalOpen && ecgCloudinaryUrl && (
                 <div className="fixed inset-0 md:inset-y-0 md:left-16 md:right-0 z-50 bg-black/75 p-4 flex items-center justify-center">
                     <div className="relative bg-white rounded-lg w-full max-w-4xl h-[90vh] flex flex-col">
                         <div className="flex justify-between items-center p-3 border-b">
@@ -611,14 +611,14 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                         </div>
                         <div className="flex-1 overflow-auto p-2">
                             <embed
-                                src={annotatedPdfUrl}
+                                src={ecgCloudinaryUrl}
                                 type="application/pdf"
                                 className="w-full h-full"
                             />
                         </div>
                         <div className="text-center p-2 border-t">
                             <a
-                                href={annotatedPdfUrl}
+                                href={ecgCloudinaryUrl}
                                 download="ecg_report.pdf"
                                 className="text-xs text-[#0297d6] hover:underline"
                             >
