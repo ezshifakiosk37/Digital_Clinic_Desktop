@@ -634,7 +634,7 @@ export const apiService = {
         formData.append('patientName', patientName);
         formData.append('patientPhone', patientPhone);
 
-        const response = await fetch(`${API_BASE_URL}/api/ecg-report`, {
+        const response = await fetch(`${API_BASE_URL}/api/upload/ecg-report`, {
             method: 'POST',
             headers: getHeaders(),
             body: formData,
