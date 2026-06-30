@@ -610,15 +610,15 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                             <button onClick={() => setIsPdfModalOpen(false)} className="text-slate-500 hover:text-slate-700 text-xl">✕</button>
                         </div>
                         <div className="flex-1 overflow-auto p-2">
-                            <embed
-                                src={ecgCloudinaryUrl}
-                                type="application/pdf"
+                            <iframe
+                                src={`${ecgCloudinaryUrl}?fl_attachment=0`}
                                 className="w-full h-full"
+                                title="ECG Report"
                             />
                         </div>
                         <div className="text-center p-2 border-t">
                             <a
-                                href={ecgCloudinaryUrl}
+                                href={ecgCloudinaryUrl}   // plain URL triggers download (attachment)
                                 download="ecg_report.pdf"
                                 className="text-xs text-[#0297d6] hover:underline"
                             >
