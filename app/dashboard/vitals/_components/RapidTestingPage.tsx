@@ -304,6 +304,27 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     const [isUploadingEcg, setIsUploadingEcg] = useState(false)
     const [ecgCloudinaryUrl, setEcgCloudinaryUrl] = useState<string | null>(null);
 
+    const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (ecgCloudinaryUrl) {
+            // Revoke previous blob to avoid memory leaks
+            if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+
+            fetch(ecgCloudinaryUrl)
+                .then(res => res.blob())
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    setPdfBlobUrl(url);
+                })
+                .catch(err => console.error('Failed to fetch PDF:', err));
+        }
+
+        return () => {
+            if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+        };
+    }, [ecgCloudinaryUrl]);
+
     useEffect(() => {
         sessionDataRef.current = {
             name: sessionName,
@@ -611,14 +632,14 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                         </div>
                         <div className="flex-1 overflow-auto p-2">
                             <iframe
-                                src={`${ecgCloudinaryUrl}?fl_attachment=0`}
+                                src={pdfBlobUrl || ''}
                                 className="w-full h-full"
                                 title="ECG Report"
                             />
                         </div>
                         <div className="text-center p-2 border-t">
                             <a
-                                href={ecgCloudinaryUrl}   // plain URL triggers download (attachment)
+                                href={ecgCloudinaryUrl}
                                 download="ecg_report.pdf"
                                 className="text-xs text-[#0297d6] hover:underline"
                             >
