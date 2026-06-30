@@ -68,6 +68,8 @@ const DemographicPage: React.FC = () => {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [showWebcamModal, setShowWebcamModal] = useState(false);
+  const [showPhoneConflictDialog, setShowPhoneConflictDialog] = useState(false);
+  const [phoneConflictRecord, setPhoneConflictRecord] = useState<{ entryId: string; fields: any } | null>(null);
 
   // Autofill country & city from clinic profile on first load only
   useEffect(() => {
@@ -178,10 +180,10 @@ const DemographicPage: React.FC = () => {
     }
   };
 
-  const handleNextStep = async () => {
-    const required = ['phoneNumber', 'firstName', 'gender', 'dob', 'age', 'country', 'city', 'province'];
-    const missing = required.filter(field => !form[field]);
-    if (missing.length > 0) return showNotification("Please Fill the required fields marked with *.");
+  // ── Actually saves/updates the patient. Pulled out of handleNextStep so it
+  // can be called directly, or after the phone-conflict dialog is resolved. ──
+  const proceedWithSave = async (overrideEntryId?: string | null) => {
+    const idToUse = overrideEntryId !== undefined ? overrideEntryId : entryId;
 
     setIsSaving(true);
     try {
@@ -195,7 +197,7 @@ const DemographicPage: React.FC = () => {
         }
       });
 
-      const response = await apiService.saveOrUpdatePatient(finalData, entryId);
+      const response = await apiService.saveOrUpdatePatient(finalData, idToUse);
       if (response.success) {
         setEntryId(response.entryId);
         setToken(response.token);
@@ -221,6 +223,68 @@ const DemographicPage: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleNextStep = async () => {
+    setIsSaving(true);
+
+    try {
+      const required = ['phoneNumber', 'firstName', 'gender', 'dob', 'age', 'country', 'city', 'province'];
+      const missing = required.filter(field => !form[field]);
+      if (missing.length > 0) return showNotification("Please Fill the required fields marked with *.");
+
+      // ── If the user never clicked "Find" (no confirmed entryId yet), check
+      // whether this phone number already belongs to a DIFFERENT existing
+      // patient before saving — so we don't silently overwrite someone else's
+      // record just because they typed the same number by mistake. ──
+      if (!entryId) {
+        try {
+          const existing = await apiService.findPatientByPhone(form.phoneNumber);
+          if (existing && existing.fields) {
+            const f = existing.fields;
+            const norm = (v: any) => (v ?? '').toString().trim().toLowerCase();
+            const sameRecord =
+              norm(f.firstName) === norm(form.firstName) &&
+              norm(f.lastName) === norm(form.lastName) &&
+              // norm(f.cnic) === norm(form.cnic) &&
+              norm(f.dob) === norm(form.dob) &&
+              norm(f.gender) === norm(form.gender);
+
+            if (!sameRecord) {
+              setPhoneConflictRecord({ entryId: existing.entryId, fields: f });
+              setShowPhoneConflictDialog(true);
+              setIsSaving(false);
+              return; // wait for the user's decision
+            }
+          }
+        } catch (err) {
+          // findPatientByPhone resolves to null on 404; any other errors
+          // shouldn't block saving — just log it and proceed.
+          console.error("Phone conflict check failed:", err);
+        }
+      }
+
+      await proceedWithSave();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // User chose to update the existing record found under this phone number
+  const handleConfirmUpdateExisting = async () => {
+    const idToUse = phoneConflictRecord?.entryId ?? null;
+    setShowPhoneConflictDialog(false);
+    setEntryId(idToUse);
+    await proceedWithSave(idToUse);
+    setPhoneConflictRecord(null);
+  };
+
+  // User realized the number was wrong — clear just the phone number,
+  // keep every other field exactly as typed.
+  const handleChangeNumber = () => {
+    setShowPhoneConflictDialog(false);
+    setPhoneConflictRecord(null);
+    updateForm('phoneNumber', '');
   };
 
   const resetForm = () => {
@@ -856,6 +920,32 @@ const DemographicPage: React.FC = () => {
           >
             Done & New Patient
           </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Phone Number Conflict Dialog */}
+      <Dialog open={showPhoneConflictDialog} onOpenChange={setShowPhoneConflictDialog}>
+        <DialogContent className="sm:max-w-md text-center py-8">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Phone Number Already Registered</DialogTitle>
+            <DialogDescription className="text-sm text-slate-500 mt-2">
+              This phone number is already linked to{' '}
+              <span className="font-bold text-slate-700">
+                {phoneConflictRecord?.fields?.firstName} {phoneConflictRecord?.fields?.lastName}
+              </span>
+              , but the details you've entered don't match that record. Do you want
+              to update that patient's record with these new details, or use a
+              different phone number instead?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 justify-center mt-4">
+            <Button variant="outline" onClick={handleChangeNumber} className="flex-1">
+              Change Number
+            </Button>
+            <Button onClick={handleConfirmUpdateExisting} className="flex-1 bg-[#0297d6] hover:bg-[#0286c2]">
+              Update Existing
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
