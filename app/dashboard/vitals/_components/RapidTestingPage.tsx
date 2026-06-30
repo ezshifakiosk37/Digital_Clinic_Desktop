@@ -331,35 +331,41 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                 setIsUploadingEcg(true);
 
                 try {
-                    // 1. Decode base64 → Blob → File
-                    const cleanBase64 = base64.replace(/\s/g, '');
+                    // 1️⃣ Remove data URL prefix if present
+                    let base64Data = base64;
+                    if (base64.startsWith('data:')) {
+                        const parts = base64.split(',');
+                        if (parts.length === 2) {
+                            base64Data = parts[1];
+                            console.log('Stripped data URL prefix');
+                        } else {
+                            throw new Error('Invalid data URL format');
+                        }
+                    }
+
+                    // 2️⃣ Clean and decode base64
+                    const cleanBase64 = base64Data.replace(/\s/g, '');
                     const binaryString = atob(cleanBase64);
                     const bytes = new Uint8Array(binaryString.length);
                     for (let i = 0; i < binaryString.length; i++) {
                         bytes[i] = binaryString.charCodeAt(i);
                     }
+
+                    // 3️⃣ Create File object
                     const blob = new Blob([bytes], { type: 'application/pdf' });
                     const file = new File([blob], filename, { type: 'application/pdf' });
 
-                    // 2. Call the apiService method
-                    const result = await apiService.uploadEcgReport(
-                        file,
-                        sessionName,    // from props
-                        sessionPhone    // from props
-                    );
+                    console.log('📄 File size:', file.size, 'bytes');
+                    console.log('📄 File type:', file.type);
 
-                    // 3. Result contains { success, url, publicId }
+                    // 4️⃣ Upload via apiService
+                    const result = await apiService.uploadEcgReport(file, sessionName, sessionPhone);
                     const cloudinaryUrl = result.url;
                     setEcgCloudinaryUrl(cloudinaryUrl);
-
                     console.log('ECG uploaded to Cloudinary:', cloudinaryUrl);
-
-                    // (Optional) Update the ECG test result to 'Normal' automatically
-                    // updateTest('ecg', 'Normal');
 
                 } catch (err) {
                     console.error('Error uploading ECG:', err);
-                    // Show error toast if you have one
                 } finally {
                     setIsUploadingEcg(false);
                 }

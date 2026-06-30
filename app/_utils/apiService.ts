@@ -628,15 +628,19 @@ export const apiService = {
 
     // ✨ NEW: Upload ECG PDF
     uploadEcgReport: async (file: File, patientName: string, patientPhone: string) => {
+        const token = localStorage.getItem('token')
+        if (!token) throw new Error("No active session. Please log in.");
 
         const formData = new FormData();
-        formData.append('file', file);                 // matches backend field name
+        formData.append('file', file);
         formData.append('patientName', patientName);
         formData.append('patientPhone', patientPhone);
 
         const response = await fetch(`${API_BASE_URL}/api/upload/ecg-report`, {
             method: 'POST',
-            headers: getHeaders(),
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
             body: formData,
         });
 
