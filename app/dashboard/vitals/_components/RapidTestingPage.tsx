@@ -658,13 +658,7 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                             </button>
                         </div>
                         <div className="flex-1 overflow-auto p-2">
-                            {pdfBlobUrl ? (
-                                <iframe src={ecgCloudinaryUrl} className="w-full h-full" title="ECG Report" />
-                            ) : (
-                                <div className="flex items-center justify-center h-full text-slate-400">
-                                    Loading PDF…
-                                </div>
-                            )}
+                            <iframe src={ecgCloudinaryUrl} className="w-full h-full" title="ECG Report" />
                         </div>
                         <div className="text-center p-2 border-t">
                             <a
