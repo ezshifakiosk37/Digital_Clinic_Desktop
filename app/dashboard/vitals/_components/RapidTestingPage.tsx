@@ -643,14 +643,25 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                     <div className="relative bg-white rounded-lg w-full max-w-4xl h-[90vh] flex flex-col">
                         <div className="flex justify-between items-center p-3 border-b">
                             <h3 className="text-lg font-semibold">ECG Report</h3>
-                            <button onClick={() => setIsPdfModalOpen(false)} className="text-slate-500 hover:text-slate-700 text-xl">✕</button>
+                            <button
+                                onClick={() => {
+                                    setIsPdfModalOpen(false);
+                                    if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+                                    setPdfBlobUrl(null);
+                                }}
+                                className="text-slate-500 hover:text-slate-700 text-xl"
+                            >
+                                ✕
+                            </button>
                         </div>
                         <div className="flex-1 overflow-auto p-2">
-                            <iframe
-                                src={pdfBlobUrl || ''}
-                                className="w-full h-full"
-                                title="ECG Report"
-                            />
+                            {pdfBlobUrl ? (
+                                <iframe src={pdfBlobUrl} className="w-full h-full" title="ECG Report" />
+                            ) : (
+                                <div className="flex items-center justify-center h-full text-slate-400">
+                                    Loading PDF…
+                                </div>
+                            )}
                         </div>
                         <div className="text-center p-2 border-t">
                             <a
