@@ -318,14 +318,13 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
 
             fetch(ecgCloudinaryUrl)
                 .then(res => {
-                    console.log('📄 Fetch response status:', res.status);
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     return res.blob();
                 })
                 .then(blob => {
-                    console.log('📄 Blob size:', blob.size, 'type:', blob.type);
-                    const url = URL.createObjectURL(blob);
-                    console.log('📄 Created blob URL:', url);
+                    // ✅ Create a new blob with correct MIME type
+                    const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(pdfBlob);
                     setPdfBlobUrl(url);
                 })
                 .catch(err => console.error('❌ Failed to fetch PDF:', err));
