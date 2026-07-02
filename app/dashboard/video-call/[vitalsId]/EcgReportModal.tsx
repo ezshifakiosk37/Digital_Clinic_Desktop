@@ -36,7 +36,7 @@ export function EcgReportModal({ onClose, vitalsId }: EcgReportModalProps) {
     }, [vitalsId]);
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/75 p-4 flex items-center justify-center">
+        <div className="fixed inset-0 md:inset-y-0 md:left-16 md:right-0 z-50 bg-black/75 p-4 flex items-center justify-center">
             <div className="relative bg-white rounded-lg w-full max-w-4xl h-[90vh] flex flex-col">
                 {/* Header */}
                 <div className="flex justify-between items-center p-3 border-b">
