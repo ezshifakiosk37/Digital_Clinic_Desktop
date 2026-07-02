@@ -658,10 +658,10 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                             </button>
                         </div>
                         <div className="flex-1 overflow-auto p-2">
-                            <embed
-                                src={ecgCloudinaryUrl!}
-                                type="application/pdf"
+                            <iframe
+                                src={`https://docs.google.com/viewer?url=${encodeURIComponent(ecgCloudinaryUrl!)}&embedded=true`}
                                 className="w-full h-full"
+                                title="ECG Report"
                             />
                         </div>
                         <div className="text-center p-2 border-t">
