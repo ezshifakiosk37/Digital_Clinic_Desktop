@@ -17,6 +17,7 @@ import { apiService } from '@/app/_utils/apiService';
 import { PrescriptionModal } from './PrescriptionModel';
 import { PatientInfoModal } from './PatientInfoModal';
 import { PatientPrescriptionModal } from './PatientPrescriptionModal';
+import { EcgReportModal } from './EcgReportModal';
 
 interface VideoCallClientProps {
   vitalsId: string;
@@ -47,6 +48,8 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
   const remoteRef = useRef<HTMLDivElement>(null);
   const localRef = useRef<HTMLDivElement>(null);
   const isDoctor = typeof window !== 'undefined' && !!localStorage.getItem('doc_token');
+
+  const [isEcgModalOpen, setIsEcgModalOpen] = useState(false);
 
   useEffect(() => {
     if (!vitalsId || !isDoctor) return;
@@ -218,6 +221,12 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
           vitalsId={vitalsId}
         />
       )}
+      {isEcgModalOpen && (
+        <EcgReportModal
+          onClose={() => setIsEcgModalOpen(false)}
+          vitalsId={vitalsId}
+        />
+      )}
 
       {/* Loading */}
       {loading && (
@@ -301,6 +310,15 @@ export default function VideoCallClient({ vitalsId }: VideoCallClientProps) {
               title="Write Prescription"
             >
               <ClipboardList size={20} />
+            </Button>
+          )}
+          {isDoctor && (
+            <Button
+              onClick={() => setIsEcgModalOpen(true)}
+              className="rounded-full h-14 w-14 bg-slate-700 hover:bg-slate-600 text-white border-2 border-white/20 transition-all active:scale-95"
+              title="ECG Report"
+            >
+              <FileText size={20} />
             </Button>
           )}
           {!isDoctor && (

@@ -45,6 +45,7 @@ export interface RapidTestingData {
     bloodSugar: BloodSugar
     tests: TestItem[]
     moreTests: MoreTest[]
+    ecgLink: string
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -459,7 +460,12 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     const updateMoreTest = (id: string, value: string) =>
         setMoreTests(prev => prev.map(m => (m.id === id ? { ...m, value } : m)))
 
-    const handleNext = () => onNext({ bloodSugar, tests, moreTests })
+    const handleNext = () => onNext({
+        bloodSugar,
+        tests,
+        moreTests,
+        ecgLink: ecgCloudinaryUrl ?? 'Not Performed'
+    })
 
     const regularTests = tests.filter(t => t.id !== 'ecg')
     const ecgTest = tests.find(t => t.id === 'ecg')!
