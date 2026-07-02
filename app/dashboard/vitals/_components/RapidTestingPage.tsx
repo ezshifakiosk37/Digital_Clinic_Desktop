@@ -308,42 +308,42 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     const pdfBlobUrlRef = useRef<string | null>(null);
 
     useEffect(() => {
-    if (!ecgCloudinaryUrl) return;
+        if (!ecgCloudinaryUrl) return;
 
-    console.log('📄 Fetching PDF from Cloudinary:', ecgCloudinaryUrl);
+        console.log('📄 Fetching PDF from Cloudinary:', ecgCloudinaryUrl);
 
-    let cancelled = false;
+        let cancelled = false;
 
-    fetch(ecgCloudinaryUrl)
-        .then(res => {
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return res.blob();
-        })
-        .then(blob => {
-            if (cancelled) return;
+        fetch(ecgCloudinaryUrl)
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.blob();
+            })
+            .then(blob => {
+                if (cancelled) return;
 
-            // Revoke the previous blob before creating a new one
+                // Revoke the previous blob before creating a new one
+                if (pdfBlobUrlRef.current) {
+                    URL.revokeObjectURL(pdfBlobUrlRef.current);
+                }
+
+                const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+                const url = URL.createObjectURL(pdfBlob);
+
+                pdfBlobUrlRef.current = url; // keep ref in sync
+                setPdfBlobUrl(url);
+            })
+            .catch(err => console.error('❌ Failed to fetch PDF:', err));
+
+        return () => {
+            cancelled = true;
+            // Only revoke on unmount or when ecgCloudinaryUrl actually changes
             if (pdfBlobUrlRef.current) {
                 URL.revokeObjectURL(pdfBlobUrlRef.current);
+                pdfBlobUrlRef.current = null;
             }
-
-            const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-            const url = URL.createObjectURL(pdfBlob);
-
-            pdfBlobUrlRef.current = url; // keep ref in sync
-            setPdfBlobUrl(url);
-        })
-        .catch(err => console.error('❌ Failed to fetch PDF:', err));
-
-    return () => {
-        cancelled = true;
-        // Only revoke on unmount or when ecgCloudinaryUrl actually changes
-        if (pdfBlobUrlRef.current) {
-            URL.revokeObjectURL(pdfBlobUrlRef.current);
-            pdfBlobUrlRef.current = null;
-        }
-    };
-}, [ecgCloudinaryUrl]); // pdfBlobUrl intentionally NOT in deps
+        };
+    }, [ecgCloudinaryUrl]); // pdfBlobUrl intentionally NOT in deps
 
     console.log("pdfBlobUrl: " + pdfBlobUrl)
 
@@ -658,7 +658,11 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                             </button>
                         </div>
                         <div className="flex-1 overflow-auto p-2">
-                            <iframe src={ecgCloudinaryUrl} className="w-full h-full" title="ECG Report" />
+                            <embed
+                                src={ecgCloudinaryUrl!}
+                                type="application/pdf"
+                                className="w-full h-full"
+                            />
                         </div>
                         <div className="text-center p-2 border-t">
                             <a
