@@ -308,24 +308,38 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
 
     useEffect(() => {
         if (ecgCloudinaryUrl) {
-            // Revoke previous blob to avoid memory leaks
-            if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+            console.log('📄 Fetching PDF from Cloudinary:', ecgCloudinaryUrl);
+
+            // Revoke previous blob to avoid leaks
+            if (pdfBlobUrl) {
+                console.log('📄 Revoking old blob URL:', pdfBlobUrl);
+                URL.revokeObjectURL(pdfBlobUrl);
+            }
 
             fetch(ecgCloudinaryUrl)
-                .then(res => res.blob())
+                .then(res => {
+                    console.log('📄 Fetch response status:', res.status);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.blob();
+                })
                 .then(blob => {
+                    console.log('📄 Blob size:', blob.size, 'type:', blob.type);
                     const url = URL.createObjectURL(blob);
+                    console.log('📄 Created blob URL:', url);
                     setPdfBlobUrl(url);
                 })
-                .catch(err => console.error('Failed to fetch PDF:', err));
+                .catch(err => console.error('❌ Failed to fetch PDF:', err));
         }
 
         return () => {
-            if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+            if (pdfBlobUrl) {
+                console.log('📄 Cleanup: revoking blob URL:', pdfBlobUrl);
+                URL.revokeObjectURL(pdfBlobUrl);
+            }
         };
     }, [ecgCloudinaryUrl]);
 
-    console.log(pdfBlobUrl)
+    console.log("pdfBlobUrl: " + pdfBlobUrl)
 
     useEffect(() => {
         sessionDataRef.current = {
