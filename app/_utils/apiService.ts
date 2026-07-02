@@ -438,7 +438,7 @@ export const apiService = {
     getRapidTesting: async (vitalsId: string) => {
         const response = await fetch(`${API_BASE_URL}/api/vitals/rapid-testing/${vitalsId}`, {
             method: 'GET',
-            headers: getHeaders(),
+            headers: getAvailableHeaders(),
         });
         return handleResponse(response);
     },
