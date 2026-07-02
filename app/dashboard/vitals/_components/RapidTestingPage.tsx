@@ -307,6 +307,8 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
     const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
     const pdfBlobUrlRef = useRef<string | null>(null);
 
+    const [isIframeLoading, setIsIframeLoading] = useState(false);
+
     useEffect(() => {
         if (!ecgCloudinaryUrl) return;
 
@@ -651,17 +653,27 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
                         <div className="flex justify-between items-center p-3 border-b">
                             <h3 className="text-lg font-semibold">ECG Report</h3>
                             <button
-                                onClick={() => setIsPdfModalOpen(false)}
+                                onClick={() => { setIsPdfModalOpen(false); setIsIframeLoading(false); }}
                                 className="text-slate-500 hover:text-slate-700 text-xl"
                             >
                                 ✕
                             </button>
                         </div>
-                        <div className="flex-1 overflow-auto p-2">
+                        <div className="flex-1 overflow-auto p-2 relative">
+                            {isIframeLoading && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-10 gap-3">
+                                    <svg className="animate-spin w-8 h-8 text-[#0297d6]" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                    </svg>
+                                    <p className="text-sm text-slate-500 font-medium">Loading ECG Report…</p>
+                                </div>
+                            )}
                             <iframe
                                 src={`https://docs.google.com/viewer?url=${encodeURIComponent(ecgCloudinaryUrl!)}&embedded=true`}
                                 className="w-full h-full"
                                 title="ECG Report"
+                                onLoad={() => setIsIframeLoading(false)}
                             />
                         </div>
                         <div className="text-center p-2 border-t">
