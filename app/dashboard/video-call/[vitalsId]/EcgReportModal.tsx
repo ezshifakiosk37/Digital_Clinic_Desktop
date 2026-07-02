@@ -19,7 +19,8 @@ export function EcgReportModal({ onClose, vitalsId }: EcgReportModalProps) {
         const fetchEcg = async () => {
             try {
                 const data = await apiService.getRapidTesting(vitalsId);
-                const link = data?.ecgLink;
+                console.log(data.data.ecgLink)
+                const link = data?.data.ecgLink;
                 if (link && link !== 'Not Performed') {
                     setEcgLink(link);
                 } else {
