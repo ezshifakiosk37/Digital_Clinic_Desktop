@@ -325,6 +325,8 @@ const RapidTestingPage: React.FC<RapidTestingPageProps> = ({
         };
     }, [ecgCloudinaryUrl]);
 
+    console.log(pdfBlobUrl)
+
     useEffect(() => {
         sessionDataRef.current = {
             name: sessionName,
